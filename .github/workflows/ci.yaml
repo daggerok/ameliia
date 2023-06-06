@@ -1,0 +1,81 @@
+name: CI
+on:
+  push:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+env:
+  NODE_VERSION: 19.7.0
+permissions:
+  contents: write
+jobs:
+  npm-check-updates:
+    environment:
+      name: ci
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        id: ci
+        with:
+          path: |
+            ~/.npm
+            ~/.node
+            ~/.gradle
+            ~/.m2/repository
+            !~/.m2/repository/com/gituhb/daggerok
+          key: ${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/pom.xml', '**/package.json', '**/package-lock.json') }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm_config_yes=true npx npm-check-updates -u
+      - run: npm i -E
+      - run: npm run build
+      - run: npm run clean
+      - run: npm run build-github-pages
+  build:
+    environment:
+      name: ci
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        id: ci
+        with:
+          path: |
+            ~/.npm
+            ~/.node
+            ~/.gradle
+            ~/.m2/repository
+            !~/.m2/repository/com/gituhb/daggerok
+          key: ${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/pom.xml', '**/package.json', '**/package-lock.json') }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm i -E
+      - run: npm run build
+      - run: npm run clean
+      - run: npm run build-github-pages
+#  tests:
+#    environment:
+#      name: ci
+#      url: ${{ steps.deployment.outputs.page_url }}
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/cache@v3
+#        id: ci
+#        with:
+#          path: |
+#            ~/.npm
+#            ~/.node
+#            ~/.gradle
+#            ~/.m2/repository
+#            !~/.m2/repository/com/gituhb/daggerok
+#          key: ${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/pom.xml', '**/package.json', '**/package-lock.json') }}
+#      - uses: actions/setup-node@v3
+#        with:
+#          node-version: ${{ env.NODE_VERSION }}
+#      - run: npm i -E
+#      - run: npm t

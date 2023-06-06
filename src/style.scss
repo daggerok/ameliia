@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Shantell+Sans:ital@0;1&display=swap');
+
+$font-size: 1.3rem;
+$text-shadow: 0.5rem;
+
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background: url("./favicon.png") no-repeat fixed center left;
+  font-family: 'Shantell Sans', cursive;
+  font-size: $font-size;
+  text-shadow: rgb(255, 255, 255) 1rem $text-shadow $text-shadow;
+
+  .math {
+    padding: 0 1%
+  }
+
+  input {
+    max-width: 2rem;
+    font-family: 'Shantell Sans', cursive;
+    font-size: $font-size;
+    text-align: center;
+  }
+
+  .btn {
+    color: green;
+    font-weight: bold;
+    border: solid;
+    padding: 0.3em;
+
+    &:hover {
+      cursor: pointer;
+    }
+  }
+
+  .display-none {
+    display: none;
+  }
+
+  .correct {
+    color: green;
+  }
+
+  .wrong {
+    color: red;
+  }
+
+  display: grid;
+  height: 100vh;
+  grid-template-rows: 11fr 1fr;
+  grid-template-areas: "main" "footer";
+
+  #main {
+    grid-area: main;
+  }
+
+  #footer {
+    grid-area: footer;
+    text-align: center;
+
+    a {
+      color: deeppink;
+      text-decoration: none;
+    }
+
+    .love {
+      color: deeppink;
+    }
+  }
+}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ameliia</title>
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="stylesheet" href="./style.scss">
+</head>
+<body id="app">
+<main id="main" class="math">
+    <p class="greeting">Hey Ameliia!</p>
+    <p class="greeting">Let's do some math!</p>
+    <p class="greeting">Type value and press</p>
+    <p class="greeting">Enter or return to complete</p>
+    <section id="step-0">
+        <label><input id="first-value"></label>
+        <span>+</span>
+        <label><input id="second-value"></label>
+        <span>=</span>
+        <label><input id="sum"></label>
+    </section>
+    <section id="step-1" class="display-none">
+        <p class="greeting">Now you can press <span class="btn" id="results-check">THIS</span></p>
+        <p>button to see results!</p>
+    </section>
+    <section id="step-2" class="display-none">
+        <span id="result"></span>
+        <p class="greeting">Press <span class="btn" id="clear-and-replay">Clear</span> to play again!</p>
+    </section>
+</main>
+<div id="footer">
+    <footer>with <span class="love">&hearts;</span> from <a href="https://githib.com/daggerok/" target="_blank" class="link">Dad</a> &copy; 2023</footer>
+</div>
+<script src="./main.js"></script>
+</body>
+</html>

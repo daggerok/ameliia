@@ -1,0 +1,37 @@
+{
+  "name": "ameliia",
+  "version": "1.0.0",
+  "description": "Math for Ameliia",
+  "source": "src/index.html",
+  "scripts": {
+    "clean": "rimraf -rf dist",
+    "prebuild": "npm run clean",
+    "build-github-pages": "npm run build -- --public-url=/ameliia/",
+    "serve": "parcel --no-cache --no-source-maps",
+    "build": "parcel build --no-cache --no-source-maps",
+    "start": "pm2 start 'npm run serve' --name app",
+    "restart": "pm2 restart app",
+    "stop": "pm2 kill",
+    "logs": "pm2 logs",
+    "test": "jest src",
+    "dev": "npm run test -- --watchAll"
+  },
+  "keywords": [
+    "parcel",
+    "rimraf",
+    "sass",
+    "jest",
+    "pm2"
+  ],
+  "author": "Maksim Kostromin / GitHub: daggerok",
+  "license": "MIT",
+  "devDependencies": {
+    "@parcel/transformer-sass": "2.9.1",
+    "@types/node": "20.2.5",
+    "jest": "29.5.0",
+    "parcel": "2.9.1",
+    "pm2": "5.3.0",
+    "rimraf": "5.0.1",
+    "sass": "1.62.1"
+  }
+}
