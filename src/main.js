@@ -155,4 +155,12 @@ function main() {
 
         $firstOperandInput.focus();
     }
+
+    document.querySelectorAll('input').forEach(input =>
+        input.onKeyup(event => {
+            const value = event.target.value;
+            if (!value || !value.length || value.length < 3) return;
+            event.target.style = `max-width: ${value.length}rem`;
+        })
+    )
 }
