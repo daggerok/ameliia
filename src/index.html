@@ -2,35 +2,1941 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Ameliia</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraction Master - Ameliia's Learning Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="./favicon.png">
     <link rel="stylesheet" href="./style.scss">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 2rem;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-family: 'Fredoka', sans-serif;
+            color: #667eea;
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            margin-bottom: 0.5rem;
+        }
+
+        .header .student-name {
+            font-size: clamp(1rem, 3vw, 1.3rem);
+            color: #764ba2;
+            font-weight: 600;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 16px;
+            color: white;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            font-weight: 700;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .stat-label {
+            font-size: clamp(0.8rem, 2vw, 1rem);
+            opacity: 0.9;
+        }
+
+        .question-container {
+            background: #f8f9ff;
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            min-height: 300px;
+        }
+
+        .question-type {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .question-text {
+            font-size: clamp(1.1rem, 3vw, 1.4rem);
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .visual-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .fraction-visual {
+            display: inline-block;
+        }
+
+        .circle-container {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .answer-section {
+            margin-top: 2rem;
+        }
+
+        .answer-input {
+            width: 100%;
+            max-width: 200px;
+            padding: 1rem;
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
+            border: 3px solid #667eea;
+            border-radius: 12px;
+            text-align: center;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 4px rgba(118, 75, 162, 0.1);
+            transform: scale(1.05);
+        }
+
+        .fraction-input-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .fraction-input-group input {
+            max-width: 100px;
+        }
+
+        .fraction-line {
+            width: 60px;
+            height: 3px;
+            background: #2d3748;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Poppins', sans-serif;
+            margin-top: 1rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .feedback {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 12px;
+            font-size: clamp(1rem, 2.5vw, 1.1rem);
+            line-height: 1.6;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .feedback.correct {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+
+        .feedback.incorrect {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+
+        .explanation {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #764ba2;
+        }
+
+        .explanation-title {
+            font-weight: 700;
+            color: #764ba2;
+            margin-bottom: 0.5rem;
+            font-size: clamp(1rem, 2.5vw, 1.1rem);
+        }
+
+        .next-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .celebration {
+            text-align: center;
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin: 1rem 0;
+            animation: bounce 0.6s;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            .question-container {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                padding: 3rem;
+            }
+        }
+
+        svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .number-line {
+            margin: 2rem auto;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .helper-text {
+            font-size: clamp(0.85rem, 2vw, 0.95rem);
+            color: #666;
+            font-style: italic;
+            margin-top: 0.5rem;
+        }
+    </style>
 </head>
-<body id="app">
-<main id="main" class="math">
-    <p class="greeting">Hey Ameliia!</p>
-    <p class="greeting">Let's do some math!</p>
-    <p class="greeting">Type value and press</p>
-    <p class="greeting">Enter or return to complete</p>
-    <section id="step-0">
-        <label><input id="first-value"></label>
-        <span>+</span>
-        <label><input id="second-value"></label>
-        <span>=</span>
-        <label><input id="sum"></label>
-    </section>
-    <section id="step-1" class="display-none">
-        <p class="greeting">Now you can press <span class="btn" id="results-check">THIS</span></p>
-        <p>button to see results!</p>
-    </section>
-    <section id="step-2" class="display-none">
-        <span id="result"></span>
-        <p class="greeting">Press <span class="btn" id="clear-and-replay">Clear</span> to play again!</p>
-    </section>
-</main>
-<div id="footer">
-    <footer>with <span class="love">&hearts;</span> from <a href="https://githib.com/daggerok/" target="_blank" class="link">Dad</a> &copy; 2023</footer>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🎮 Fraction Master</h1>
+        <div class="student-name">Ameliia Kostromin's Learning Adventure</div>
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+    </div>
+
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-value" id="correctCount">0</div>
+            <div class="stat-label">Correct ✓</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="totalCount">0</div>
+            <div class="stat-label">Total Questions</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="streakCount">0</div>
+            <div class="stat-label">🔥 Streak</div>
+        </div>
+    </div>
+
+    <div class="question-container">
+        <div class="question-type" id="questionType">Loading...</div>
+        <div class="question-text" id="questionText"></div>
+        <div class="visual-area" id="visualArea"></div>
+        <div class="answer-section">
+            <div id="answerInputArea"></div>
+            <button class="button" id="submitBtn" onclick="checkAnswer()">Submit Answer</button>
+        </div>
+        <div id="feedbackArea"></div>
+    </div>
 </div>
-<script src="./main.js"></script>
+
+<script>
+    // Game State
+    let currentQuestion = null;
+    let stats = {
+        correct: 0,
+        total: 0,
+        streak: 0,
+        questionsAnswered: new Set()
+    };
+
+    // Question Types for 3rd Grade
+    const questionTypes = [
+        'identifyFraction',
+        'visualFraction',
+        'compareFractions',
+        'equivalentFractions',
+        'numberLine',
+        'simplifyFraction',
+        'addSameDenominator',
+        'fractionOfGroup',
+        'wholeAndParts'
+    ];
+
+    // Utility Functions
+    function gcd(a, b) {
+        return b === 0 ? a : gcd(b, a % b);
+    }
+
+    function simplifyFraction(num, den) {
+        const divisor = gcd(num, den);
+        return { numerator: num / divisor, denominator: den / divisor };
+    }
+
+    function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function getRandomElement(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    // Visual Drawing Functions
+    function drawCircle(filled, total, index) {
+        const size = 120;
+        const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe'];
+        const color = colors[index % colors.length];
+
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("width", size);
+        svg.setAttribute("height", size);
+        svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+
+        const centerX = size / 2;
+        const centerY = size / 2;
+        const radius = size / 2 - 10;
+
+        // Draw circle segments
+        for (let i = 0; i < total; i++) {
+            const startAngle = (i * 360 / total - 90) * Math.PI / 180;
+            const endAngle = ((i + 1) * 360 / total - 90) * Math.PI / 180;
+
+            const x1 = centerX + radius * Math.cos(startAngle);
+            const y1 = centerY + radius * Math.sin(startAngle);
+            const x2 = centerX + radius * Math.cos(endAngle);
+            const y2 = centerY + radius * Math.sin(endAngle);
+
+            const largeArc = 360 / total > 180 ? 1 : 0;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            const d = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+            path.setAttribute("d", d);
+            path.setAttribute("fill", i < filled ? color : "#f0f0f0");
+            path.setAttribute("stroke", "#2d3748");
+            path.setAttribute("stroke-width", "2");
+            svg.appendChild(path);
+        }
+
+        return svg;
+    }
+
+    function drawBar(filled, total) {
+        const width = 300;
+        const height = 80;
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("width", "100%");
+        svg.setAttribute("height", height);
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        const barWidth = width / total;
+
+        for (let i = 0; i < total; i++) {
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", i * barWidth);
+            rect.setAttribute("y", 10);
+            rect.setAttribute("width", barWidth - 4);
+            rect.setAttribute("height", 60);
+            rect.setAttribute("fill", i < filled ? "#667eea" : "#f0f0f0");
+            rect.setAttribute("stroke", "#2d3748");
+            rect.setAttribute("stroke-width", "2");
+            rect.setAttribute("rx", "4");
+            svg.appendChild(rect);
+        }
+
+        return svg;
+    }
+
+    function drawNumberLine(denominator, numerator = null) {
+        const width = Math.min(600, window.innerWidth - 80);
+        const height = 100;
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("width", "100%");
+        svg.setAttribute("height", height);
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        const lineY = 50;
+        const padding = 40;
+        const lineWidth = width - 2 * padding;
+
+        // Main line
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", padding);
+        line.setAttribute("y1", lineY);
+        line.setAttribute("x2", width - padding);
+        line.setAttribute("y2", lineY);
+        line.setAttribute("stroke", "#2d3748");
+        line.setAttribute("stroke-width", "3");
+        svg.appendChild(line);
+
+        // Tick marks and labels
+        for (let i = 0; i <= denominator; i++) {
+            const x = padding + (i / denominator) * lineWidth;
+
+            const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            tick.setAttribute("x1", x);
+            tick.setAttribute("y1", lineY - 10);
+            tick.setAttribute("x2", x);
+            tick.setAttribute("y2", lineY + 10);
+            tick.setAttribute("stroke", "#2d3748");
+            tick.setAttribute("stroke-width", "2");
+            svg.appendChild(tick);
+
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", x);
+            text.setAttribute("y", lineY + 30);
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("font-size", "14");
+            text.setAttribute("font-weight", "600");
+            text.textContent = i === 0 ? "0" : i === denominator ? "1" : `${i}/${denominator}`;
+            svg.appendChild(text);
+        }
+
+        // Highlight specific fraction if provided
+        if (numerator !== null) {
+            const x = padding + (numerator / denominator) * lineWidth;
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", x);
+            circle.setAttribute("cy", lineY);
+            circle.setAttribute("r", "8");
+            circle.setAttribute("fill", "#f5576c");
+            circle.setAttribute("stroke", "#2d3748");
+            circle.setAttribute("stroke-width", "2");
+            svg.appendChild(circle);
+        }
+
+        return svg;
+    }
+
+    // Question Generators
+    function generateIdentifyFraction() {
+        const denominator = randomInt(2, 8);
+        const numerator = randomInt(1, denominator);
+
+        return {
+            type: 'identifyFraction',
+            question: `Look at the visual below. What fraction is shaded?`,
+            visual: () => {
+                const container = document.createElement('div');
+                container.className = 'circle-container';
+                container.appendChild(drawCircle(numerator, denominator, 0));
+                return container;
+            },
+            answerType: 'fraction',
+            correctAnswer: { numerator, denominator },
+            explanation: `The circle is divided into ${denominator} equal parts (this number is called the <strong>denominator</strong>). ${numerator} ${numerator === 1 ? 'part is' : 'parts are'} shaded (this number is called the <strong>numerator</strong>). So the fraction is ${numerator}/${denominator}. The denominator tells us how many equal parts make up the whole, and the numerator tells us how many of those parts we have.`
+        };
+    }
+
+    function generateVisualFraction() {
+        const denominators = [2, 3, 4, 5, 6, 8];
+        const denominator = getRandomElement(denominators);
+        const numerator = randomInt(1, denominator - 1);
+
+        const visualType = getRandomElement(['circle', 'bar']);
+
+        return {
+            type: 'visualFraction',
+            question: `Shade ${numerator}/${denominator} of the shape in your mind. How many parts should be shaded?`,
+            visual: () => {
+                const container = document.createElement('div');
+                container.className = 'circle-container';
+                if (visualType === 'circle') {
+                    container.appendChild(drawCircle(0, denominator, 0));
+                } else {
+                    container.appendChild(drawBar(0, denominator));
+                }
+                const helper = document.createElement('div');
+                helper.className = 'helper-text';
+                helper.textContent = `The fraction is ${numerator}/${denominator}`;
+                container.appendChild(helper);
+                return container;
+            },
+            answerType: 'number',
+            correctAnswer: numerator,
+            explanation: `In the fraction ${numerator}/${denominator}, the denominator (${denominator}) tells us the total number of equal parts. The numerator (${numerator}) tells us how many parts to shade. So we need to shade ${numerator} ${numerator === 1 ? 'part' : 'parts'} out of ${denominator} total parts.`
+        };
+    }
+
+    function generateCompareFractions() {
+        const denominator = randomInt(3, 8);
+        const num1 = randomInt(1, denominator - 1);
+        let num2 = randomInt(1, denominator - 1);
+        while (num2 === num1) {
+            num2 = randomInt(1, denominator - 1);
+        }
+
+        const symbol = num1 > num2 ? '>' : '<';
+
+        return {
+            type: 'compareFractions',
+            question: `Compare these fractions: ${num1}/${denominator} ___ ${num2}/${denominator}<br><br>Type either > (greater than) or < (less than)`,
+            visual: () => {
+                const container = document.createElement('div');
+                container.className = 'circle-container';
+
+                const label1 = document.createElement('div');
+                label1.style.textAlign = 'center';
+                label1.innerHTML = `<strong>${num1}/${denominator}</strong>`;
+                container.appendChild(label1);
+                container.appendChild(drawCircle(num1, denominator, 0));
+
+                const spacer = document.createElement('div');
+                spacer.style.width = '20px';
+                container.appendChild(spacer);
+
+                const label2 = document.createElement('div');
+                label2.style.textAlign = 'center';
+                label2.innerHTML = `<strong>${num2}/${denominator}</strong>`;
+                container.appendChild(label2);
+                container.appendChild(drawCircle(num2, denominator, 1));
+
+                return container;
+            },
+            answerType: 'comparison',
+            correctAnswer: symbol,
+            explanation: `When fractions have the same denominator (bottom number), we compare the numerators (top numbers). ${num1}/${denominator} has ${num1} shaded parts, and ${num2}/${denominator} has ${num2} shaded parts. Since ${num1} ${symbol} ${num2}, we write: ${num1}/${denominator} ${symbol} ${num2}/${denominator}. The bigger the numerator, the bigger the fraction when denominators are the same!`
+        };
+    }
+
+    function generateEquivalentFractions() {
+        const baseDen = randomInt(2, 4);
+        const baseNum = randomInt(1, baseDen - 1);
+        const multiplier = randomInt(2, 3);
+
+        const newNum = baseNum * multiplier;
+        const newDen = baseDen * multiplier;
+
+        const askFor = getRandomElement(['numerator', 'denominator']);
+
+        if (askFor === 'numerator') {
+            return {
+                type: 'equivalentFractions',
+                question: `Fill in the blank to make equivalent fractions:<br><br>${baseNum}/${baseDen} = ?/${newDen}`,
+                visual: () => {
+                    const container = document.createElement('div');
+                    container.className = 'circle-container';
+
+                    const div1 = document.createElement('div');
+                    div1.style.textAlign = 'center';
+                    div1.innerHTML = `<strong>${baseNum}/${baseDen}</strong>`;
+                    container.appendChild(div1);
+                    container.appendChild(drawCircle(baseNum, baseDen, 0));
+
+                    const equals = document.createElement('div');
+                    equals.style.fontSize = '2rem';
+                    equals.style.padding = '0 1rem';
+                    equals.textContent = '=';
+                    container.appendChild(equals);
+
+                    const div2 = document.createElement('div');
+                    div2.style.textAlign = 'center';
+                    div2.innerHTML = `<strong>?/${newDen}</strong>`;
+                    container.appendChild(div2);
+                    container.appendChild(drawCircle(newNum, newDen, 1));
+
+                    return container;
+                },
+                answerType: 'number',
+                correctAnswer: newNum,
+                explanation: `Equivalent fractions represent the same amount but with different numbers. To go from ${baseDen} to ${newDen}, we multiply by ${multiplier} (because ${baseDen} × ${multiplier} = ${newDen}). We must do the same to the numerator: ${baseNum} × ${multiplier} = ${newNum}. So ${baseNum}/${baseDen} = ${newNum}/${newDen}. They're equivalent - they show the same amount!`
+            };
+        } else {
+            return {
+                type: 'equivalentFractions',
+                question: `Fill in the blank to make equivalent fractions:<br><br>${baseNum}/${baseDen} = ${newNum}/?`,
+                visual: () => {
+                    const container = document.createElement('div');
+                    container.className = 'circle-container';
+
+                    const div1 = document.createElement('div');
+                    div1.style.textAlign = 'center';
+                    div1.innerHTML = `<strong>${baseNum}/${baseDen}</strong>`;
+                    container.appendChild(div1);
+                    container.appendChild(drawCircle(baseNum, baseDen, 0));
+
+                    const equals = document.createElement('div');
+                    equals.style.fontSize = '2rem';
+                    equals.style.padding = '0 1rem';
+                    equals.textContent = '=';
+                    container.appendChild(equals);
+
+                    const div2 = document.createElement('div');
+                    div2.style.textAlign = 'center';
+                    div2.innerHTML = `<strong>${newNum}/?</strong>`;
+                    container.appendChild(div2);
+                    container.appendChild(drawCircle(newNum, newDen, 1));
+
+                    return container;
+                },
+                answerType: 'number',
+                correctAnswer: newDen,
+                explanation: `To go from ${baseNum} to ${newNum}, we multiply by ${multiplier} (because ${baseNum} × ${multiplier} = ${newNum}). We must do the same to the denominator: ${baseDen} × ${multiplier} = ${newDen}. So ${baseNum}/${baseDen} = ${newNum}/${newDen}. These fractions are equivalent!`
+            };
+        }
+    }
+
+    function generateNumberLine() {
+        const denominator = randomInt(2, 6);
+        const numerator = randomInt(1, denominator);
+
+        return {
+            type: 'numberLine',
+            question: `Look at the number line divided into ${denominator} equal parts. What fraction is marked by the red dot?`,
+            visual: () => {
+                const container = document.createElement('div');
+                container.className = 'number-line';
+                container.appendChild(drawNumberLine(denominator, numerator));
+                return container;
+            },
+            answerType: 'fraction',
+            correctAnswer: { numerator, denominator },
+            explanation: `The number line goes from 0 to 1 and is divided into ${denominator} equal parts. Each part represents 1/${denominator}. The red dot is at position ${numerator}, which means we count ${numerator} ${numerator === 1 ? 'part' : 'parts'} from 0. So the fraction is ${numerator}/${denominator}. Number lines help us see fractions as numbers with specific positions!`
+        };
+    }
+
+    function generateSimplifyFraction() {
+        const multiplier = randomInt(2, 3);
+        const baseNum = randomInt(1, 3);
+        const baseDen = randomInt(baseNum + 1, 4);
+
+        const num = baseNum * multiplier;
+        const den = baseDen * multiplier;
+
+        return {
+            type: 'simplifyFraction',
+            question: `Simplify this fraction to its simplest form (also called "lowest terms"):<br><br>${num}/${den} = ?`,
+            visual: () => {
+                const container = document.createElement('div');
+                container.className = 'helper-text';
+                container.textContent = 'Hint: Find a number that divides evenly into both the numerator and denominator';
+                return container;
+            },
+            answerType: 'fraction',
+            correctAnswer: { numerator: baseNum, denominator: baseDen },
+            explanation: `To simplify ${num}/${den}, we need to find the greatest common factor (the biggest number that divides evenly into both numbers). Both ${num} and ${den} can be divided by ${multiplier}. When we divide: ${num} ÷ ${multiplier} = ${baseNum} and ${den} ÷ ${multiplier} = ${baseDen}. So ${num}/${den} = ${baseNum}/${baseDen} in simplest form. A fraction is in simplest form when the only number that divides evenly into both the numerator and denominator is 1.`
+        };
+    }
+
+    function generateAddSameDenominator() {
+        const denominator = randomInt(4, 8);
+        const num1 = randomInt(1, denominator - 2);
+        const num2 = randomInt(1, denominator - num1);
+        const sum = num1 + num2;
+
+        return {
+            type: 'addSameDenominator',
+            question: `Add these fractions:<br><br>${num1}/${denominator} + ${num2}/${denominator} = ?`,
+            visual: () => {
+                const container = document.createElement('div');
+                container.className = 'circle-container';
+
+                const div1 = document.createElement('div');
+                div1.style.textAlign = 'center';
+                div1.innerHTML = `<strong>${num1}/${denominator}</strong>`;
+                container.appendChild(div1);
+                container.appendChild(drawBar(num1, denominator));
+
+                const plus = document.createElement('div');
+                plus.style.fontSize = '1.5rem';
+                plus.style.padding = '1rem';
+                plus.textContent = '+';
+                container.appendChild(plus);
+
+                const div2 = document.createElement('div');
+                div2.style.textAlign = 'center';
+                div2.innerHTML = `<strong>${num2}/${denominator}</strong>`;
+                container.appendChild(div2);
+                container.appendChild(drawBar(num2, denominator));
+
+                return container;
+            },
+            answerType: 'fraction',
+            correctAnswer: { numerator: sum, denominator },
+            explanation: `When adding fractions with the same denominator, we keep the denominator the same and add the numerators. Think of it like this: ${num1} pieces plus ${num2} pieces equals ${sum} pieces. But each piece is still one-${denominator}th of the whole. So ${num1}/${denominator} + ${num2}/${denominator} = ${sum}/${denominator}. The denominator stays the same because the size of each piece doesn't change!`
+        };
+    }
+
+    function generateFractionOfGroup() {
+        const denominators = [2, 3, 4];
+        const denominator = getRandomElement(denominators);
+        const totalObjects = denominator * randomInt(2, 4);
+        const numerator = randomInt(1, denominator - 1);
+        const answer = (numerator * totalObjects) / denominator;
+
+        const objects = ['apples🍎', 'stars⭐', 'hearts❤️', 'cookies🍪'];
+        const object = getRandomElement(objects);
+
+        return {
+            type: 'fractionOfGroup',
+            question: `You have ${totalObjects} ${object}. If you take ${numerator}/${denominator} of them, how many do you take?`,
+            visual: () => {
+                const container = document.createElement('div');
+                container.className = 'helper-text';
+                container.style.fontSize = '2rem';
+                container.style.marginBottom = '1rem';
+                container.textContent = object.slice(-2).repeat(totalObjects);
+                return container;
+            },
+            answerType: 'number',
+            correctAnswer: answer,
+            explanation: `To find ${numerator}/${denominator} of ${totalObjects}, we divide ${totalObjects} into ${denominator} equal groups. ${totalObjects} ÷ ${denominator} = ${totalObjects/denominator}, so each group has ${totalObjects/denominator}. We want ${numerator} ${numerator === 1 ? 'group' : 'groups'}, so we multiply: ${numerator} × ${totalObjects/denominator} = ${answer}. Finding a fraction of a group means dividing the group into equal parts and taking some of those parts!`
+        };
+    }
+
+    function generateWholeAndParts() {
+        const denominator = randomInt(2, 6);
+        const wholes = randomInt(1, 2);
+        const numerator = randomInt(1, denominator - 1);
+
+        const totalParts = wholes * denominator + numerator;
+
+        return {
+            type: 'wholeAndParts',
+            question: `Look at the circles below. Write this as a fraction (improper fraction is fine).<br><br>How many ${denominator}ths do you see in total?`,
+            visual: () => {
+                const container = document.createElement('div');
+                container.className = 'circle-container';
+
+                for (let i = 0; i < wholes; i++) {
+                    container.appendChild(drawCircle(denominator, denominator, i));
+                }
+                container.appendChild(drawCircle(numerator, denominator, wholes));
+
+                return container;
+            },
+            answerType: 'fraction',
+            correctAnswer: { numerator: totalParts, denominator },
+            explanation: `We have ${wholes} complete ${wholes === 1 ? 'circle' : 'circles'} plus ${numerator}/${denominator} of another circle. Each whole circle equals ${denominator}/${denominator}. So ${wholes} ${wholes === 1 ? 'whole' : 'wholes'} = ${wholes * denominator}/${denominator}. Adding the extra ${numerator}/${denominator}: ${wholes * denominator}/${denominator} + ${numerator}/${denominator} = ${totalParts}/${denominator}. This is called an improper fraction because the numerator is bigger than the denominator - that's okay! It just means we have more than one whole.`
+        };
+    }
+
+    // Generate Question
+    function generateQuestion() {
+        const type = getRandomElement(questionTypes);
+
+        switch(type) {
+            case 'identifyFraction': return generateIdentifyFraction();
+            case 'visualFraction': return generateVisualFraction();
+            case 'compareFractions': return generateCompareFractions();
+            case 'equivalentFractions': return generateEquivalentFractions();
+            case 'numberLine': return generateNumberLine();
+            case 'simplifyFraction': return generateSimplifyFraction();
+            case 'addSameDenominator': return generateAddSameDenominator();
+            case 'fractionOfGroup': return generateFractionOfGroup();
+            case 'wholeAndParts': return generateWholeAndParts();
+        }
+    }
+
+    // Display Question
+    function displayQuestion() {
+        currentQuestion = generateQuestion();
+
+        const typeNames = {
+            'identifyFraction': '📊 Identify the Fraction',
+            'visualFraction': '🎨 Visual Fractions',
+            'compareFractions': '⚖️ Compare Fractions',
+            'equivalentFractions': '🔄 Equivalent Fractions',
+            'numberLine': '📏 Number Line',
+            'simplifyFraction': '✨ Simplify Fractions',
+            'addSameDenominator': '➕ Add Fractions',
+            'fractionOfGroup': '🎯 Fraction of a Group',
+            'wholeAndParts': '🔢 Wholes and Parts'
+        };
+
+        document.getElementById('questionType').textContent = typeNames[currentQuestion.type];
+        document.getElementById('questionText').innerHTML = currentQuestion.question;
+
+        const visualArea = document.getElementById('visualArea');
+        visualArea.innerHTML = '';
+        if (currentQuestion.visual) {
+            visualArea.appendChild(currentQuestion.visual());
+        }
+
+        const answerInputArea = document.getElementById('answerInputArea');
+        answerInputArea.innerHTML = '';
+
+        if (currentQuestion.answerType === 'fraction') {
+            const group = document.createElement('div');
+            group.className = 'fraction-input-group';
+            group.innerHTML = `
+                    <input type="number" id="numerator" class="answer-input" placeholder="?" min="0">
+                    <div class="fraction-line"></div>
+                    <input type="number" id="denominator" class="answer-input" placeholder="?" min="1">
+                `;
+            answerInputArea.appendChild(group);
+
+            document.getElementById('numerator').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('denominator').focus();
+                }
+            });
+
+            document.getElementById('denominator').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+
+            setTimeout(() => document.getElementById('numerator').focus(), 100);
+        } else if (currentQuestion.answerType === 'comparison') {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = 'answer';
+            input.className = 'answer-input';
+            input.placeholder = '< or >';
+            input.maxLength = 1;
+            answerInputArea.appendChild(input);
+
+            const helper = document.createElement('div');
+            helper.className = 'helper-text';
+            helper.textContent = 'Type < (less than) or > (greater than)';
+            answerInputArea.appendChild(helper);
+
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+
+            setTimeout(() => input.focus(), 100);
+        } else {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.id = 'answer';
+            input.className = 'answer-input';
+            input.placeholder = '?';
+            input.min = '0';
+            answerInputArea.appendChild(input);
+
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+
+            setTimeout(() => input.focus(), 100);
+        }
+
+        document.getElementById('feedbackArea').innerHTML = '';
+        document.getElementById('submitBtn').style.display = 'block';
+    }
+
+    // Check Answer
+    function checkAnswer() {
+        let userAnswer;
+        let isCorrect = false;
+
+        if (currentQuestion.answerType === 'fraction') {
+            const num = parseInt(document.getElementById('numerator').value);
+            const den = parseInt(document.getElementById('denominator').value);
+
+            if (isNaN(num) || isNaN(den) || den === 0) {
+                alert('Please enter valid numbers for both numerator and denominator!');
+                return;
+            }
+
+            userAnswer = { numerator: num, denominator: den };
+
+            // Check if equivalent
+            const userSimplified = simplifyFraction(num, den);
+            const correctSimplified = simplifyFraction(
+                currentQuestion.correctAnswer.numerator,
+                currentQuestion.correctAnswer.denominator
+            );
+
+            isCorrect = userSimplified.numerator === correctSimplified.numerator &&
+                userSimplified.denominator === correctSimplified.denominator;
+        } else if (currentQuestion.answerType === 'comparison') {
+            userAnswer = document.getElementById('answer').value.trim();
+            isCorrect = userAnswer === currentQuestion.correctAnswer;
+        } else {
+            userAnswer = parseFloat(document.getElementById('answer').value);
+            if (isNaN(userAnswer)) {
+                alert('Please enter a valid number!');
+                return;
+            }
+            isCorrect = userAnswer === currentQuestion.correctAnswer;
+        }
+
+        stats.total++;
+
+        const feedbackArea = document.getElementById('feedbackArea');
+        feedbackArea.innerHTML = '';
+
+        const feedback = document.createElement('div');
+        feedback.className = 'feedback';
+
+        if (isCorrect) {
+            stats.correct++;
+            stats.streak++;
+            feedback.classList.add('correct');
+
+            const celebration = document.createElement('div');
+            celebration.className = 'celebration';
+            const emojis = ['🎉', '⭐', '🌟', '✨', '🎊', '👏', '🏆'];
+            celebration.textContent = getRandomElement(emojis);
+            feedback.appendChild(celebration);
+
+            const messages = [
+                'Excellent work, Ameliia!',
+                'You got it right!',
+                'Perfect! Keep it up!',
+                'Amazing job!',
+                'You\'re a fraction master!',
+                'Brilliant!',
+                'Fantastic!',
+                'You\'re on fire! 🔥'
+            ];
+
+            const message = document.createElement('div');
+            message.innerHTML = `<strong>${getRandomElement(messages)}</strong>`;
+            feedback.appendChild(message);
+
+            if (stats.streak >= 3) {
+                const streakMsg = document.createElement('div');
+                streakMsg.style.marginTop = '0.5rem';
+                streakMsg.innerHTML = `🔥 Amazing! ${stats.streak} correct in a row!`;
+                feedback.appendChild(streakMsg);
+            }
+        } else {
+            stats.streak = 0;
+            feedback.classList.add('incorrect');
+
+            const message = document.createElement('div');
+            message.innerHTML = `<strong>Not quite right, but that's okay! Let's learn from this.</strong>`;
+            feedback.appendChild(message);
+
+            const explanation = document.createElement('div');
+            explanation.className = 'explanation';
+            explanation.innerHTML = `
+                    <div class="explanation-title">💡 Here's why:</div>
+                    ${currentQuestion.explanation}
+                `;
+            feedback.appendChild(explanation);
+        }
+
+        feedbackArea.appendChild(feedback);
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'button next-button';
+        nextBtn.textContent = 'Next Question →';
+        nextBtn.onclick = displayQuestion;
+        feedbackArea.appendChild(nextBtn);
+
+        document.getElementById('submitBtn').style.display = 'none';
+
+        updateStats();
+    }
+
+    // Update Stats
+    function updateStats() {
+        document.getElementById('correctCount').textContent = stats.correct;
+        document.getElementById('totalCount').textContent = stats.total;
+        document.getElementById('streakCount').textContent = stats.streak;
+
+        const percentage = stats.total > 0 ? (stats.correct / stats.total * 100) : 0;
+        document.getElementById('progressFill').style.width = percentage + '%';
+    }
+
+    // Initialize
+    window.onload = function() {
+        displayQuestion();
+    };
+</script>
 </body>
 </html>
+<!--
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ameliia's Fraction Adventure</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="stylesheet" href="./style.scss">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 1rem;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            color: #666;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: clamp(0.9rem, 2vw, 1rem);
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 1.5rem;
+        }
+
+        .level-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .level-btn {
+            padding: 1.5rem;
+            border: none;
+            border-radius: 15px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            color: white;
+            font-weight: 600;
+        }
+
+        .level-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .level-btn.active {
+            ring: 4px solid #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .level-1 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .level-2 { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+        .level-3 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; }
+        .level-4 { background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%); }
+
+        .question-area {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .question-text {
+            font-size: clamp(1.3rem, 4vw, 2rem);
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .fraction-display {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 0.5rem;
+            vertical-align: middle;
+        }
+
+        .fraction-display .numerator,
+        .fraction-display .denominator {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .fraction-display .fraction-line {
+            width: 100%;
+            height: 3px;
+            background: #667eea;
+            margin: 0.2rem 0;
+        }
+
+        .visual-aid {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #f8f9ff;
+            border-radius: 15px;
+        }
+
+        .circles-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .circle {
+            width: clamp(60px, 15vw, 100px);
+            height: clamp(60px, 15vw, 100px);
+            border-radius: 50%;
+            border: 3px solid #667eea;
+            position: relative;
+            overflow: hidden;
+            background: white;
+        }
+
+        .circle-fill {
+            position: absolute;
+            background: #667eea;
+            opacity: 0.6;
+        }
+
+        .answer-input {
+            font-size: clamp(1.2rem, 4vw, 1.8rem);
+            padding: 1rem;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            text-align: center;
+            width: 100%;
+            max-width: 300px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            margin: 1rem auto;
+            display: block;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 20px rgba(118, 75, 162, 0.3);
+        }
+
+        .fraction-input-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .fraction-input {
+            width: clamp(80px, 20vw, 120px);
+            font-size: clamp(1.2rem, 4vw, 1.8rem);
+            padding: 0.75rem;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            text-align: center;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+        }
+
+        .fraction-separator {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 15px;
+            font-size: clamp(1rem, 3vw, 1.3rem);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Fredoka', sans-serif;
+            margin: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(240, 147, 251, 0.4);
+        }
+
+        .feedback {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 15px;
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            line-height: 1.6;
+        }
+
+        .feedback.correct {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #0a5f38;
+        }
+
+        .feedback.incorrect {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #8b3a00;
+        }
+
+        .explanation {
+            background: #fff9e6;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-top: 1rem;
+            border-left: 5px solid #ffd700;
+        }
+
+        .explanation h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .explanation p {
+            margin-bottom: 0.75rem;
+            line-height: 1.6;
+        }
+
+        .explanation strong {
+            color: #764ba2;
+        }
+
+        .button-group {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .game-card {
+                padding: 1.5rem;
+            }
+
+            .btn {
+                padding: 0.8rem 1.5rem;
+                width: 100%;
+                margin: 0.3rem 0;
+            }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .emoji {
+            font-size: clamp(2rem, 6vw, 3rem);
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🌟 Ameliia's Fraction Adventure 🌟</h1>
+        <p>Master fractions while having fun!</p>
+        <div class="stats">
+            <div class="stat-box">⭐ Score: <span id="score">0</span></div>
+            <div class="stat-box">🔥 Streak: <span id="streak">0</span></div>
+            <div class="stat-box">✅ Correct: <span id="correct">0</span></div>
+        </div>
+    </div>
+
+    <div id="levelSelection" class="game-card">
+        <h2 style="text-align: center; margin-bottom: 1.5rem; font-family: 'Fredoka', sans-serif;">Choose Your Challenge Level</h2>
+        <div class="level-selector">
+            <button class="level-btn level-1" onclick="selectLevel(1)">
+                🌱 Beginner<br>
+                <small>Visual fractions</small>
+            </button>
+            <button class="level-btn level-2" onclick="selectLevel(2)">
+                🌿 Explorer<br>
+                <small>Comparing fractions</small>
+            </button>
+            <button class="level-btn level-3" onclick="selectLevel(3)">
+                🌳 Champion<br>
+                <small>Adding fractions</small>
+            </button>
+            <button class="level-btn level-4" onclick="selectLevel(4)">
+                🏆 Master<br>
+                <small>Equivalent fractions</small>
+            </button>
+        </div>
+    </div>
+
+    <div id="gameArea" class="game-card hidden">
+        <div id="questionArea" class="question-area"></div>
+        <div id="visualAid" class="visual-aid hidden"></div>
+        <div id="answerArea"></div>
+        <div id="feedback" class="feedback hidden"></div>
+        <div class="button-group">
+            <button class="btn btn-secondary" onclick="showLevelSelection()">Change Level</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Game State
+    let currentLevel = 1;
+    let score = 0;
+    let streak = 0;
+    let correctAnswers = 0;
+    let currentQuestion = null;
+
+    // Utility Functions
+    function gcd(a, b) {
+        return b === 0 ? a : gcd(b, a % b);
+    }
+
+    function simplifyFraction(num, den) {
+        const divisor = gcd(num, den);
+        return [num / divisor, den / divisor];
+    }
+
+    function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // Level Selection
+    function selectLevel(level) {
+        currentLevel = level;
+        document.getElementById('levelSelection').classList.add('hidden');
+        document.getElementById('gameArea').classList.remove('hidden');
+        generateQuestion();
+    }
+
+    function showLevelSelection() {
+        document.getElementById('levelSelection').classList.remove('hidden');
+        document.getElementById('gameArea').classList.add('hidden');
+    }
+
+    // Question Generators
+    function generateLevel1() {
+        // Visual fraction identification
+        const denominator = [2, 3, 4, 6, 8][randomInt(0, 4)];
+        const numerator = randomInt(1, denominator - 1);
+
+        currentQuestion = {
+            type: 'visual',
+            numerator: numerator,
+            denominator: denominator,
+            answer: `${numerator}/${denominator}`
+        };
+
+        let html = '<p class="question-text">What fraction is shaded?</p>';
+        html += '<div class="visual-aid">';
+        html += '<div class="circles-container">';
+
+        for (let i = 0; i < denominator; i++) {
+            html += '<div class="circle">';
+            if (i < numerator) {
+                html += '<div class="circle-fill" style="width: 100%; height: 100%;"></div>';
+            }
+            html += '</div>';
+        }
+
+        html += '</div></div>';
+
+        document.getElementById('questionArea').innerHTML = html;
+        document.getElementById('visualAid').classList.add('hidden');
+
+        document.getElementById('answerArea').innerHTML = `
+                <div class="fraction-input-container">
+                    <input type="number" id="numeratorInput" class="fraction-input" placeholder="?" min="0">
+                    <span class="fraction-separator">/</span>
+                    <input type="number" id="denominatorInput" class="fraction-input" placeholder="?" min="1">
+                </div>
+                <button class="btn btn-primary" onclick="checkAnswer()">Check Answer</button>
+            `;
+    }
+
+    function generateLevel2() {
+        // Comparing fractions
+        const den1 = [2, 3, 4, 6, 8][randomInt(0, 4)];
+        const num1 = randomInt(1, den1 - 1);
+        const den2 = [2, 3, 4, 6, 8][randomInt(0, 4)];
+        const num2 = randomInt(1, den2 - 1);
+
+        const val1 = num1 / den1;
+        const val2 = num2 / den2;
+        let correctAnswer;
+
+        if (val1 > val2) correctAnswer = '>';
+        else if (val1 < val2) correctAnswer = '<';
+        else correctAnswer = '=';
+
+        currentQuestion = {
+            type: 'compare',
+            num1, den1, num2, den2,
+            answer: correctAnswer
+        };
+
+        let html = '<p class="question-text">Which fraction is greater?</p>';
+        html += '<div style="display: flex; justify-content: center; align-items: center; gap: 2rem; flex-wrap: wrap; margin: 2rem 0;">';
+        html += `<div class="fraction-display">
+                <span class="numerator">${num1}</span>
+                <div class="fraction-line"></div>
+                <span class="denominator">${den1}</span>
+            </div>`;
+        html += '<span style="font-size: 2rem; font-weight: 700;">?</span>';
+        html += `<div class="fraction-display">
+                <span class="numerator">${num2}</span>
+                <div class="fraction-line"></div>
+                <span class="denominator">${den2}</span>
+            </div>`;
+        html += '</div>';
+
+        document.getElementById('questionArea').innerHTML = html;
+
+        // Create visual aid
+        let visualHtml = '<h3 style="text-align: center; margin-bottom: 1rem;">Visual Comparison</h3>';
+        visualHtml += '<div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 2rem;">';
+
+        visualHtml += '<div style="text-align: center;">';
+        visualHtml += `<p style="margin-bottom: 0.5rem; font-weight: 600;">${num1}/${den1}</p>`;
+        visualHtml += '<div class="circles-container" style="justify-content: center;">';
+        for (let i = 0; i < den1; i++) {
+            visualHtml += '<div class="circle">';
+            if (i < num1) {
+                visualHtml += '<div class="circle-fill" style="width: 100%; height: 100%;"></div>';
+            }
+            visualHtml += '</div>';
+        }
+        visualHtml += '</div></div>';
+
+        visualHtml += '<div style="text-align: center;">';
+        visualHtml += `<p style="margin-bottom: 0.5rem; font-weight: 600;">${num2}/${den2}</p>`;
+        visualHtml += '<div class="circles-container" style="justify-content: center;">';
+        for (let i = 0; i < den2; i++) {
+            visualHtml += '<div class="circle">';
+            if (i < num2) {
+                visualHtml += '<div class="circle-fill" style="width: 100%; height: 100%;"></div>';
+            }
+            visualHtml += '</div>';
+        }
+        visualHtml += '</div></div>';
+
+        visualHtml += '</div>';
+
+        document.getElementById('visualAid').innerHTML = visualHtml;
+        document.getElementById('visualAid').classList.remove('hidden');
+
+        document.getElementById('answerArea').innerHTML = `
+                <p style="text-align: center; margin: 1.5rem 0; font-size: 1.2rem; font-weight: 600;">
+                    Type the correct symbol: < (less than), > (greater than), or = (equal)
+                </p>
+                <input type="text" id="symbolInput" class="answer-input" placeholder="<, >, or =" maxlength="1">
+                <button class="btn btn-primary" onclick="checkAnswer()">Check Answer</button>
+            `;
+    }
+
+    function generateLevel3() {
+        // Adding fractions with same denominator
+        const denominator = [2, 3, 4, 5, 6, 8][randomInt(0, 5)];
+        const num1 = randomInt(1, denominator - 2);
+        const num2 = randomInt(1, denominator - num1);
+
+        const sumNum = num1 + num2;
+        const [simplifiedNum, simplifiedDen] = simplifyFraction(sumNum, denominator);
+
+        currentQuestion = {
+            type: 'add',
+            num1, num2, denominator,
+            answerNum: simplifiedNum,
+            answerDen: simplifiedDen,
+            beforeSimplify: [sumNum, denominator]
+        };
+
+        let html = '<p class="question-text">Add these fractions and simplify your answer:</p>';
+        html += '<div style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin: 2rem 0;">';
+        html += `<div class="fraction-display">
+                <span class="numerator">${num1}</span>
+                <div class="fraction-line"></div>
+                <span class="denominator">${denominator}</span>
+            </div>`;
+        html += '<span style="font-size: 2.5rem; font-weight: 700; color: #667eea;">+</span>';
+        html += `<div class="fraction-display">
+                <span class="numerator">${num2}</span>
+                <div class="fraction-line"></div>
+                <span class="denominator">${denominator}</span>
+            </div>`;
+        html += '<span style="font-size: 2.5rem; font-weight: 700; color: #667eea;">=</span>';
+        html += '<span style="font-size: 2.5rem; font-weight: 700; color: #667eea;">?</span>';
+        html += '</div>';
+
+        document.getElementById('questionArea').innerHTML = html;
+        document.getElementById('visualAid').classList.add('hidden');
+
+        document.getElementById('answerArea').innerHTML = `
+                <p style="text-align: center; margin: 1rem 0; font-weight: 600;">Enter your answer in simplest form:</p>
+                <div class="fraction-input-container">
+                    <input type="number" id="numeratorInput" class="fraction-input" placeholder="?" min="0">
+                    <span class="fraction-separator">/</span>
+                    <input type="number" id="denominatorInput" class="fraction-input" placeholder="?" min="1">
+                </div>
+                <button class="btn btn-primary" onclick="checkAnswer()">Check Answer</button>
+            `;
+    }
+
+    function generateLevel4() {
+        // Equivalent fractions
+        const originalDen = [2, 3, 4, 5, 6][randomInt(0, 4)];
+        const originalNum = randomInt(1, originalDen - 1);
+        const multiplier = randomInt(2, 4);
+
+        const targetDen = originalDen * multiplier;
+        const targetNum = originalNum * multiplier;
+
+        currentQuestion = {
+            type: 'equivalent',
+            originalNum, originalDen,
+            targetNum, targetDen,
+            answer: targetNum
+        };
+
+        let html = '<p class="question-text">Find the equivalent fraction:</p>';
+        html += '<div style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin: 2rem 0;">';
+        html += `<div class="fraction-display">
+                <span class="numerator">${originalNum}</span>
+                <div class="fraction-line"></div>
+                <span class="denominator">${originalDen}</span>
+            </div>`;
+        html += '<span style="font-size: 2.5rem; font-weight: 700; color: #667eea;">=</span>';
+        html += `<div class="fraction-display">
+                <span class="numerator" style="color: #f5576c;">?</span>
+                <div class="fraction-line" style="background: #f5576c;"></div>
+                <span class="denominator">${targetDen}</span>
+            </div>`;
+        html += '</div>';
+
+        document.getElementById('questionArea').innerHTML = html;
+
+        // Visual aid
+        let visualHtml = '<h3 style="text-align: center; margin-bottom: 1rem;">Visual Representation</h3>';
+        visualHtml += '<div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 2rem;">';
+
+        visualHtml += '<div style="text-align: center;">';
+        visualHtml += `<p style="margin-bottom: 0.5rem; font-weight: 600;">Original: ${originalNum}/${originalDen}</p>`;
+        visualHtml += '<div class="circles-container" style="justify-content: center;">';
+        for (let i = 0; i < originalDen; i++) {
+            visualHtml += '<div class="circle" style="width: 80px; height: 80px;">';
+            if (i < originalNum) {
+                visualHtml += '<div class="circle-fill" style="width: 100%; height: 100%;"></div>';
+            }
+            visualHtml += '</div>';
+        }
+        visualHtml += '</div></div>';
+
+        visualHtml += '<div style="text-align: center;">';
+        visualHtml += `<p style="margin-bottom: 0.5rem; font-weight: 600;">Equivalent: ?/${targetDen}</p>`;
+        visualHtml += '<div class="circles-container" style="justify-content: center;">';
+        for (let i = 0; i < targetDen; i++) {
+            visualHtml += '<div class="circle" style="width: 60px; height: 60px;">';
+            if (i < targetNum) {
+                visualHtml += '<div class="circle-fill" style="width: 100%; height: 100%;"></div>';
+            }
+            visualHtml += '</div>';
+        }
+        visualHtml += '</div></div>';
+
+        visualHtml += '</div>';
+        visualHtml += `<p style="text-align: center; margin-top: 1rem; font-style: italic;">Hint: The denominators are different, but they represent the same amount!</p>`;
+
+        document.getElementById('visualAid').innerHTML = visualHtml;
+        document.getElementById('visualAid').classList.remove('hidden');
+
+        document.getElementById('answerArea').innerHTML = `
+                <p style="text-align: center; margin: 1rem 0; font-weight: 600;">What number goes in the numerator?</p>
+                <input type="number" id="numeratorInput" class="answer-input" placeholder="?" min="0">
+                <button class="btn btn-primary" onclick="checkAnswer()">Check Answer</button>
+            `;
+    }
+
+    function generateQuestion() {
+        document.getElementById('feedback').classList.add('hidden');
+
+        switch(currentLevel) {
+            case 1: generateLevel1(); break;
+            case 2: generateLevel2(); break;
+            case 3: generateLevel3(); break;
+            case 4: generateLevel4(); break;
+        }
+
+        // Add enter key support
+        setTimeout(() => {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') checkAnswer();
+                });
+                input.focus();
+            });
+        }, 100);
+    }
+
+    function checkAnswer() {
+        let userAnswer;
+        let correct = false;
+        let explanation = '';
+
+        switch(currentQuestion.type) {
+            case 'visual':
+                const userNum = parseInt(document.getElementById('numeratorInput').value);
+                const userDen = parseInt(document.getElementById('denominatorInput').value);
+                correct = userNum === currentQuestion.numerator && userDen === currentQuestion.denominator;
+
+                if (correct) {
+                    explanation = `
+                            <div class="explanation">
+                                <h3>Perfect! 🎉</h3>
+                                <p><strong>${currentQuestion.numerator} out of ${currentQuestion.denominator}</strong> circles are shaded.</p>
+                                <p>The <strong>numerator</strong> (top number) shows how many parts are shaded: <strong>${currentQuestion.numerator}</strong></p>
+                                <p>The <strong>denominator</strong> (bottom number) shows the total number of equal parts: <strong>${currentQuestion.denominator}</strong></p>
+                                <p>So the fraction is <strong>${currentQuestion.numerator}/${currentQuestion.denominator}</strong></p>
+                            </div>
+                        `;
+                } else {
+                    explanation = `
+                            <div class="explanation">
+                                <h3>Let's learn together! 📚</h3>
+                                <p>You wrote: <strong>${userNum}/${userDen}</strong>, but the correct answer is <strong>${currentQuestion.numerator}/${currentQuestion.denominator}</strong></p>
+                                <p><strong>Count the shaded circles:</strong> There are ${currentQuestion.numerator} shaded circles. This is the <strong>numerator</strong> (top number).</p>
+                                <p><strong>Count all the circles:</strong> There are ${currentQuestion.denominator} circles in total. This is the <strong>denominator</strong> (bottom number).</p>
+                                <p><strong>Remember:</strong> A fraction shows "part of a whole". The numerator tells us the part we have, and the denominator tells us how many equal parts make the whole.</p>
+                            </div>
+                        `;
+                }
+                break;
+
+            case 'compare':
+                userAnswer = document.getElementById('symbolInput').value.trim();
+                correct = userAnswer === currentQuestion.answer;
+
+                const val1 = currentQuestion.num1 / currentQuestion.den1;
+                const val2 = currentQuestion.num2 / currentQuestion.den2;
+
+                if (correct) {
+                    explanation = `
+                            <div class="explanation">
+                                <h3>Excellent work! 🌟</h3>
+                                <p><strong>${currentQuestion.num1}/${currentQuestion.den1} ${currentQuestion.answer} ${currentQuestion.num2}/${currentQuestion.den2}</strong></p>
+                                <p>When we compare fractions, we're looking at which represents a larger part of a whole.</p>
+                                <p><strong>${currentQuestion.num1}/${currentQuestion.den1}</strong> = ${val1.toFixed(3)} and <strong>${currentQuestion.num2}/${currentQuestion.den2}</strong> = ${val2.toFixed(3)}</p>
+                                <p>You can see from the visual circles which one has more shaded!</p>
+                            </div>
+                        `;
+                } else {
+                    explanation = `
+                            <div class="explanation">
+                                <h3>Let's figure this out! 🔍</h3>
+                                <p>You wrote: <strong>${userAnswer}</strong>, but the correct answer is <strong>${currentQuestion.answer}</strong></p>
+                                <p><strong>Tip:</strong> Look at the shaded circles above. Which fraction has more circles shaded?</p>
+                                <p><strong>${currentQuestion.num1}/${currentQuestion.den1}</strong> means ${currentQuestion.num1} out of ${currentQuestion.den1} parts</p>
+                                <p><strong>${currentQuestion.num2}/${currentQuestion.den2}</strong> means ${currentQuestion.num2} out of ${currentQuestion.den2} parts</p>
+                                <p>As decimals: ${currentQuestion.num1}/${currentQuestion.den1} = ${val1.toFixed(3)} and ${currentQuestion.num2}/${currentQuestion.den2} = ${val2.toFixed(3)}</p>
+                                <p>So ${currentQuestion.num1}/${currentQuestion.den1} ${currentQuestion.answer} ${currentQuestion.num2}/${currentQuestion.den2}</p>
+                            </div>
+                        `;
+                }
+                break;
+
+            case 'add':
+                const addUserNum = parseInt(document.getElementById('numeratorInput').value);
+                const addUserDen = parseInt(document.getElementById('denominatorInput').value);
+                correct = addUserNum === currentQuestion.answerNum && addUserDen === currentQuestion.answerDen;
+
+                if (correct) {
+                    explanation = `
+                            <div class="explanation">
+                                <h3>Outstanding! 🎯</h3>
+                                <p><strong>Step 1:</strong> Add the numerators: ${currentQuestion.num1} + ${currentQuestion.num2} = ${currentQuestion.beforeSimplify[0]}</p>
+                                <p><strong>Step 2:</strong> Keep the same denominator: ${currentQuestion.denominator}</p>
+                                <p><strong>Step 3:</strong> We get ${currentQuestion.beforeSimplify[0]}/${currentQuestion.beforeSimplify[1]}</p>
+                                ${currentQuestion.beforeSimplify[0] !== currentQuestion.answerNum ?
+                        `<p><strong>Step 4:</strong> Simplify by dividing both numbers by ${currentQuestion.beforeSimplify[0]/currentQuestion.answerNum}: ${currentQuestion.beforeSimplify[0]}÷${currentQuestion.beforeSimplify[0]/currentQuestion.answerNum} = ${currentQuestion.answerNum} and ${currentQuestion.beforeSimplify[1]}÷${currentQuestion.beforeSimplify[0]/currentQuestion.answerNum} = ${currentQuestion.answerDen}</p>`
+                        : '<p><strong>Step 4:</strong> The fraction is already in simplest form!</p>'
+                    }
+                                <p><strong>Final answer: ${currentQuestion.answerNum}/${currentQuestion.answerDen}</strong></p>
+                            </div>
+                        `;
+                } else {
+                    explanation = `
+                            <div class="explanation">
+                                <h3>Let's work through this! 📝</h3>
+                                <p>You wrote: <strong>${addUserNum}/${addUserDen}</strong>, but the correct answer is <strong>${currentQuestion.answerNum}/${currentQuestion.answerDen}</strong></p>
+                                <p><strong>When adding fractions with the same denominator:</strong></p>
+                                <p><strong>Step 1:</strong> Add only the numerators (top numbers): ${currentQuestion.num1} + ${currentQuestion.num2} = ${currentQuestion.beforeSimplify[0]}</p>
+                                <p><strong>Step 2:</strong> Keep the denominator the same: ${currentQuestion.denominator}</p>
+                                <p><strong>Step 3:</strong> This gives us ${currentQuestion.beforeSimplify[0]}/${currentQuestion.beforeSimplify[1]}</p>
+                                ${currentQuestion.beforeSimplify[0] !== currentQuestion.answerNum ?
+                        `<p><strong>Step 4:</strong> Simplify! Both ${currentQuestion.beforeSimplify[0]} and ${currentQuestion.beforeSimplify[1]} can be divided by ${currentQuestion.beforeSimplify[0]/currentQuestion.answerNum}</p>
+                                    <p>${currentQuestion.beforeSimplify[0]} ÷ ${currentQuestion.beforeSimplify[0]/currentQuestion.answerNum} = ${currentQuestion.answerNum}</p>
+                                    <p>${currentQuestion.beforeSimplify[1]} ÷ ${currentQuestion.beforeSimplify[0]/currentQuestion.answerNum} = ${currentQuestion.answerDen}</p>`
+                        : ''
+                    }
+                                <p><strong>Remember:</strong> Always simplify your answer to the smallest numbers possible!</p>
+                            </div>
+                        `;
+                }
+                break;
+
+            case 'equivalent':
+                const equivUserNum = parseInt(document.getElementById('numeratorInput').value);
+                correct = equivUserNum === currentQuestion.targetNum;
+
+                if (correct) {
+                    const mult = currentQuestion.targetDen / currentQuestion.originalDen;
+                    explanation = `
+                            <div class="explanation">
+                                <h3>Brilliant! 🏆</h3>
+                                <p><strong>Equivalent fractions</strong> represent the same amount, even though they look different!</p>
+                                <p><strong>Step 1:</strong> Find what we multiplied the denominator by: ${currentQuestion.originalDen} × ${mult} = ${currentQuestion.targetDen}</p>
+                                <p><strong>Step 2:</strong> Multiply the numerator by the same number: ${currentQuestion.originalNum} × ${mult} = ${currentQuestion.targetNum}</p>
+                                <p><strong>Result:</strong> ${currentQuestion.originalNum}/${currentQuestion.originalDen} = ${currentQuestion.targetNum}/${currentQuestion.targetDen}</p>
+                                <p>Both fractions represent the exact same amount! Look at the circles above - the same portion is shaded in both!</p>
+                            </div>
+                        `;
+                } else {
+                    const mult = currentQuestion.targetDen / currentQuestion.originalDen;
+                    explanation = `
+                            <div class="explanation">
+                                <h3>Let's discover the pattern! 🔢</h3>
+                                <p>You wrote: <strong>${equivUserNum}</strong>, but the correct answer is <strong>${currentQuestion.targetNum}</strong></p>
+                                <p><strong>To find equivalent fractions:</strong></p>
+                                <p><strong>Step 1:</strong> Look at the denominators. ${currentQuestion.originalDen} was multiplied by ${mult} to get ${currentQuestion.targetDen}</p>
+                                <p>We can check: ${currentQuestion.originalDen} × ${mult} = ${currentQuestion.targetDen} ✓</p>
+                                <p><strong>Step 2:</strong> We must multiply the numerator by the SAME number to keep the fractions equivalent!</p>
+                                <p>${currentQuestion.originalNum} × ${mult} = ${currentQuestion.targetNum}</p>
+                                <p><strong>Important rule:</strong> Whatever you do to the bottom, you must do to the top!</p>
+                                <p><strong>${currentQuestion.originalNum}/${currentQuestion.originalDen} = ${currentQuestion.targetNum}/${currentQuestion.targetDen}</strong> - They're equivalent!</p>
+                            </div>
+                        `;
+                }
+                break;
+        }
+
+        // Display feedback
+        const feedbackDiv = document.getElementById('feedback');
+        feedbackDiv.classList.remove('hidden', 'correct', 'incorrect');
+
+        if (correct) {
+            feedbackDiv.classList.add('correct');
+            const emojis = ['🎉', '🌟', '⭐', '🏆', '💯', '✨', '🎊'];
+            const emoji = emojis[randomInt(0, emojis.length - 1)];
+            feedbackDiv.innerHTML = `
+                    <div class="emoji">${emoji}</div>
+                    <h2>Correct, Ameliia!</h2>
+                    ${explanation}
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="generateQuestion()">Next Question →</button>
+                    </div>
+                `;
+
+            score += 10 * currentLevel;
+            streak++;
+            correctAnswers++;
+            updateStats();
+        } else {
+            feedbackDiv.classList.add('incorrect');
+            feedbackDiv.innerHTML = `
+                    <div class="emoji">🤔</div>
+                    <h2>Not quite, but that's okay!</h2>
+                    ${explanation}
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="hideExplanation()">Try Again</button>
+                        <button class="btn btn-secondary" onclick="generateQuestion()">Skip to Next</button>
+                    </div>
+                `;
+
+            streak = 0;
+            updateStats();
+        }
+    }
+
+    function hideExplanation() {
+        document.getElementById('feedback').classList.add('hidden');
+        // Clear inputs and refocus
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.value = '';
+        });
+        inputs[0]?.focus();
+    }
+
+    function updateStats() {
+        document.getElementById('score').textContent = score;
+        document.getElementById('streak').textContent = streak;
+        document.getElementById('correct').textContent = correctAnswers;
+    }
+
+    // Initialize
+    updateStats();
+</script>
+</body>
+</html>
+-->
