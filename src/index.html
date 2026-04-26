@@ -174,10 +174,13 @@
             max-width: 100px;
         }
 
-        .fraction-line {
-            width: 60px;
-            height: 3px;
-            background: #2d3748;
+        .fraction-slash {
+            font-size: 1.5rem;
+            line-height: 1;
+            color: #2d3748;
+            margin: 0 0.2rem;
+            display: inline-block;
+            vertical-align: middle;
         }
 
         .button {
@@ -316,6 +319,8 @@
 </head>
 <body>
 <div class="container">
+    <a href="index-2026-04-26-minecraft4ameliia.html" style="display: none; padding: 0; margin: 0"></a>
+
     <div class="header">
         <h1>🎮 Fraction Master</h1>
         <div class="student-name">Ameliia Kostromin's Learning Adventure</div>
@@ -939,7 +944,7 @@
             group.className = 'fraction-input-group';
             group.innerHTML = `
                     <input type="number" id="numerator" class="answer-input" placeholder="?" min="0">
-                    <div class="fraction-line"></div>
+                    <span class="fraction-slash">/</span>
                     <input type="number" id="denominator" class="answer-input" placeholder="?" min="1">
                 `;
             answerInputArea.appendChild(group);
@@ -1265,11 +1270,13 @@
             color: #667eea;
         }
 
-        .fraction-display .fraction-line {
-            width: 100%;
-            height: 3px;
-            background: #667eea;
-            margin: 0.2rem 0;
+        .fraction-display .fraction-slash {
+            font-size: 1.5rem;
+            line-height: 1;
+            color: #667eea;
+            margin: 0 0.2rem;
+            display: inline-block;
+            vertical-align: middle;
         }
 
         .visual-aid {
@@ -1608,13 +1615,13 @@
         html += '<div style="display: flex; justify-content: center; align-items: center; gap: 2rem; flex-wrap: wrap; margin: 2rem 0;">';
         html += `<div class="fraction-display">
                 <span class="numerator">${num1}</span>
-                <div class="fraction-line"></div>
+                <span class="fraction-slash">/</span>
                 <span class="denominator">${den1}</span>
             </div>`;
         html += '<span style="font-size: 2rem; font-weight: 700;">?</span>';
         html += `<div class="fraction-display">
                 <span class="numerator">${num2}</span>
-                <div class="fraction-line"></div>
+                <span class="fraction-slash">/</span>
                 <span class="denominator">${den2}</span>
             </div>`;
         html += '</div>';
@@ -1684,13 +1691,13 @@
         html += '<div style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin: 2rem 0;">';
         html += `<div class="fraction-display">
                 <span class="numerator">${num1}</span>
-                <div class="fraction-line"></div>
+                <span class="fraction-slash">/</span>
                 <span class="denominator">${denominator}</span>
             </div>`;
         html += '<span style="font-size: 2.5rem; font-weight: 700; color: #667eea;">+</span>';
         html += `<div class="fraction-display">
                 <span class="numerator">${num2}</span>
-                <div class="fraction-line"></div>
+                <span class="fraction-slash">/</span>
                 <span class="denominator">${denominator}</span>
             </div>`;
         html += '<span style="font-size: 2.5rem; font-weight: 700; color: #667eea;">=</span>';
@@ -1731,13 +1738,13 @@
         html += '<div style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; flex-wrap: wrap; margin: 2rem 0;">';
         html += `<div class="fraction-display">
                 <span class="numerator">${originalNum}</span>
-                <div class="fraction-line"></div>
+                <span class="fraction-slash">/</span>
                 <span class="denominator">${originalDen}</span>
             </div>`;
         html += '<span style="font-size: 2.5rem; font-weight: 700; color: #667eea;">=</span>';
         html += `<div class="fraction-display">
                 <span class="numerator" style="color: #f5576c;">?</span>
-                <div class="fraction-line" style="background: #f5576c;"></div>
+                <span class="fraction-slash" style="color: #f5576c;">/</span>
                 <span class="denominator">${targetDen}</span>
             </div>`;
         html += '</div>';
