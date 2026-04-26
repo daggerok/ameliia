@@ -355,79 +355,12 @@
 <script>
     // Game State
     let currentQuestion = null;
-    // Load persisted stats if available
-    const persistedStats = JSON.parse(localStorage.getItem('fractionStats') || '{}');
     let stats = {
-        correct: persistedStats.correct || 0,
-        total: persistedStats.total || 0,
-        streak: persistedStats.streak || 0,
-        // Not persisting questionsAnswered set across sessions for simplicity
+        correct: 0,
+        total: 0,
+        streak: 0,
+        questionsAnswered: new Set()
     };
-    // Learning time tracking
-    const learningStart = Date.now();
-    // Load accumulated learning time (ms)
-    const accumulatedLearningTime = parseInt(localStorage.getItem('learningTime') || '0', 10);
-    // Reward check function
-    function checkReward() {
-        const accuracy = stats.total > 0 ? stats.correct / stats.total : 0;
-        const totalTime = accumulatedLearningTime + (Date.now() - learningStart);
-        const minutes = Math.floor(totalTime / 60000);
-        if (stats.correct >= 25 && accuracy > 0.75 && totalTime >= 15 * 60 * 1000) {
-            // Determine reward minutes based on mistake count
-            const mistakes = stats.total - stats.correct;
-            let rewardMinutes = 0;
-            if (mistakes <= 2) rewardMinutes = 5;
-            else if (mistakes < stats.total * 0.25) rewardMinutes = 3;
-            else if (accuracy >= 0.75) rewardMinutes = 1;
-            else rewardMinutes = 0; // No reward
-            if (rewardMinutes > 0) {
-                showRewardOverlay(rewardMinutes);
-            }
-        }
-    }
-    // Save stats before unload
-    window.addEventListener('beforeunload', () => {
-        const elapsed = Date.now() - learningStart;
-        const newAccumulated = accumulatedLearningTime + elapsed;
-        localStorage.setItem('learningTime', newAccumulated);
-        localStorage.setItem('fractionStats', JSON.stringify({
-            correct: stats.correct,
-            total: stats.total,
-            streak: stats.streak
-        }));
-    });
-    // Reward overlay UI
-    function showRewardOverlay(minutes) {
-        if (document.getElementById('reward-overlay')) return; // prevent duplicate
-        const overlay = document.createElement('div');
-        overlay.id = 'reward-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.top = 0;
-        overlay.style.left = 0;
-        overlay.style.width = '100%';
-        overlay.style.height = '100%';
-        overlay.style.background = 'rgba(0,0,0,0.8)';
-        overlay.style.color = 'white';
-        overlay.style.display = 'flex';
-        overlay.style.flexDirection = 'column';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        overlay.style.zIndex = 1000;
-        const msg = document.createElement('div');
-        msg.innerHTML = `<h2>Great job! 🎉</h2><p>Parents will reward you and allow you to play the Minecraft game for <strong>${minutes} minute${minutes > 1 ? 's' : ''}</strong>.</p>`;
-        const btn = document.createElement('button');
-        btn.textContent = 'Play Minecraft';
-        btn.className = 'button';
-        btn.style.marginTop = '1rem';
-        btn.onclick = () => {
-            // Navigate to Minecraft game with timer
-            const url = 'index-2026-04-26-minecraft4ameliia.html?rewardMinutes=' + minutes;
-            window.location.href = url;
-        };
-        overlay.appendChild(msg);
-        overlay.appendChild(btn);
-        document.body.appendChild(overlay);
-    }
 
     // Question Types for 3rd Grade
     const questionTypes = [
@@ -1105,7 +1038,6 @@
         document.getElementById('submitBtn').style.display = 'none';
 
         updateStats();
-        checkReward();
     }
 
     // Update Stats
