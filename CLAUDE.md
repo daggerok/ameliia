@@ -70,6 +70,37 @@ All state is managed in global variables: `currentQuestion`, `stats` (correct/to
 
 All specifications, requirements, and related materials must be contained within this CLAUDE.md file. Do not create separate spec files unless explicitly requested by the user. When implementing features, consult the specs defined in this file.
 
+### New Feature: Reward & Minecraft Integration
+
+- **Reward Conditions**: After the fraction learning game (src/index.html) the system must track:
+  - Total questions answered.
+  - Correct answers.
+  - Accuracy (correct/total).
+  - Cumulative learning time (must be >= 15 minutes).
+  - When **at least 25 correct answers**, **accuracy > 75%**, and **learning time >= 15 minutes**, a reward overlay appears offering Minecraft play time.
+- **Reward Duration Logic**:
+  - 1–2 mistakes → 5 minutes.
+  - More than 2 mistakes but less than 25% mistakes → 3 minutes.
+  - Accuracy exactly 75% → 1 minute.
+  - Accuracy below 75% → no reward.
+- **State Persistence**:
+  - Fraction game stats are saved to `localStorage` (`fractionStats` and `learningTime`).
+  - On each page load, stats are loaded and continued.
+  - Before navigating away, stats are persisted.
+- **Minecraft Game (src/index-2026-04-26-minecraft4ameliia.html)**:
+  - Accepts query param `rewardMinutes` indicating allowed play time.
+  - On load, attempts to load saved world state from `localStorage` key `minecraftState`.
+  - If no saved state, initializes the preset world.
+  - Displays a timer overlay counting down the allowed minutes.
+  - When the timer expires, the game auto‑saves, shows an alert, and redirects back to `index.html`.
+  - While the timer is active, block placement/removal is permitted; after expiry, interactions are blocked.
+  - Game state (block positions and types) is saved to `localStorage` key `blockWorldSave` on page unload and when the timer ends (same key used by the manual Save/Load buttons).
+- **Navigation**:
+  - Reward overlay’s "Play Minecraft" button navigates to the Minecraft page with the appropriate `rewardMinutes` query parameter.
+  - Returning to the fraction game restores previous stats and allows continued play.
+
+Ensure these behaviours are reflected in the code and that all file edits end with a newline.
+
 ## Learned Lessons
 
 These are specific instructions for the AI agent to follow in this repository:
