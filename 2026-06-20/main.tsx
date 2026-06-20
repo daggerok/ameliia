@@ -1336,10 +1336,12 @@ export const App: React.FC = () => {
             <StreakCelebration streak={streakCelebration} lang={config.lang} />
             <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl flex flex-col justify-center">
                 <header className="flex justify-between items-center py-3 md:py-4 mb-2 w-full animate-fade-in">
-                    <div>
-                        <h1 className={`text-2xl md:text-3xl lg:text-4xl font-black ${ct.text} ${ct.textDark} tracking-widest`}>{t.appTitle}</h1>
-                        <p className="text-[10px] md:text-xs text-slate-400 font-bold mt-0.5 italic tracking-wide">{t.appSubtitle}</p>
-                        <p className="text-xs md:text-sm text-slate-400 font-bold mt-0.5">{wsTitle()} {config.emoji}</p>
+                    <div className="flex items-start gap-2">
+                        <h1 className={`text-2xl md:text-3xl lg:text-4xl font-black ${ct.text} ${ct.textDark} tracking-widest leading-none`}>{t.appTitle}</h1>
+                        <div className="flex flex-col justify-center pt-0.5">
+                            <p className="text-[10px] md:text-xs text-slate-400 font-bold italic tracking-wide leading-tight">{t.appSubtitle}</p>
+                            <p className="text-[10px] md:text-xs text-slate-400 font-bold leading-tight">{wsTitle()} {config.emoji}</p>
+                        </div>
                     </div>
                     <div className="flex gap-2">
                         {view !== 'progress' && <button onClick={() => setView(view === 'settings' ? 'practice' : 'settings')} className="px-3 py-2 bg-white dark:bg-slate-800 shadow-md rounded-xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm font-black text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95">{view === 'settings' ? t.practice : t.menu}</button>}
