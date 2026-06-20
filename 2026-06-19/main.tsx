@@ -148,7 +148,7 @@ const SettingsMenu: React.FC<{ config: AppConfig; onConfigChange: (c: AppConfig)
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 md:p-8 lg:p-10 rounded-3xl shadow-2xl w-full space-y-4 md:space-y-6 border border-slate-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 p-6 md:p-8 lg:p-10 rounded-3xl shadow-2xl w-full space-y-4 md:space-y-6 border border-slate-100 dark:border-slate-700 animate-fade-in">
             <h2 className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400">{t.settings}</h2>
 
             <div>
@@ -164,14 +164,14 @@ const SettingsMenu: React.FC<{ config: AppConfig; onConfigChange: (c: AppConfig)
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <div>
                     <label className="block text-xs md:text-sm font-bold uppercase text-slate-400 mb-1 md:mb-2">{t.lang}</label>
-                    <select value={config.lang} onChange={e => update('lang', e.target.value)} className="w-full p-2.5 md:p-3 border rounded-2xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white text-base md:text-lg focus:outline-none transition-all">
+                    <select value={config.lang} onChange={e => update('lang', e.target.value)} className="w-full p-3 border rounded-2xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white text-base md:text-lg focus:outline-none transition-all">
                         <option value="en">English</option>
                         <option value="ru">Русский</option>
                     </select>
                 </div>
                 <div>
                     <label className="block text-xs md:text-sm font-bold uppercase text-slate-400 mb-1 md:mb-2">{t.theme}</label>
-                    <select value={config.theme} onChange={e => update('theme', e.target.value)} className="w-full p-2.5 md:p-3 border rounded-2xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white text-base md:text-lg focus:outline-none transition-all">
+                    <select value={config.theme} onChange={e => update('theme', e.target.value)} className="w-full p-3 border rounded-2xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white text-base md:text-lg focus:outline-none transition-all">
                         <option value="light">{t.themeLight}</option>
                         <option value="dark">{t.themeDark}</option>
                         <option value="system">{t.themeSystem}</option>
@@ -250,7 +250,7 @@ interface TaskDisplayProps {
     task: GeneratedTaskInstance;
     onAnswer: (c: boolean) => void;
     next: () => void;
-    onRetry: () => void; // Добавили коллбек для регенерации вводных
+    onRetry: () => void;
     lang: 'ru' | 'en';
 }
 
@@ -260,9 +260,15 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({ task, onAnswer, next, onRetry
     const [text, setText] = useState('');
     const [done, setDone] = useState(false);
     const [ok, setOk] = useState(false);
+    const [isShaking, setIsShaking] = useState(false); // Стейт триггера тряски
     const t = DICTIONARY[lang];
 
-    useEffect(() => { setNum(''); setDen(''); setText(''); setDone(false); }, [task]);
+    useEffect(() => {
+        setNum('');
+        setDen('');
+        setText('');
+        setDone(false);
+    }, [task]);
 
     const check = (e: React.FormEvent) => {
         e.preventDefault(); if (done) return;
@@ -270,13 +276,20 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({ task, onAnswer, next, onRetry
         if (task.answerType === 'number') isOk = parseFloat(num) === task.correctAnswer;
         else if (task.answerType === 'comparison' || task.answerType === 'text') isOk = text.trim().toLowerCase() === String(task.correctAnswer).toLowerCase();
         else if (task.answerType === 'fraction') isOk = parseInt(num) === task.correctAnswer.numerator && parseInt(den) === task.correctAnswer.denominator;
+
+        if (!isOk) {
+            setIsShaking(true);
+            setTimeout(() => setIsShaking(false), 400); // Сбрасываем класс после завершения анимации
+        }
+
         setOk(isOk); setDone(true); onAnswer(isOk);
     };
 
     const inputStyle = "p-3 md:p-4 text-center border-3 border-indigo-500 rounded-2xl text-xl md:text-2xl lg:text-3xl font-black bg-white dark:bg-slate-700 text-slate-900 dark:text-white dark:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-600 dark:focus:ring-indigo-400 shadow-md transition-all";
 
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 md:p-8 lg:p-10 rounded-3xl shadow-2xl w-full border border-slate-100 dark:border-slate-700">
+        /* Вставляем динамические классы анимаций: появление всегда, тряска — при ошибке */
+        <div className={`bg-white dark:bg-slate-800 p-6 md:p-8 lg:p-10 rounded-3xl shadow-2xl w-full border border-slate-100 dark:border-slate-700 animate-fade-in ${isShaking ? 'animate-shake' : ''}`}>
 
             <p className="text-xl md:text-2xl lg:text-3xl text-slate-800 dark:text-slate-100 font-bold mb-6 leading-relaxed pt-2">
                 {task.question}
@@ -326,7 +339,7 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({ task, onAnswer, next, onRetry
                             {!ok ? (
                                 <button
                                     type="button"
-                                    onClick={onRetry} // Вызываем триггер генерации новых чисел для этой же темы
+                                    onClick={onRetry}
                                     className="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 py-3.5 md:py-4 lg:py-5 rounded-2xl text-lg md:text-xl lg:text-2xl font-black transition-all active:scale-95 border border-slate-300 dark:border-slate-600"
                                 >
                                     {t.retryTask}
@@ -380,7 +393,6 @@ export const App: React.FC = () => {
         setTask(generateTask(config.gradeMode.grades, config.schoolSystem, config.lang, profile));
     };
 
-    // Регенерация ПЛАГИНА: передаем текущий task.id как принудительный forceModuleId
     const handleRetry = () => {
         if (!task) return;
         const profile: StudentProfile = {
@@ -407,7 +419,7 @@ export const App: React.FC = () => {
     return (
         <div className="min-h-screen w-screen p-4 md:p-8 lg:p-12 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200 flex flex-col items-center justify-start md:justify-center overflow-x-hidden overflow-y-auto select-none">
             <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl flex flex-col justify-center text-base md:text-lg lg:text-xl">
-                <header className="flex justify-between items-center py-3 md:py-5 mb-2 w-full">
+                <header className="flex justify-between items-center py-3 md:py-5 mb-2 w-full animate-fade-in">
                     <div>
                         <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-indigo-600 dark:text-indigo-400 tracking-widest">
                             {t.appTitle}
@@ -422,7 +434,7 @@ export const App: React.FC = () => {
                 </header>
 
                 {!openMenu && (
-                    <div className="grid grid-cols-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-4 md:p-5 text-center text-white shadow-xl mb-6 w-full text-sm md:text-base font-bold">
+                    <div className="grid grid-cols-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-4 md:p-5 text-center text-white shadow-xl mb-6 w-full text-sm md:text-base font-bold animate-fade-in">
                         <div><div className="text-xl md:text-2xl lg:text-3xl font-black">{stats.correct}</div><div className="opacity-75 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">{t.correct}</div></div>
                         <div><div className="text-base md:text-2xl lg:text-3xl font-black">{stats.total}</div><div className="opacity-75 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">{t.total}</div></div>
                         <div><div className="text-xl md:text-2xl lg:text-3xl font-black">🔥 {stats.streak}</div><div className="opacity-75 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">{t.streak}</div></div>
