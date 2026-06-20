@@ -344,7 +344,7 @@ export const registry: TaskGeneratorModule[] = [
         },
         render: (s, lang, profile) => {
             const missing = (s.a + s.b) - s.c;
-            const eq = s.v === 1 ? `_ + ${s.c} = ${s.a} + ${s.b}` : `${s.a} + ${s.b} = ${s.c} + _`;
+            const eq = s.v === 1 ? `? + ${s.c} = ${s.a} + ${s.b}` : `${s.a} + ${s.b} = ${s.c} + ?`;
             const body = lang === 'ru'
                 ? `Обе стороны = ${s.a + s.b}. ${s.c} + ${missing} = ${s.a + s.b}.`
                 : `Both sides must equal ${s.a + s.b}. ${s.c} + ${missing} = ${s.a + s.b}.`;
@@ -1413,7 +1413,7 @@ const DEFAULT_CONFIG: AppConfig = {
 const DICTIONARY = {
     en: {
         appTitle: 'MATH',
-        appSubtitle: 'with love from US(SR)',
+        appSubtitle: 'With love from US & USSR',
         practice: '✏️ Practice',
         menu: '⚙️ Menu',
         history: '📊 Progress',
