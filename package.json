@@ -2,7 +2,8 @@
   "name": "ameliia",
   "version": "1.0.0",
   "description": "Math for Ameliia",
-  "source": "2026-06-19/index.html",
+  "source": "2026-06-20/index.html",
+  "source:2026-06-20": "2026-06-20/index.html",
   "source:2026-06-19": "2026-06-19/index.html",
   "source:src": "src/index.html",
   "scripts": {
