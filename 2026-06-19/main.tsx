@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AppConfig, GeneratedTaskInstance, VisualData, StudentProfile } from './types';
+import { AppConfig, GeneratedTaskInstance, VisualData } from './types';
 import { generateTask } from './mathEngine';
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -9,99 +9,10 @@ const DEFAULT_CONFIG: AppConfig = {
     lang: 'en',
     theme: 'system',
     avatarTheme: 'girl',
-    emoji: '👧',
     schoolSystem: 'both',
-    gradeMode: { type: 'range', grades: [1, 2, 3, 4] },
+    gradeMode: { type: 'range', grades: [1, 2] },
     order: 'shuffle'
 };
-
-const DICTIONARY = {
-    en: {
-        appTitle: 'MATH',
-        practice: '✏️ Practice',
-        menu: '⚙️ Menu',
-        tasks: '✏️ Tasks',
-        settings: 'Settings',
-        studentName: 'Student Name',
-        lang: 'Language',
-        theme: 'App Theme',
-        gender: 'Profile Gender',
-        boy: 'Boy',
-        girl: 'Girl',
-        neutral: 'Neutral',
-        emojiLabel: 'Avatar Emoji',
-        noEmoji: 'No Emoji',
-        curriculum: 'Curriculum',
-        usCurriculum: 'US School (Common Core)',
-        ussrCurriculum: 'USSR School (Arithmetic)',
-        bothCurriculum: 'Both / Mixed',
-        gradesScope: 'Grades Scope',
-        export: 'Export',
-        import: 'Import',
-        reset: 'Reset to Defaults',
-        resetConfirm: 'Reset all settings to default?',
-        correct: 'Correct',
-        total: 'Total',
-        streak: 'Streak',
-        check: 'Check',
-        correctFeedback: '🎉 Correct!',
-        explanationFeedback: '💡 Explanation:',
-        nextTask: 'Next Task →',
-        retryTask: '🔄 Retry',
-        defaultStudent: 'Student',
-        workspaceNeutral: 'Workspace',
-        gradeLabel: 'Grade',
-        themeLight: 'Light',
-        themeDark: 'Dark',
-        themeSystem: 'System'
-    },
-    ru: {
-        appTitle: 'МАТЕМАТИКА',
-        practice: '✏️ Задачи',
-        menu: '⚙️ Меню',
-        tasks: '✏️ Упражнения',
-        settings: 'Настройки',
-        studentName: 'Имя ученика',
-        lang: 'Язык интерфейса',
-        theme: 'Тема оформления',
-        gender: 'Пол профиля (для окончаний)',
-        boy: 'Мальчик',
-        girl: 'Девочка',
-        neutral: 'Нейтральный',
-        emojiLabel: 'Эмодзи аватара',
-        noEmoji: 'Без эмодзи',
-        curriculum: 'Программа обучения',
-        usCurriculum: 'Школа США (Common Core)',
-        ussrCurriculum: 'Школа СССР (Арифметика)',
-        bothCurriculum: 'Обе системы / Вперемешку',
-        gradesScope: 'Выбор классов',
-        export: 'Экспорт',
-        import: 'Импорт',
-        reset: 'Сбросить настройки',
-        resetConfirm: 'Сбросить все настройки до заводских?',
-        correct: 'Верно',
-        total: 'Всего',
-        streak: 'Серия',
-        check: 'Проверить',
-        correctFeedback: '🎉 Правильно!',
-        explanationFeedback: '💡 Объяснение:',
-        nextTask: 'Следующее задание →',
-        retryTask: '🔄 Попробовать ещё раз',
-        defaultStudent: 'Ученик',
-        workspaceNeutral: 'Рабочее пространство',
-        gradeLabel: 'Класс',
-        themeLight: 'Светлая',
-        themeDark: 'Тёмная',
-        themeSystem: 'Системная'
-    }
-};
-
-const AVAILABLE_EMOJIS = [
-    '👧', '👧🏻', '👧🏼', '👧🏽', '👧🏾', '👧🏿',
-    '👦', '👦🏻', '👦🏼', '👦🏽', '👦🏾', '👦🏿',
-    '🧑', '🧑🏻', '🧑🏼', '🧑🏽', '🧑🏾', '🧑🏿',
-    '🐱', '🐶', '🦊', '🦁', '🦄', '🚀'
-];
 
 const TaskVisualizer: React.FC<{ data: VisualData }> = ({ data }) => {
     if (!data || data.type === 'none' || !data.totalParts) return null;
@@ -109,23 +20,23 @@ const TaskVisualizer: React.FC<{ data: VisualData }> = ({ data }) => {
     if (data.type === 'bar') {
         const total = data.totalParts;
         const shaded = data.shadedParts || 0;
-        const width = 500;
-        const height = 70;
+        const width = 300;
+        const height = 50;
         const itemWidth = width / total;
 
         return (
-            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="mx-auto w-full max-w-xl my-4 md:my-6">
+            <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="mx-auto max-w-xs my-4">
                 {Array.from({ length: total }).map((_, i) => (
                     <rect
                         key={i}
                         x={i * itemWidth}
                         y={4}
-                        width={itemWidth - 6}
+                        width={itemWidth - 4}
                         height={height - 8}
                         fill={i < shaded ? '#6366f1' : '#f1f5f9'}
                         stroke="#1e293b"
-                        strokeWidth="3"
-                        rx="6"
+                        strokeWidth="2"
+                        rx="4"
                     />
                 ))}
             </svg>
@@ -136,8 +47,6 @@ const TaskVisualizer: React.FC<{ data: VisualData }> = ({ data }) => {
 
 const SettingsMenu: React.FC<{ config: AppConfig; onConfigChange: (c: AppConfig) => void }> = ({ config, onConfigChange }) => {
     const fileInput = useRef<HTMLInputElement>(null);
-    const t = DICTIONARY[config.lang];
-
     const update = (k: keyof AppConfig, v: any) => onConfigChange({ ...config, [k]: v });
 
     const handleGrade = (grade: number) => {
@@ -148,127 +57,81 @@ const SettingsMenu: React.FC<{ config: AppConfig; onConfigChange: (c: AppConfig)
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 md:p-8 lg:p-10 rounded-3xl shadow-2xl w-full space-y-4 md:space-y-6 border border-slate-100 dark:border-slate-700 animate-fade-in">
-            <h2 className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400">{t.settings}</h2>
-
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl max-w-md mx-auto space-y-4 border border-slate-100 dark:border-slate-700">
+            <h2 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                {config.lang === 'ru' ? 'Настройки' : 'Settings'}
+            </h2>
             <div>
-                <label className="block text-xs md:text-sm font-bold uppercase text-slate-400 mb-1 md:mb-2">{t.studentName}</label>
-                <input
-                    type="text"
-                    value={config.studentName}
-                    onChange={e => update('studentName', e.target.value)}
-                    className="w-full p-3 border rounded-2xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white text-lg focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all"
-                />
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Student Name</label>
+                <input type="text" value={config.studentName} onChange={e => update('studentName', e.target.value)} className="w-full p-2 border rounded-xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 gap-2">
                 <div>
-                    <label className="block text-xs md:text-sm font-bold uppercase text-slate-400 mb-1 md:mb-2">{t.lang}</label>
-                    <select value={config.lang} onChange={e => update('lang', e.target.value)} className="w-full p-3 border rounded-2xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white text-base md:text-lg focus:outline-none transition-all">
+                    <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Lang</label>
+                    <select value={config.lang} onChange={e => update('lang', e.target.value)} className="w-full p-2 border rounded-xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none">
                         <option value="en">English</option>
                         <option value="ru">Русский</option>
                     </select>
                 </div>
                 <div>
-                    <label className="block text-xs md:text-sm font-bold uppercase text-slate-400 mb-1 md:mb-2">{t.theme}</label>
-                    <select value={config.theme} onChange={e => update('theme', e.target.value)} className="w-full p-3 border rounded-2xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white text-base md:text-lg focus:outline-none transition-all">
-                        <option value="light">{t.themeLight}</option>
-                        <option value="dark">{t.themeDark}</option>
-                        <option value="system">{t.themeSystem}</option>
+                    <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Theme</label>
+                    <select value={config.theme} onChange={e => update('theme', e.target.value)} className="w-full p-2 border rounded-xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                        <option value="system">System</option>
                     </select>
                 </div>
             </div>
-
             <div>
-                <label className="block text-xs md:text-sm font-bold uppercase text-slate-400 mb-1 md:mb-2">{t.gender}</label>
-                <div className="grid grid-cols-3 gap-2 md:gap-3">
-                    <button onClick={() => update('avatarTheme', 'boy')} className={`p-2.5 md:p-3 rounded-2xl font-bold border text-xs md:text-base transition-all ${config.avatarTheme === 'boy' ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-500/30' : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200'}`}>{t.boy}</button>
-                    <button onClick={() => update('avatarTheme', 'girl')} className={`p-2.5 md:p-3 rounded-2xl font-bold border text-xs md:text-base transition-all ${config.avatarTheme === 'girl' ? 'bg-pink-600 text-white border-pink-600 shadow-lg shadow-pink-500/30' : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200'}`}>{t.girl}</button>
-                    <button onClick={() => update('avatarTheme', 'none')} className={`p-2.5 md:p-3 rounded-2xl font-bold border text-xs md:text-base transition-all ${config.avatarTheme === 'none' ? 'bg-slate-600 text-white border-slate-600 shadow-lg shadow-slate-500/30' : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200'}`}>{t.neutral}</button>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Avatar Theme</label>
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => update('avatarTheme', 'boy')} className={`p-2 rounded-xl font-bold border transition-colors ${config.avatarTheme === 'boy' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200'}`}>Boy</button>
+                    <button onClick={() => update('avatarTheme', 'girl')} className={`p-2 rounded-xl font-bold border transition-colors ${config.avatarTheme === 'girl' ? 'bg-pink-600 text-white border-pink-600' : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200'}`}>Girl</button>
                 </div>
             </div>
-
             <div>
-                <label className="block text-xs md:text-sm font-bold uppercase text-slate-400 mb-1 md:mb-2">{t.emojiLabel}</label>
-                <div className="flex flex-wrap gap-1.5 p-2.5 border rounded-2xl bg-slate-50 dark:bg-slate-900 max-h-24 overflow-y-auto">
-                    <button
-                        onClick={() => update('emoji', '')}
-                        className={`p-1.5 text-xs md:text-sm rounded-xl border font-bold transition-all ${config.emoji === '' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200'}`}
-                    >
-                        {t.noEmoji}
-                    </button>
-                    {AVAILABLE_EMOJIS.map(em => (
-                        <button
-                            key={em}
-                            onClick={() => update('emoji', em)}
-                            className={`p-1 text-xl md:text-2xl rounded-xl border transition-all hover:scale-125 ${config.emoji === em ? 'bg-indigo-500/20 border-indigo-500 scale-110' : 'border-transparent'}`}
-                        >
-                            {em}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            <div>
-                <label className="block text-xs md:text-sm font-bold uppercase text-slate-400 mb-1 md:mb-2">{t.curriculum}</label>
-                <select value={config.schoolSystem} onChange={e => update('schoolSystem', e.target.value)} className="w-full p-2.5 md:p-3 border rounded-2xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white text-lg focus:outline-none transition-all">
-                    <option value="US">{t.usCurriculum}</option>
-                    <option value="USSR">{t.ussrCurriculum}</option>
-                    <option value="both">{t.bothCurriculum}</option>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Curriculum</label>
+                <select value={config.schoolSystem} onChange={e => update('schoolSystem', e.target.value)} className="w-full p-2 border rounded-xl bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none">
+                    <option value="US">US School (Common Core)</option>
+                    <option value="USSR">СССР (Арифметика)</option>
+                    <option value="both">Both / Вперемешку</option>
                 </select>
             </div>
-
             <div>
-                <label className="block text-xs md:text-sm font-bold uppercase text-slate-400 mb-1 md:mb-2">{t.gradesScope}</label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                    {[1, 2, 3, 4].map(g => (
-                        <label key={g} className="flex items-center justify-center gap-2 cursor-pointer p-2.5 border rounded-2xl bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 select-none hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">
-                            <input type="checkbox" checked={config.gradeMode.grades.includes(g)} onChange={() => handleGrade(g)} className="w-4 h-4 md:w-5 md:h-5 accent-indigo-600 rounded" />
-                            <span className="text-sm md:text-base font-bold">{t.gradeLabel} {g}</span>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Grades</label>
+                <div className="flex gap-4">
+                    {[1, 2].map(g => (
+                        <label key={g} className="flex items-center gap-2 cursor-pointer text-slate-800 dark:text-slate-200">
+                            <input type="checkbox" checked={config.gradeMode.grades.includes(g)} onChange={() => handleGrade(g)} className="w-4 h-4 accent-indigo-600 rounded" />
+                            <span className="text-sm font-semibold">Grade {g}</span>
                         </label>
                     ))}
                 </div>
             </div>
-
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2.5 text-xs md:text-sm font-bold">
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2 text-xs font-bold">
                 <button onClick={() => {
                     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
                     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'math_config.json'; a.click();
-                }} className="p-2.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">{t.export}</button>
-                <button onClick={() => fileInput.current?.click()} className="p-2.5 bg-amber-600 text-white rounded-2xl hover:bg-amber-700 transition-colors shadow-lg shadow-amber-600/20">{t.import}</button>
+                }} className="p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors">Export</button>
+                <button onClick={() => fileInput.current?.click()} className="p-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors">Import</button>
                 <input type="file" ref={fileInput} onChange={e => {
                     const file = e.target.files?.[0]; if (!file) return;
                     const r = new FileReader(); r.onload = evt => onConfigChange(JSON.parse(evt.target?.result as string)); r.readAsText(file);
                 }} className="hidden" accept=".json" />
-                <button onClick={() => { if(confirm(t.resetConfirm)) onConfigChange(DEFAULT_CONFIG); }} className="p-2.5 bg-rose-600 text-white rounded-2xl col-span-2 hover:bg-rose-700 transition-colors shadow-lg shadow-rose-600/20">{t.reset}</button>
+                <button onClick={() => { if(confirm('Reset?')) onConfigChange(DEFAULT_CONFIG); }} className="p-2 bg-rose-600 text-white rounded-xl col-span-2 hover:bg-rose-700 transition-colors">Reset to Defaults</button>
             </div>
         </div>
     );
 };
 
-interface TaskDisplayProps {
-    task: GeneratedTaskInstance;
-    onAnswer: (c: boolean) => void;
-    next: () => void;
-    onRetry: () => void;
-    lang: 'ru' | 'en';
-}
-
-const TaskDisplay: React.FC<TaskDisplayProps> = ({ task, onAnswer, next, onRetry, lang }) => {
+const TaskDisplay: React.FC<{ task: GeneratedTaskInstance; onAnswer: (c: boolean) => void; next: () => void; lang: 'ru' | 'en' }> = ({ task, onAnswer, next, lang }) => {
     const [num, setNum] = useState('');
     const [den, setDen] = useState('');
     const [text, setText] = useState('');
     const [done, setDone] = useState(false);
     const [ok, setOk] = useState(false);
-    const [isShaking, setIsShaking] = useState(false); // Стейт триггера тряски
-    const t = DICTIONARY[lang];
 
-    useEffect(() => {
-        setNum('');
-        setDen('');
-        setText('');
-        setDone(false);
-    }, [task]);
+    useEffect(() => { setNum(''); setDen(''); setText(''); setDone(false); }, [task]);
 
     const check = (e: React.FormEvent) => {
         e.preventDefault(); if (done) return;
@@ -276,84 +139,47 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({ task, onAnswer, next, onRetry
         if (task.answerType === 'number') isOk = parseFloat(num) === task.correctAnswer;
         else if (task.answerType === 'comparison' || task.answerType === 'text') isOk = text.trim().toLowerCase() === String(task.correctAnswer).toLowerCase();
         else if (task.answerType === 'fraction') isOk = parseInt(num) === task.correctAnswer.numerator && parseInt(den) === task.correctAnswer.denominator;
-
-        if (!isOk) {
-            setIsShaking(true);
-            setTimeout(() => setIsShaking(false), 400); // Сбрасываем класс после завершения анимации
-        }
-
         setOk(isOk); setDone(true); onAnswer(isOk);
     };
 
-    const inputStyle = "p-3 md:p-4 text-center border-3 border-indigo-500 rounded-2xl text-xl md:text-2xl lg:text-3xl font-black bg-white dark:bg-slate-700 text-slate-900 dark:text-white dark:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-600 dark:focus:ring-indigo-400 shadow-md transition-all";
+    // Базовые общие стили для всех типов инпутов, чтобы текст всегда контрастировал ночью
+    const inputStyle = "p-2 text-center border-2 border-indigo-500 rounded-xl text-lg font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white dark:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-400 shadow-sm";
 
     return (
-        /* Вставляем динамические классы анимаций: появление всегда, тряска — при ошибке */
-        <div className={`bg-white dark:bg-slate-800 p-6 md:p-8 lg:p-10 rounded-3xl shadow-2xl w-full border border-slate-100 dark:border-slate-700 animate-fade-in ${isShaking ? 'animate-shake' : ''}`}>
-
-            <p className="text-xl md:text-2xl lg:text-3xl text-slate-800 dark:text-slate-100 font-bold mb-6 leading-relaxed pt-2">
-                {task.question}
-            </p>
-
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl max-w-md mx-auto border border-slate-100 dark:border-slate-700">
+            <div className="flex justify-between items-center text-xs font-bold text-slate-400 mb-3">
+                <span className="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-slate-600 dark:text-slate-300">G{task.grade} • {task.system}</span>
+                <span>{task.topic.toUpperCase()}</span>
+            </div>
+            <p className="text-lg text-slate-800 dark:text-slate-100 mb-4">{task.question}</p>
             {task.visual && <TaskVisualizer data={task.visual} />}
-
-            <form onSubmit={check} className="space-y-6">
+            <form onSubmit={check} className="space-y-4">
                 {!done ? (
-                    <div className="flex flex-wrap justify-center items-center gap-4">
+                    <div className="flex justify-center items-center gap-2">
                         {task.answerType === 'fraction' ? (
-                            <div className="flex items-center gap-2">
-                                <input type="number" value={num} onChange={e => setNum(e.target.value)} className={`${inputStyle} w-20 md:w-24 lg:w-28`} required />
-                                <span className="text-2xl md:text-4xl font-black text-slate-800 dark:text-slate-200">/</span>
-                                <input type="number" value={den} onChange={e => setDen(e.target.value)} className={`${inputStyle} w-20 md:w-24 lg:w-28`} required />
+                            <div className="flex items-center gap-1">
+                                <input type="number" value={num} onChange={e => setNum(e.target.value)} className={`${inputStyle} w-16`} required />
+                                <span className="text-xl font-bold text-slate-800 dark:text-slate-200">/</span>
+                                <input type="number" value={den} onChange={e => setDen(e.target.value)} className={`${inputStyle} w-16`} required />
                             </div>
                         ) : task.answerType === 'comparison' ? (
-                            <input type="text" maxLength={1} value={text} onChange={e => setText(e.target.value)} className={`${inputStyle} w-24 md:w-28 lg:w-32`} placeholder="< >" required />
+                            <input type="text" maxLength={1} value={text} onChange={e => setText(e.target.value)} className={`${inputStyle} w-20`} placeholder="< >" required />
                         ) : (
-                            <input type="number" value={num} onChange={e => setNum(e.target.value)} className={`${inputStyle} w-36 md:w-44 lg:w-52`} placeholder="?" required />
+                            <input type="number" value={num} onChange={e => setNum(e.target.value)} className={`${inputStyle} w-28`} placeholder="?" required />
                         )}
-                        <button type="submit" className="bg-indigo-600 text-white px-8 py-3.5 md:py-4 lg:py-5 rounded-2xl text-lg md:text-xl lg:text-2xl font-black transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
-                            {t.check}
+                        <button type="submit" className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow">
+                            {lang === 'ru' ? 'Проверить' : 'Check'}
                         </button>
                     </div>
                 ) : (
-                    <div className="space-y-5">
-                        <div className={`p-5 md:p-6 lg:p-8 rounded-2xl border-3 ${ok ? 'bg-green-50 border-green-500 text-green-900 dark:bg-green-950/20 dark:text-green-300' : 'bg-rose-50 border-rose-500 text-rose-900 dark:bg-rose-950/20 dark:text-rose-300'}`}>
-
-                            <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm font-black tracking-wider uppercase opacity-60 mb-3 border-b pb-2 border-slate-300/40 dark:border-slate-600/40">
-                <span className="bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-2.5 py-0.5 rounded-lg">
-                  {t.gradeLabel} {task.grade}
-                </span>
-                                <span className="bg-slate-500/20 text-slate-700 dark:text-slate-300 px-2.5 py-0.5 rounded-lg">
-                  {task.system}
-                </span>
-                                <span className="text-slate-600 dark:text-slate-400 font-bold italic ml-auto normal-case">
-                  {task.topic}
-                </span>
-                            </div>
-
-                            <div className="font-black text-lg md:text-xl lg:text-2xl mb-2">{ok ? t.correctFeedback : t.explanationFeedback}</div>
-                            <p className="text-base md:text-lg lg:text-xl font-medium mt-1 whitespace-pre-line opacity-95 leading-relaxed">{task.explanation}</p>
+                    <div className="space-y-3">
+                        <div className={`p-4 rounded-xl border-2 ${ok ? 'bg-green-50 border-green-500 text-green-900 dark:bg-green-950/30 dark:text-green-300' : 'bg-rose-50 border-rose-500 text-rose-900 dark:bg-rose-950/30 dark:text-rose-300'}`}>
+                            <div className="font-bold text-md">{ok ? '🎉 ' + (lang === 'ru' ? 'Правильно!' : 'Correct!') : '💡 ' + (lang === 'ru' ? 'Объяснение:' : 'Explanation:')}</div>
+                            <p className="text-sm mt-1 whitespace-pre-line opacity-90">{task.explanation}</p>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                            {!ok ? (
-                                <button
-                                    type="button"
-                                    onClick={onRetry}
-                                    className="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 py-3.5 md:py-4 lg:py-5 rounded-2xl text-lg md:text-xl lg:text-2xl font-black transition-all active:scale-95 border border-slate-300 dark:border-slate-600"
-                                >
-                                    {t.retryTask}
-                                </button>
-                            ) : <div className="hidden md:block"></div>}
-
-                            <button
-                                type="button"
-                                onClick={next}
-                                className={`w-full bg-slate-900 dark:bg-indigo-600 text-white py-3.5 md:py-4 lg:py-5 rounded-2xl text-lg md:text-xl lg:text-2xl font-black shadow-xl hover:opacity-95 transition-all active:scale-95 ${!ok ? '' : 'col-span-1 md:col-span-2'}`}
-                            >
-                                {t.nextTask}
-                            </button>
-                        </div>
+                        <button type="button" onClick={next} className="w-full bg-slate-900 dark:bg-indigo-600 text-white py-2.5 rounded-xl font-bold hover:opacity-90 transition-opacity">
+                            {lang === 'ru' ? 'Следующее задание →' : 'Next Task →'}
+                        </button>
                     </div>
                 )}
             </form>
@@ -373,8 +199,6 @@ export const App: React.FC = () => {
     const [task, setTask] = useState<GeneratedTaskInstance | null>(null);
     const [openMenu, setOpenMenu] = useState(false);
 
-    const t = DICTIONARY[config.lang];
-
     useEffect(() => {
         localStorage.setItem('math_core_config', JSON.stringify(config));
         const el = document.documentElement;
@@ -385,70 +209,30 @@ export const App: React.FC = () => {
     useEffect(() => { localStorage.setItem('math_core_stats', JSON.stringify(stats)); }, [stats]);
     useEffect(() => { handleNext(); }, [config.gradeMode.grades, config.schoolSystem, config.lang]);
 
-    const handleNext = () => {
-        const profile: StudentProfile = {
-            name: config.studentName.trim(),
-            gender: config.avatarTheme
-        };
-        setTask(generateTask(config.gradeMode.grades, config.schoolSystem, config.lang, profile));
-    };
-
-    const handleRetry = () => {
-        if (!task) return;
-        const profile: StudentProfile = {
-            name: config.studentName.trim(),
-            gender: config.avatarTheme
-        };
-        setTask(generateTask(config.gradeMode.grades, config.schoolSystem, config.lang, profile, task.id));
-    };
-
+    const handleNext = () => setTask(generateTask(config.gradeMode.grades, config.schoolSystem, config.lang));
     const handleResult = (ok: boolean) => setStats((p: any) => ({ correct: p.correct + (ok ? 1 : 0), total: p.total + 1, streak: ok ? p.streak + 1 : 0 }));
 
-    const renderWorkspaceTitle = () => {
-        const name = config.studentName.trim();
-        if (!name) return t.workspaceNeutral;
-
-        if (config.lang === 'ru') {
-            if (config.avatarTheme === 'girl') return `Пространство ученицы: ${name}`;
-            if (config.avatarTheme === 'boy') return `Пространство ученика: ${name}`;
-            return `Пространство: ${name}`;
-        }
-        return `${name}'s Workspace`;
-    };
-
     return (
-        <div className="min-h-screen w-screen p-4 md:p-8 lg:p-12 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200 flex flex-col items-center justify-start md:justify-center overflow-x-hidden overflow-y-auto select-none">
-            <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl flex flex-col justify-center text-base md:text-lg lg:text-xl">
-                <header className="flex justify-between items-center py-3 md:py-5 mb-2 w-full animate-fade-in">
-                    <div>
-                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-indigo-600 dark:text-indigo-400 tracking-widest">
-                            {t.appTitle}
-                        </h1>
-                        <p className="text-xs md:text-sm lg:text-base text-slate-400 font-bold mt-1">
-                            {renderWorkspaceTitle()} {config.emoji}
-                        </p>
-                    </div>
-                    <button onClick={() => setOpenMenu(!openMenu)} className="px-4 py-2 bg-white dark:bg-slate-800 shadow-md rounded-2xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm lg:text-base font-black text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                        {openMenu ? t.practice : t.menu}
-                    </button>
-                </header>
-
-                {!openMenu && (
-                    <div className="grid grid-cols-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-4 md:p-5 text-center text-white shadow-xl mb-6 w-full text-sm md:text-base font-bold animate-fade-in">
-                        <div><div className="text-xl md:text-2xl lg:text-3xl font-black">{stats.correct}</div><div className="opacity-75 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">{t.correct}</div></div>
-                        <div><div className="text-base md:text-2xl lg:text-3xl font-black">{stats.total}</div><div className="opacity-75 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">{t.total}</div></div>
-                        <div><div className="text-xl md:text-2xl lg:text-3xl font-black">🔥 {stats.streak}</div><div className="opacity-75 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">{t.streak}</div></div>
-                    </div>
-                )}
-
-                <div className="w-full flex items-start justify-center pb-6">
-                    {openMenu ? (
-                        <SettingsMenu config={config} onConfigChange={setConfig} />
-                    ) : (
-                        task && <TaskDisplay task={task} onAnswer={handleResult} next={handleNext} onRetry={handleRetry} lang={config.lang} />
-                    )}
+        <div className="min-h-screen p-4 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+            <header className="max-w-md mx-auto flex justify-between items-center py-4 mb-2">
+                <div>
+                    <h1 className="text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-wider">MATHCORE</h1>
+                    <p className="text-xs text-slate-400 font-semibold">{config.studentName}'s Workspace {config.avatarTheme === 'girl' ? '👧' : '👦'}</p>
                 </div>
-            </div>
+                <button onClick={() => setOpenMenu(!openMenu)} className="px-3 py-1.5 bg-white dark:bg-slate-800 shadow rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                    {openMenu ? (config.lang === 'ru' ? '✏️ Задачи' : '✏️ Practice') : (config.lang === 'ru' ? '⚙️ Меню' : '⚙️ Menu')}
+                </button>
+            </header>
+            {!openMenu && (
+                <div className="max-w-md mx-auto grid grid-cols-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-3 text-center text-white shadow-md mb-4 text-xs font-bold">
+                    <div><div className="text-base font-black">{stats.correct}</div><div className="opacity-75">{config.lang === 'ru' ? 'Верно' : 'Correct'}</div></div>
+                    <div><div className="text-base font-black">{stats.total}</div><div className="opacity-75">{config.lang === 'ru' ? 'Всего' : 'Total'}</div></div>
+                    <div><div className="text-base font-black">🔥 {stats.streak}</div><div className="opacity-75">{config.lang === 'ru' ? 'Серия' : 'Streak'}</div></div>
+                </div>
+            )}
+            <main>
+                {openMenu ? <SettingsMenu config={config} onConfigChange={setConfig} /> : task && <TaskDisplay task={task} onAnswer={handleResult} next={handleNext} lang={config.lang} />}
+            </main>
         </div>
     );
 };
