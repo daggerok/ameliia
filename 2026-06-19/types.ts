@@ -1,16 +1,22 @@
 export type SchoolSystem = 'US' | 'USSR';
 export type InputType = 'number' | 'fraction' | 'comparison' | 'text';
 
-export interface Task {
+export interface VisualData {
+    type: 'circle' | 'bar' | 'none';
+    totalParts?: number;
+    shadedParts?: number;
+}
+
+export interface GeneratedTaskInstance {
     id: string;
     grade: number;
     system: SchoolSystem;
     topic: string;
-    question: string;         // Уже на нужном языке
-    explanation: string;      // На нужном языке
+    question: string;
+    explanation: string;
     answerType: InputType;
-    correctAnswer: any;       // number, string или { numerator: number, denominator: number }
-    renderVisual?: () => React.ReactNode; // Динамический SVG для компонента
+    correctAnswer: any;
+    visual: VisualData;
 }
 
 export interface AppConfig {
@@ -21,6 +27,23 @@ export interface AppConfig {
     schoolSystem: 'US' | 'USSR' | 'both';
     gradeMode: {
         type: 'single' | 'range';
-        grades: number[]; // e.g. [1, 2] или [3]
+        grades: number[];
+    };
+    order: 'sequential' | 'shuffle';
+}
+
+export interface TaskGeneratorModule {
+    id: string;
+    grade: number;
+    system: SchoolSystem;
+    topicRu: string;
+    topicEn: string;
+    generateState: () => any;
+    render: (state: any, lang: 'ru' | 'en') => {
+        question: string;
+        explanation: string;
+        answerType: InputType;
+        correctAnswer: any;
+        visual?: VisualData;
     };
 }
