@@ -50,6 +50,41 @@ export const PAINTINGS: Painting[] = [
             R(circle(40, 120, 4), '#ef4444'), R(circle(52, 124, 4), '#facc15'), R(circle(146, 122, 4), '#f472b6'),
         ],
     },
+    {
+        name: L('Pip the capybara in a warm pond', 'Капибара Пип в тёплом пруду'),
+        regions: [
+            R(rect(0, 0, 200, 80), '#bae6fd'), R(circle(170, 22, 13), '#fde047'), R(ellipse(52, 20, 18, 6), '#f8fafc'),
+            R(ellipse(22, 74, 26, 20), '#4ade80'), R(ellipse(182, 72, 26, 22), '#22c55e'), R(rect(0, 80, 200, 60), '#86efac'),
+            R(ellipse(100, 104, 78, 26), '#38bdf8'), R(ellipse(100, 98, 56, 14), '#7dd3fc'),
+            R(ellipse(98, 98, 30, 14), '#a8743f'), R(rect(108, 74, 30, 24, 12), '#c08a58'), R(circle(113, 76, 4), '#8b5e34'),
+            R(circle(126, 84, 2.5), '#1f2937'), R(ellipse(132, 90, 6, 4), '#a06a3c'), R(circle(122, 68, 6), '#fb923c'),
+            R(circle(64, 108, 6), '#fb923c'), R(circle(146, 112, 5), '#fdba74'), R(ellipse(40, 112, 10, 4), '#16a34a'),
+            R(circle(26, 128, 4), '#f472b6'), R(circle(176, 126, 4), '#facc15'), R(circle(160, 132, 4), '#c084fc'),
+        ],
+    },
+    {
+        name: L('The ice cream cafe', 'Кафе-мороженое'),
+        regions: [
+            R(rect(0, 0, 200, 140), '#e0f2fe'), R(rect(20, 30, 160, 96), '#fde68a'),
+            R(path('M14 30 L38 30 L34 48 L18 48 Z'), '#ef4444'), R(path('M38 30 L62 30 L58 48 L42 48 Z'), '#fef2f2'), R(path('M62 30 L86 30 L82 48 L66 48 Z'), '#ef4444'),
+            R(path('M86 30 L110 30 L106 48 L90 48 Z'), '#fef2f2'), R(path('M110 30 L134 30 L130 48 L114 48 Z'), '#ef4444'), R(path('M134 30 L158 30 L154 48 L138 48 Z'), '#fef2f2'),
+            R(path('M158 30 L186 30 L182 48 L162 48 Z'), '#ef4444'), R(rect(70, 8, 60, 18, 6), '#f472b6'), R(rect(32, 58, 54, 36, 4), '#bfdbfe'),
+            R(rect(130, 66, 34, 60), '#92400e'), R(path('M90 126 L100 92 L110 126 Z'), '#d97706'), R(circle(100, 86, 9), '#f9a8d4'),
+            R(circle(100, 72, 8), '#7c2d12'), R(circle(100, 60, 7), '#86efac'), R(circle(100, 51, 3), '#dc2626'),
+            R(rect(40, 104, 26, 12, 2), '#78350f'), R(circle(150, 98, 2.5), '#facc15'),
+        ],
+    },
+    {
+        name: L('Piano and flute concert', 'Концерт: пианино и флейта'),
+        regions: [
+            R(rect(0, 0, 200, 110), '#312e81'), R(path('M0 0 L44 0 Q30 60 44 110 L0 110 Z'), '#be123c'), R(path('M200 0 L156 0 Q170 60 156 110 L200 110 Z'), '#be123c'),
+            R(path('M80 0 L120 0 L150 110 L50 110 Z'), '#fef08a'), R(rect(0, 110, 200, 30), '#a16207'),
+            R(rect(56, 62, 70, 30, 4), '#111827'), R(rect(60, 84, 62, 8), '#f8fafc'), R(rect(66, 84, 3, 5), '#111827'), R(rect(76, 84, 3, 5), '#111827'), R(rect(92, 84, 3, 5), '#111827'),
+            R(rect(62, 92, 5, 20), '#1f2937'), R(rect(114, 92, 5, 20), '#1f2937'), R(rect(134, 70, 40, 4, 2), '#cbd5e1'),
+            R(circle(40, 36, 5), '#f9a8d4'), R(rect(44, 18, 2, 18), '#f9a8d4'), R(circle(160, 40, 5), '#a5f3fc'), R(rect(164, 22, 2, 18), '#a5f3fc'),
+            R(path('M100 14 L104 24 L114 24 L106 30 L109 40 L100 34 L91 40 L94 30 L86 24 L96 24 Z'), '#fde047'),
+        ],
+    },
 ];
 
 export const PaintingView: React.FC<{ painting: Painting; filled: number; className?: string }> = ({ painting, filled, className = '' }) => (

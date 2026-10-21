@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fmt, makeRng, sameAnswer } from './engine/core';
 import {
-    type GameState, ALL_SKILLS, addTime, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, grade, newState, nextProblem, normalize, totalTime,
+    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, grade, newState, nextProblem, totalTime,
 } from './engine/game';
 import { makeFreshProblem } from './engine/index';
 import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
@@ -13,6 +13,7 @@ import { type Section, type Theory, answerLine, buildTheory } from './engine/the
 import { VisualView } from './ui/Boards';
 import { Guide, Lina, Pip } from './ui/Buddy';
 import { PAINTINGS, PaintingView } from './ui/Paintings';
+import { askPersistent, exportFile, importFile, loadDb, loadLocal, newer, save } from './storage';
 
 // ========================================
 // UI TEXTS
@@ -30,9 +31,11 @@ const UI = {
         balance: 'Learning time', target: 'goal', skill: 'Skill', solved: 'Solved', reads: 'Theory', quizzes: 'Quizzes', tests: 'Practice tests', noTests: 'No tests yet',
         painting: 'Magic painting', finished: 'Finished paintings', newPainting: 'Your painting is finished! A new one is waiting.', light: 'Light', dark: 'Dark', system: 'Auto',
         on: 'On', off: 'Off', yourAnswer: 'Your answer', rightAnswer: 'Right answer', starsWord: 'stars', reviewFirst: 'Let\'s look at the theory for this one first, then you will crush it!',
-        testIntro: 'Like a real test: no hints, answer every task, the results come at the end. Ready?', theoryFor: 'Theory', skipTheory: 'Back to the task', paintingHelp: 'Every star paints one more part of the picture.',
+        testIntro: 'Like a real test: no hints, answer every task, the results come at the end. Ready?', theoryFor: 'Theory', skipTheory: 'Back to the task', paintingHelp: 'Every 2 stars paint one more part of the picture. When it is finished, you choose the next one.',
         parentsText: 'Learning time follows 50% division, 25% motion and speed, 25% rounding and estimating. A wrong answer always leads to theory and a mini quiz, and that skill comes back a few tasks later. Content follows the NJ Student Learning Standards for grade 4 (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity and acceleration are bonus explorer words.',
         perfect: 'Perfect test!', stepsWord: 'Steps', yes: 'Yes', no: 'No', taskOf: 'Task',
+        congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
+        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', howToPlay: 'How to play (the welcome tour)',
         nextQ: 'Next question', finishQuiz: 'Finish the quiz', youAnswered: 'You answered', testIn: (n: number) => n === 0 ? 'The test is today! You are ready!' : n === 1 ? 'The test is tomorrow!' : `The test is in ${n} days`, testDate: 'School test date', almost: '2 of 3, almost perfect! Great learning.', earned: 'stars earned',
     },
     ru: {
@@ -47,15 +50,16 @@ const UI = {
         balance: 'Время учёбы', target: 'цель', skill: 'Навык', solved: 'Решено', reads: 'Теория', quizzes: 'Викторины', tests: 'Пробные тесты', noTests: 'Тестов пока нет',
         painting: 'Волшебная картина', finished: 'Готовые картины', newPainting: 'Картина готова! Тебя ждёт новая.', light: 'Светлая', dark: 'Тёмная', system: 'Авто',
         on: 'Вкл', off: 'Выкл', yourAnswer: 'Твой ответ', rightAnswer: 'Правильный ответ', starsWord: 'звёзд', reviewFirst: 'Давай сначала заглянем в теорию к этому заданию, и всё получится!',
-        testIntro: 'Как настоящий тест: без подсказок, ответь на все задания, результаты в конце. Готова?', theoryFor: 'Теория', skipTheory: 'Вернуться к заданию', paintingHelp: 'Каждая звезда раскрашивает ещё кусочек картины.',
+        testIntro: 'Как настоящий тест: без подсказок, ответь на все задания, результаты в конце. Готова?', theoryFor: 'Теория', skipTheory: 'Вернуться к заданию', paintingHelp: 'Каждые 2 звезды раскрашивают ещё кусочек картины. Когда картина готова, ты выбираешь следующую.',
         parentsText: 'Время учёбы делится так: 50% деление, 25% движение и скорость, 25% округление и прикидка. После ошибки всегда идёт теория и мини-викторина, а навык возвращается через несколько заданий. Содержание по стандартам NJ для 4 класса (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity и ускорение - бонусные слова исследователя.',
         perfect: 'Идеальный тест!', stepsWord: 'Шаги', yes: 'Да', no: 'Нет', taskOf: 'Задание',
+        congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
+        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', howToPlay: 'Как играть (знакомство с игрой)',
         nextQ: 'Следующий вопрос', finishQuiz: 'Закончить викторину', youAnswered: 'Ты ответила', testIn: (n: number) => n === 0 ? 'Тест сегодня! Ты готова!' : n === 1 ? 'Тест завтра!' : `До теста ${n} ${n < 5 ? 'дня' : 'дней'}`, testDate: 'Дата теста в школе', almost: '2 из 3 - почти идеально! Отлично учишься.', earned: 'звёзд заработано',
     },
 };
 type UIText = typeof UI.en;
 
-const STORE = 'math_quest_v1';
 // two stars paint one part of the magic picture
 const STARS_PER_PART = 2;
 const params = new URLSearchParams(location.search);
@@ -139,7 +143,8 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     const [c, setC] = useState<number | null>(null);
     const [warn, setWarn] = useState(false);
     const ref = useRef<HTMLInputElement>(null);
-    useEffect(() => { setV(''); setR(''); setC(null); setTimeout(() => ref.current?.focus({ preventScroll: true }), 80); }, [problem.id]);
+    // a new task remounts this input (key = task id), so a fast first tap is never wiped by a late reset
+    useEffect(() => { const id = setTimeout(() => ref.current?.focus({ preventScroll: true }), 80); return () => clearTimeout(id); }, []);
     const a = problem.answer;
     const submit = (e?: React.FormEvent) => {
         e?.preventDefault();
@@ -239,7 +244,7 @@ const QuizView: React.FC<{ items: Problem[]; lang: Lang; t: UIText; sound: boole
             </div>
             <div className="flex gap-1.5">{items.map((_, k) => <div key={k} className={`h-2 flex-1 rounded-full ${k < results.length ? (results[k] ? 'bg-emerald-400' : 'bg-rose-400') : k === i ? 'bg-violet-400' : 'bg-slate-200 dark:bg-slate-700'}`} />)}</div>
             <p className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 whitespace-pre-line leading-relaxed" data-testid="quiz-prompt">{tr(p.prompt, lang)}</p>
-            {shown === null ? <AnswerInput problem={p} lang={lang} t={t} onSubmit={answer} /> : (
+            {shown === null ? <AnswerInput key={p.id} problem={p} lang={lang} t={t} onSubmit={answer} /> : (
                 <div className="space-y-3 animate-slide-up">
                     <div className={`p-4 rounded-2xl border-[3px] ${shown ? 'bg-emerald-50 border-emerald-400 text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200' : 'bg-rose-50 border-rose-400 text-rose-900 dark:bg-rose-950/30 dark:text-rose-200'}`} data-testid="quiz-feedback" data-ok={String(shown)}>
                         <div className="font-black text-lg mb-1">{shown ? `✅ ${t.correct}` : `💭 ${t.wrong}`}</div>
@@ -260,10 +265,11 @@ type Learn = { skill: SkillId; failed?: Problem; mode: 'failed' | 'first' | 'due
 type Attempt = { hint: boolean; wrong: boolean; afterLearn: boolean; start: number; result: null | { ok: boolean; stars: number; praise: L10n; given: string } };
 type TestRun = { problems: Problem[]; idx: number; given: Given[]; start: number; results?: boolean[] };
 
-const load = (): GameState => { try { const s = localStorage.getItem(STORE); return s ? normalize(JSON.parse(s)) : newState(); } catch { return newState(); } };
+const firstLocal = loadLocal();
 
 export const App: React.FC = () => {
-    const [g, setG] = useState<GameState>(load);
+    const [g, setG] = useState<GameState>(() => firstLocal?.state ?? newState());
+    const [paintDone, setPaintDone] = useState<number | null>(null);
     const [screen, setScreen] = useState<Screen>('home');
     const [problem, setProblem] = useState<Problem | null>(null);
     const [attempt, setAttempt] = useState<Attempt>({ hint: false, wrong: false, afterLearn: false, start: Date.now(), result: null });
@@ -280,7 +286,12 @@ export const App: React.FC = () => {
     const greeting = useMemo(() => [rng() < 0.5 ? LOVE[Math.floor(rng() * LOVE.length)] : WHY_MATH[Math.floor(rng() * WHY_MATH.length)]], [screen === 'home']);
 
     // persist and theme
-    useEffect(() => { try { localStorage.setItem(STORE, JSON.stringify(g)); } catch { /* private mode */ } }, [g]);
+    useEffect(() => { save(g); }, [g]);
+    // the IndexedDB copy wins when it is newer, for example after Safari cleared localStorage
+    useEffect(() => {
+        void askPersistent();
+        void loadDb().then(db => { const best = newer(firstLocal, db); if (best && best !== firstLocal) setG(best.state); });
+    }, []);
     useEffect(() => {
         const dark = g.theme === 'dark' || (g.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.classList.toggle('dark', dark);
@@ -309,19 +320,11 @@ export const App: React.FC = () => {
     }, [currentTopic]);
 
     // the stars also paint the magic picture
+    const parts = (i: number) => PAINTINGS[i].regions.length;
     const paint = (s: GameState, stars: number): GameState => {
-        if (!stars) return s;
-        const p = { ...s.painting, done: [...s.painting.done] };
-        p.filled += stars;
-        let finished = false;
-        while (p.filled >= PAINTINGS[p.index].regions.length * STARS_PER_PART) {
-            p.filled -= PAINTINGS[p.index].regions.length * STARS_PER_PART;
-            p.done.push(p.index);
-            p.index = (p.index + 1) % PAINTINGS.length;
-            finished = true;
-        }
-        if (finished) { setBanner({ en: UI.en.newPainting, ru: UI.ru.newPainting }); celebrate(); }
-        return { ...s, painting: p };
+        const { state, finished } = addPaintStars(s, stars, parts, STARS_PER_PART);
+        if (finished !== null) { setPaintDone(finished); celebrate(); }
+        return state;
     };
     const celebrate = () => { setConfetti(true); if (g.sound) Sound.win(); setTimeout(() => setConfetti(false), 2200); };
 
@@ -405,6 +408,8 @@ export const App: React.FC = () => {
     return (
         <div className="min-h-screen w-full px-4 py-3 md:p-6 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors flex flex-col items-center overflow-x-hidden">
             <Confetti on={confetti} />
+            {!g.introSeen && <Intro lang={lang} setLang={setLang} onDone={() => setG(s => ({ ...s, introSeen: true }))} />}
+            {g.introSeen && g.painting.choosing && <PaintingChoice g={g} t={t} lang={lang} justDone={paintDone} onChoose={i => { setG(s => chooseNextPainting(s, i, parts, STARS_PER_PART)); setPaintDone(null); }} />}
             <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl flex flex-col">
                 <header className="flex justify-between items-center py-3 mb-1 gap-2">
                     <button onClick={() => go('home')} className="flex items-center gap-2 text-left min-w-0" data-testid="nav-home">
@@ -473,6 +478,13 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
                 <span className="text-5xl">🚀</span>
                 <span><span className="block text-3xl font-black">{t.play}</span><span className="block font-bold opacity-80">{t.playSub}</span></span>
             </button>
+            {(() => {
+                const mine = g.tests.filter(x => new Date(x.t).toISOString().slice(0, 10) === today());
+                const lastToday = mine[mine.length - 1];
+                return lastToday
+                    ? <button data-testid="daily-test" data-done="true" onClick={onTest} className={`${card} !p-4 text-left flex items-center gap-3 !border-emerald-300 active:scale-[0.98]`}><span className="text-3xl">✅</span><span><span className="block font-black">{t.dailyDone(lastToday.score, lastToday.total)}</span><span className="block text-xs font-bold text-slate-400">{t.dailyAgain}</span></span></button>
+                    : <button data-testid="daily-test" data-done="false" onClick={onTest} className="w-full rounded-3xl p-4 text-left flex items-center gap-3 bg-amber-100 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 active:scale-[0.98]"><span className="text-3xl">📝</span><span><span className="block font-black text-amber-800 dark:text-amber-200">{t.dailyTodo}</span><span className="block text-xs font-bold text-amber-700/70 dark:text-amber-300/70">{t.dailyTodoSub}</span></span></button>;
+            })()}
             <div className="grid grid-cols-2 gap-3">
                 <button data-testid="test" onClick={onTest} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📝</div><div className="font-black text-lg">{t.test}</div><div className="text-xs font-bold text-slate-400">{t.testSub}</div></button>
                 <button data-testid="story" onClick={onStory} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📖</div><div className="font-black text-lg">{t.story}</div><div className="text-xs font-bold text-slate-400">{chaptersOpen} / {CHAPTERS.length}</div></button>
@@ -503,7 +515,7 @@ const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UI
             <p className="text-lg md:text-2xl text-slate-800 dark:text-slate-100 font-bold leading-relaxed whitespace-pre-line" data-testid="prompt">{tr(problem.prompt, lang)}</p>
             {!res && (<>
                 {attempt.hint ? <Guide mood="think" testId="hint-text">{tr(problem.hint, lang)}</Guide> : null}
-                <AnswerInput problem={problem} lang={lang} t={t} onSubmit={onSubmit} />
+                <AnswerInput key={problem.id} problem={problem} lang={lang} t={t} onSubmit={onSubmit} />
                 <div className="grid grid-cols-2 gap-2">
                     <button data-testid="hint" disabled={attempt.hint} onClick={onHint} className={`${secondary} py-3 disabled:opacity-40`}>💡 {t.hint}</button>
                     <button data-testid="learn-first" onClick={onLearnFirst} className={`${secondary} py-3`}>📖 {t.learnFirst}</button>
@@ -543,7 +555,7 @@ const TestView: React.FC<{ run: TestRun; lang: Lang; t: UIText; onAnswer: (g: Gi
             </div>
             <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 transition-all" style={{ width: `${(run.idx / run.problems.length) * 100}%` }} /></div>
             <p className="text-lg md:text-2xl font-bold leading-relaxed whitespace-pre-line" data-testid="prompt">{tr(p.prompt, lang)}</p>
-            <AnswerInput problem={p} lang={lang} t={t} onSubmit={onAnswer} />
+            <AnswerInput key={`${run.idx}:${p.id}`} problem={p} lang={lang} t={t} onSubmit={onAnswer} />
         </div>
     );
 };
@@ -666,6 +678,75 @@ const GalleryView: React.FC<{ g: GameState; t: UIText; lang: Lang }> = ({ g, t, 
     );
 };
 
+// The welcome tour on a new device: what the game is about and the daily routine
+const INTRO: { icon: string; title: L10n; body: L10n }[] = [
+    { icon: '👋', title: { en: 'Hi Ameliia! I am Lina', ru: 'Привет, Амелия! Я Лина' }, body: { en: 'And this is Pip the capybara. Together we will make math your superpower: division, speed and rounding. You will see your family, Fort Lee, Florida and Italy in the tasks!', ru: 'А это капибара Пип. Вместе мы сделаем математику твоей суперсилой: деление, скорость и округление. В задачах будут твоя семья, Форт-Ли, Флорида и Италия!' } },
+    { icon: '🚀', title: { en: 'How to play', ru: 'Как играть' }, body: { en: 'Press Play and solve tasks. Every right answer gives you stars: 3 on the first try, 2 with a hint. You can always read the theory first.', ru: 'Нажми «Играть» и решай задания. За каждый правильный ответ ты получаешь звёзды: 3 с первого раза, 2 с подсказкой. Теорию всегда можно прочитать заранее.' } },
+    { icon: '💡', title: { en: 'Mistakes are OK', ru: 'Ошибаться не страшно' }, body: { en: 'If an answer is wrong, I show you a short story with the theory and examples, then a mini quiz of 3 questions. After that you try a new task. That is how brains grow!', ru: 'Если ответ неверный, я покажу короткую историю с теорией и примерами, а потом мини-викторину из 3 вопросов. После этого ты попробуешь новое задание. Так растёт мозг!' } },
+    { icon: '🎨', title: { en: 'Magic paintings', ru: 'Волшебные картины' }, body: { en: 'Every 2 stars paint one part of a picture. When a picture is finished, you choose which picture to paint next.', ru: 'Каждые 2 звезды раскрашивают кусочек картины. Когда картина готова, ты сама выбираешь, какую раскрашивать дальше.' } },
+    { icon: '📖', title: { en: 'Your story book', ru: 'Твоя книжка-история' }, body: { en: 'Stars also open chapters of a story about your family and the trip to Italy: a new chapter every 30 stars. Your progress is in 📊.', ru: 'Звёзды открывают и главы истории про твою семью и поездку в Италию: новая глава каждые 30 звёзд. Свой прогресс смотри в 📊.' } },
+    { icon: '📝', title: { en: 'Every day: the practice test', ru: 'Каждый день: пробный тест' }, body: { en: 'At the end of each day, take the practice test. It is like your real test on Friday. Every day you will do it better!', ru: 'В конце каждого дня проходи пробный тест. Он как настоящий тест в пятницу. С каждым днём у тебя будет получаться лучше!' } },
+    { icon: '❤️', title: { en: 'Mom and Dad love you', ru: 'Мама и папа тебя любят' }, body: { en: 'Learn up to 2 hours a day, take little breaks and have fun. Ready?', ru: 'Занимайся до 2 часов в день, делай маленькие перерывы и получай удовольствие. Готова?' } },
+];
+
+const Intro: React.FC<{ lang: Lang; onDone: () => void; setLang: (l: Lang) => void }> = ({ lang, onDone, setLang }) => {
+    const [i, setI] = useState(0);
+    const s = INTRO[i];
+    const last = i === INTRO.length - 1;
+    return (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4" data-testid="intro">
+            <div className={`${card} max-w-xl mt-6 space-y-4 animate-bounce-in`} key={i}>
+                <div className="flex justify-between items-center">
+                    <div className="flex gap-1.5">{INTRO.map((_, k) => <div key={k} className={`h-2 w-6 rounded-full ${k <= i ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}`} />)}</div>
+                    <button onClick={() => setLang(lang === 'en' ? 'ru' : 'en')} className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600 text-xs font-black">{lang === 'en' ? 'RU' : 'EN'}</button>
+                </div>
+                <div className="flex items-end justify-center gap-2"><Lina mood={last ? 'cheer' : 'happy'} size={110} /><Pip size={64} wink={i % 2 === 1} /></div>
+                <h2 className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400 text-center" data-testid="intro-title">{s.icon} {tr(s.title, lang)}</h2>
+                <p className="text-lg md:text-xl font-medium leading-relaxed text-center text-slate-700 dark:text-slate-200">{tr(s.body, lang)}</p>
+                {s.icon === '🎨' && <PaintingView painting={PAINTINGS[0]} filled={12} />}
+                <div className="grid grid-cols-2 gap-3">
+                    {i > 0 ? <button onClick={() => setI(i - 1)} className={`${secondary} py-4`}>◀ {lang === 'en' ? 'Back' : 'Назад'}</button> : <button data-testid="intro-skip" onClick={onDone} className={`${secondary} py-4`}>{lang === 'en' ? 'Skip' : 'Пропустить'}</button>}
+                    {last
+                        ? <button data-testid="intro-start" onClick={onDone} className={`${primary} py-4 text-xl`}>{lang === 'en' ? 'Let\'s start!' : 'Поехали!'} 🚀</button>
+                        : <button data-testid="intro-next" onClick={() => setI(i + 1)} className={`${primary} py-4 text-xl`}>{lang === 'en' ? 'Next' : 'Дальше'} ▶</button>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const PaintingChoice: React.FC<{ g: GameState; t: UIText; lang: Lang; justDone: number | null; onChoose: (i: number) => void }> = ({ g, t, lang, justDone, onChoose }) => {
+    const [step, setStep] = useState<'congrats' | 'choose'>(justDone !== null ? 'congrats' : 'choose');
+    const done = justDone ?? g.painting.done[g.painting.done.length - 1];
+    return (
+        <div className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4" data-testid="painting-choice">
+            <div className={`${card} max-w-xl mt-6 space-y-4 animate-bounce-in`}>
+                {step === 'congrats' && done !== undefined ? (<>
+                    <div className="flex items-center gap-3"><Lina mood="cheer" size={80} /><Pip size={48} /></div>
+                    <h2 className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400" data-testid="painting-congrats">🎉 {t.congrats(tr(PAINTINGS[done].name, lang))}</h2>
+                    <PaintingView painting={PAINTINGS[done]} filled={PAINTINGS[done].regions.length} />
+                    <p className="font-black text-rose-500 text-center">{tr(LOVE[g.painting.done.length % LOVE.length], lang)}</p>
+                    <button data-testid="painting-next" onClick={() => setStep('choose')} className={`${primary} w-full py-4 text-xl`}>🎨 {t.chooseNext}</button>
+                </>) : (<>
+                    <Guide mood="happy" pip>{t.whichNext}</Guide>
+                    <div className="grid grid-cols-2 gap-3">
+                        {PAINTINGS.map((p, i) => {
+                            const times = g.painting.done.filter(x => x === i).length;
+                            return (
+                                <button key={i} data-testid={`paint-choose-${i}`} onClick={() => onChoose(i)} className="text-left rounded-2xl border-2 border-slate-200 dark:border-slate-600 hover:border-indigo-500 p-2 active:scale-[0.98] transition-all bg-white dark:bg-slate-800">
+                                    <PaintingView painting={p} filled={p.regions.length} />
+                                    <div className="text-xs font-black mt-1">{tr(p.name, lang)}</div>
+                                    {times > 0 && <div className="text-[10px] font-bold text-emerald-600">✓ {t.paintedTimes} {times}×</div>}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </>)}
+            </div>
+        </div>
+    );
+};
+
 const SettingsView: React.FC<{ g: GameState; setG: React.Dispatch<React.SetStateAction<GameState>>; t: UIText }> = ({ g, setG, t }) => {
     const opt = (active: boolean) => `p-3 rounded-2xl font-bold border text-sm transition-all ${active ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200'}`;
     return (
@@ -673,8 +754,16 @@ const SettingsView: React.FC<{ g: GameState; setG: React.Dispatch<React.SetState
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.language}</div><div className="grid grid-cols-2 gap-2">{(['en', 'ru'] as Lang[]).map(l => <button key={l} onClick={() => setG(s => ({ ...s, lang: l }))} className={opt(g.lang === l)}>{l === 'en' ? '🇺🇸 English' : '🇷🇺 Русский'}</button>)}</div></div>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.theme}</div><div className="grid grid-cols-3 gap-2">{(['light', 'dark', 'system'] as const).map(m => <button key={m} onClick={() => setG(s => ({ ...s, theme: m }))} className={opt(g.theme === m)}>{m === 'light' ? `☀️ ${t.light}` : m === 'dark' ? `🌙 ${t.dark}` : `🌓 ${t.system}`}</button>)}</div></div>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.sound}</div><button onClick={() => setG(s => ({ ...s, sound: !s.sound }))} className={`${opt(g.sound)} w-full`}>{g.sound ? `🔊 ${t.on}` : `🔇 ${t.off}`}</button></div>
+            <button data-testid="replay-intro" onClick={() => setG(s => ({ ...s, introSeen: false }))} className={`${secondary} w-full py-3`}>👋 {t.howToPlay}</button>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">📅 {t.testDate}</div><input type="date" value={g.testDate} onChange={e => setG(s => ({ ...s, testDate: e.target.value }))} className="w-full p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-bold" /></div>
             <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 p-4"><div className="font-black mb-1">👨‍👩‍👧‍👦 {t.parents}</div><p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed">{t.parentsText}</p></div>
+            <div className="rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 p-4 space-y-2">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed">💾 {t.storageNote}</p>
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => exportFile(g)} className={`${secondary} py-3 text-sm`}>⬇️ {t.exportBtn}</button>
+                    <label className={`${secondary} py-3 text-sm text-center cursor-pointer`}>⬆️ {t.importBtn}<input type="file" accept="application/json,.json" className="hidden" onChange={async e => { const file = e.target.files?.[0]; if (!file) return; const s = await importFile(file); if (s) { setG(s); alert(t.importOk); } else alert(t.importFail); e.target.value = ''; }} /></label>
+                </div>
+            </div>
             <button onClick={() => { if (confirm(t.resetConfirm)) setG({ ...newState(), lang: g.lang, theme: g.theme, sound: g.sound }); }} className="w-full p-3 rounded-2xl font-black bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">{t.reset}</button>
         </div>
     );
