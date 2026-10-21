@@ -49,23 +49,29 @@ export const Lina: React.FC<{ mood?: Mood; size?: number; className?: string }> 
     );
 };
 
-// Pip: a fluffy little owl who loves math and makes funny mistakes
+// Pip: a calm, fluffy capybara with an orange on her head. She loves math and makes funny mistakes
 export const Pip: React.FC<{ size?: number; className?: string; wink?: boolean }> = ({ size = 56, className = '', wink = false }) => (
     <svg viewBox="0 0 80 84" width={size} height={size * 84 / 80} className={className} role="img" aria-label="Pip">
-        <path d="M14 22 L22 6 L30 20 Z" fill="#8b6b4a" />
-        <path d="M66 22 L58 6 L50 20 Z" fill="#8b6b4a" />
-        <ellipse cx="40" cy="48" rx="28" ry="32" fill="#a47c56" />
-        <ellipse cx="40" cy="56" rx="17" ry="20" fill="#f3e3c8" />
-        <path d="M13 46 Q2 62 16 74 Q20 60 18 46 Z" fill="#8b6b4a" />
-        <path d="M67 46 Q78 62 64 74 Q60 60 62 46 Z" fill="#8b6b4a" />
-        <circle cx="28" cy="34" r="12" fill="#fff" />
-        <circle cx="52" cy="34" r="12" fill="#fff" />
-        {wink ? <path d="M22 35 Q28 30 34 35" stroke="#1f2937" strokeWidth="3" fill="none" strokeLinecap="round" /> : <circle cx="29" cy="35" r="5.5" fill="#1f2937" />}
-        <circle cx="53" cy="35" r="5.5" fill="#1f2937" />
-        <circle cx="55" cy="33" r="1.8" fill="#fff" />
-        {!wink && <circle cx="31" cy="33" r="1.8" fill="#fff" />}
-        <path d="M36 44 L44 44 L40 51 Z" fill="#f59e0b" />
-        <path d="M30 80 L34 74 M40 81 L40 75 M50 80 L46 74" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
+        <ellipse cx="40" cy="62" rx="31" ry="21" fill="#a8743f" />
+        <rect x="18" y="76" width="10" height="7" rx="3" fill="#7c5230" />
+        <rect x="52" y="76" width="10" height="7" rx="3" fill="#7c5230" />
+        <circle cx="21" cy="22" r="6" fill="#8b5e34" />
+        <circle cx="59" cy="22" r="6" fill="#8b5e34" />
+        <circle cx="21" cy="22" r="2.6" fill="#5b3a1e" />
+        <circle cx="59" cy="22" r="2.6" fill="#5b3a1e" />
+        <rect x="15" y="19" width="50" height="42" rx="21" fill="#c08a58" />
+        <ellipse cx="40" cy="48" rx="17" ry="11" fill="#a06a3c" />
+        <ellipse cx="34" cy="45" rx="2.2" ry="1.6" fill="#3f2a17" />
+        <ellipse cx="46" cy="45" rx="2.2" ry="1.6" fill="#3f2a17" />
+        <path d="M35 52 Q40 55 45 52" stroke="#3f2a17" strokeWidth="2" fill="none" strokeLinecap="round" />
+        {wink ? <path d="M24 34 Q29 30 34 34" stroke="#1f2937" strokeWidth="2.6" fill="none" strokeLinecap="round" /> : <circle cx="29" cy="34" r="3.4" fill="#1f2937" />}
+        <circle cx="51" cy="34" r="3.4" fill="#1f2937" />
+        {!wink && <circle cx="30.2" cy="32.8" r="1.1" fill="#fff" />}
+        <circle cx="52.2" cy="32.8" r="1.1" fill="#fff" />
+        <circle cx="22" cy="42" r="3.5" fill="#fda4af" opacity="0.5" />
+        <circle cx="58" cy="42" r="3.5" fill="#fda4af" opacity="0.5" />
+        <circle cx="40" cy="14" r="7.5" fill="#fb923c" />
+        <path d="M40 7 Q45 2 49 5 Q45 9 40 7 Z" fill="#22c55e" />
     </svg>
 );
 
