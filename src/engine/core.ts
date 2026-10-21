@@ -28,7 +28,10 @@ export type FillLine = { label?: L10n; parts: FillPart[]; note?: string };
 export type FillAnswer =
     // multiply: each products[i] box must be `by` times the number she wrote in parts[i] (the distributive property)
     | { kind: 'fill'; layout: 'lines' | 'vertical'; values: number[]; lines: FillLine[]; anyOrder?: number[][]; multiply?: { by: number; parts: number[]; products: number[] } }
-    | { kind: 'fill'; layout: 'area'; values: number[]; top: FillPart[]; left: FillPart[]; cells: number[][]; total: number };
+    | { kind: 'fill'; layout: 'area'; values: number[]; top: FillPart[]; left: FillPart[]; cells: number[][]; total: number }
+    // the standard algorithm as a real column: small carry boxes over the digits, one box per answer digit under the line;
+    // col 0 is the ones place; optional boxes (a carry of 0) may stay empty, like on paper
+    | { kind: 'fill'; layout: 'column'; values: number[]; top: number; by: number; carries: { col: number; b: number }[]; digits: { col: number; b: number }[]; optional: number[] };
 
 const sameSet = (a: number[], b: number[]) => a.length === b.length && [...a].sort((x, y) => x - y).every((v, i) => v === [...b].sort((x, y) => x - y)[i]);
 
@@ -36,6 +39,7 @@ const sameSet = (a: number[], b: number[]) => a.length === b.length && [...a].so
 // and the Area Model boxes are checked against her own top and left numbers.
 export const fillMarks = (answer: FillAnswer, given: number[]): boolean[] => {
     const ok = answer.values.map((v, i) => given[i] === v);
+    if (answer.layout === 'column') return ok;
     if (answer.layout === 'area') {
         const idx = (parts: FillPart[]) => parts.flatMap(p => (typeof p === 'object' && 'b' in p ? [p.b] : []));
         const topIdx = idx(answer.top), leftIdx = idx(answer.left);
