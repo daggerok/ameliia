@@ -1,5 +1,6 @@
 import { type L10n, type Problem, type Rng, type SkillId, L, TOPIC_OF, choice, fmt, int, pick, ruPlural, shuffle } from './core';
 import { makeFreshProblem, makeProblem } from './index';
+import { placeParts, standardRows } from './strategies';
 
 const concept = (skill: SkillId, id: string, q: L10n, right: L10n, wrong: L10n[], why: L10n, rng: Rng): Problem => ({
     id: `quiz:${skill}:${id}`, skill, topic: TOPIC_OF[skill], prompt: q,
@@ -37,7 +38,54 @@ const longDivisionConcepts = (skill: SkillId, rng: Rng): Problem[] => {
     ];
 };
 
+// a one-digit times a 3-digit number without zeros, like 6 × 182 on the anchor chart
+const chart = (rng: Rng) => {
+    const m = int(rng, 3, 9), a = 100 * int(rng, 1, 9) + 10 * int(rng, 1, 9) + int(rng, 1, 9);
+    return { m, a, p: placeParts(a) };
+};
+
 const concepts: Partial<Record<SkillId, (rng: Rng) => Problem[]>> = {
+    'mult-area': rng => {
+        const { m, a, p } = chart(rng);
+        return [
+            concept('mult-area', `box-${m}-${a}`, L(`Area Model for ${m} × ${a}: what goes in the box under ${p[1]}?`, `Модель площади для ${m} × ${a}: что пишем в клетку под ${p[1]}?`),
+                L(fmt(m * p[1], 'en'), fmt(m * p[1], 'ru')), [L(String(m * p[1] / 10), String(m * p[1] / 10)), L(String(m + p[1]), String(m + p[1])), L(fmt(m * p[1] * 10, 'en'), fmt(m * p[1] * 10, 'ru'))],
+                L(`Each box is left × top: ${m} × ${p[1]} = ${m * p[1]}. Keep the zero!`, `Каждая клетка - число слева × число сверху: ${m} × ${p[1]} = ${m * p[1]}. Не теряй ноль!`), rng),
+            concept('mult-area', `top-${a}`, L(`How do you write ${a} on top of the Area Model?`, `Как записать ${a} сверху в модели площади?`),
+                L(p.join(' + '), p.join(' + ')), [L(String(a).split('').join(' + '), String(a).split('').join(' + ')), L(`${p[0]} + ${a - p[0]}0`, `${p[0]} + ${a - p[0]}0`), L(`${a} + 0`, `${a} + 0`)],
+                L(`Break it into place values: ${a} = ${p.join(' + ')}.`, `Разложи по разрядам: ${a} = ${p.join(' + ')}.`), rng),
+        ];
+    },
+    'mult-dist': rng => {
+        const { m, a, p } = chart(rng);
+        return [concept('mult-dist', `show-${m}-${a}`, L(`Which one shows ${m} × ${a} with the Distributive Property?`, `Где ${m} × ${a} записано через распределительное свойство?`),
+            L(p.map(x => `(${m} × ${x})`).join(' + '), p.map(x => `(${m} × ${x})`).join(' + ')),
+            [L(`(${m} × ${p[0]}) + ${p.slice(1).join(' + ')}`, `(${m} × ${p[0]}) + ${p.slice(1).join(' + ')}`), L(String(a).split('').map(d => `${m} × ${d}`).join(' + '), String(a).split('').map(d => `${m} × ${d}`).join(' + ')), L(`${m} × ${p[0]} + ${m} × ${p[1]} + ${p[2]}`, `${m} × ${p[0]} + ${m} × ${p[1]} + ${p[2]}`)],
+            L(`${m} is handed out to every part: ${m} × (${p.join(' + ')}) = ${p.map(x => `(${m} × ${x})`).join(' + ')}.`, `${m} раздаётся каждой части: ${m} × (${p.join(' + ')}) = ${p.map(x => `(${m} × ${x})`).join(' + ')}.`), rng)];
+    },
+    'mult-partial': rng => {
+        const { m, a, p } = chart(rng);
+        const prods = p.map(x => m * x);
+        return [concept('mult-partial', `lines-${m}-${a}`, L(`Which partial products do you add for ${a} × ${m}?`, `Какие частичные произведения складываем для ${a} × ${m}?`),
+            L(prods.map(x => fmt(x, 'en')).join(' + '), prods.map(x => fmt(x, 'ru')).join(' + ')),
+            [L(String(a).split('').map(d => m * Number(d)).join(' + '), String(a).split('').map(d => m * Number(d)).join(' + ')), L(`${fmt(prods[0], 'en')} + ${prods[1] / 10} + ${prods[2]}`, `${fmt(prods[0], 'ru')} + ${prods[1] / 10} + ${prods[2]}`), L(`${fmt(prods[0], 'en')} + ${fmt(prods[1], 'en')} + ${p[2]}`, `${fmt(prods[0], 'ru')} + ${fmt(prods[1], 'ru')} + ${p[2]}`)],
+            L(`One line per place: ${p.map(x => `${m} × ${x} = ${fmt(m * x, 'en')}`).join(', ')}.`, `По строке на разряд: ${p.map(x => `${m} × ${x} = ${fmt(m * x, 'ru')}`).join(', ')}.`), rng)];
+    },
+    'mult-standard': rng => {
+        // a carry from the ones place, so the question about the tens has something to add
+        let { m, a } = chart(rng);
+        while (standardRows(m, a)[0].carryOut === 0) ({ m, a } = chart(rng));
+        const r = standardRows(m, a);
+        const t = r[1];
+        return [
+            concept('mult-standard', 'start', L('Where do you start the Standard Algorithm?', 'С чего начинается умножение столбиком?'),
+                L('In the ones place', 'С разряда единиц'), [L('In the hundreds place', 'С разряда сотен'), L('With the biggest digit', 'С самой большой цифры'), L('In the tens place', 'С разряда десятков')],
+                L('Always start in the ONES place and move to the left.', 'Всегда начинаем с разряда ЕДИНИЦ и двигаемся влево.'), rng),
+            concept('mult-standard', `tens-${m}-${a}`, L(`${a} × ${m}: ${m} × ${r[0].d} = ${r[0].prod}, you carried ${r[0].carryOut}. Now ${m} × ${t.d}. What do you write in the tens place?`, `${a} × ${m}: ${m} × ${r[0].d} = ${r[0].prod}, перенесли ${r[0].carryOut}. Теперь ${m} × ${t.d}. Что пишем в разряд десятков?`),
+                L(String(t.write), String(t.write)), [L(String((t.prod) % 10), String((t.prod) % 10)), L(String(t.sum), String(t.sum)), L(String((t.write + 1) % 10), String((t.write + 1) % 10))],
+                L(`${m} × ${t.d} = ${t.prod}, ${t.prod} + ${t.carryIn} = ${t.sum}: write ${t.write}${t.carryOut ? `, carry ${t.carryOut}` : ''}.`, `${m} × ${t.d} = ${t.prod}, ${t.prod} + ${t.carryIn} = ${t.sum}: пишем ${t.write}${t.carryOut ? `, ${t.carryOut} переносим` : ''}.`), rng),
+        ];
+    },
     'div-facts': rng => {
         const d = int(rng, 2, 9), q = int(rng, 2, 10), n = d * q;
         return [

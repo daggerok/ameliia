@@ -1,12 +1,13 @@
 /// <reference types="bun" />
 import { describe, expect, test } from 'bun:test';
-import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng } from '../src/engine/core';
+import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
 import { ALL_SKILLS, addPaintStars, addTime, applyAnswer, applyQuiz, buildTest, chooseNextPainting, newState, nextProblem, nextSkill, totalTime } from '../src/engine/game';
 import { makeFreshProblem, makeProblem } from '../src/engine/index';
 import { buildQuiz } from '../src/engine/quiz';
 import { buildTheory } from '../src/engine/theory';
+import { placeParts, standardRows } from '../src/engine/strategies';
 
 const N = 1500;
 const num = (s: string) => Number(s.replace(/[,\s$]/g, ''));
@@ -37,7 +38,7 @@ const evaluate = (expr: string): number | null => {
 
 // finds "12 × 3 + 4 = 40" and chains like "50 + 50 = 50 × 2 = 100"; skips "17 ÷ 5 = 3 R 2" (remainder notation) and clock times
 const EXPR = String.raw`\(?\$?\d[\d,]*\)?(?:\s*[×÷+−]\s*\(?\$?\d[\d,]*\)?)*`;
-const CHAIN = new RegExp(`(${EXPR})((?:\\s*=\\s*${EXPR})+)(?!\\s*(?:R|\\(остаток)|[:\\d])`, 'g');
+const CHAIN = new RegExp(`(${EXPR})((?:\\s*=\\s*${EXPR})+)(?!\\s*(?:R|\\(остаток)|\\d|:\\d)`, 'g');
 const claims = (text: string) => {
     const out: { parts: string[]; raw: string }[] = [];
     for (const m of text.matchAll(CHAIN)) {
@@ -50,7 +51,7 @@ const claims = (text: string) => {
 };
 
 // Russian groups thousands with a space (1 000), English with a comma
-const joinGroups = (s: string) => { let out = s; for (let i = 0; i < 3; i++) out = out.replace(/(\d) (\d{3})(?!\d)/g, '$1$2'); return out; };
+const joinGroups = (s: string) => { let out = s; for (let i = 0; i < 3; i++) out = out.replace(/(\d)[ \u00a0](\d{3})(?!\d)/g, '$1$2'); return out; };
 
 const checkMath = (texts: string[], where: string) => {
     for (const t of texts.map(joinGroups)) for (const c of claims(t)) {
@@ -59,7 +60,7 @@ const checkMath = (texts: string[], where: string) => {
     }
 };
 
-const textsOf = (p: Problem): L10n[] => [p.prompt, p.hint, ...p.steps, ...(p.answer.kind === 'choice' ? p.answer.options : [])];
+const textsOf = (p: Problem): L10n[] => [p.prompt, p.hint, ...p.steps, ...(p.answer.kind === 'choice' ? p.answer.options : []), ...(p.answer.kind === 'fill' && p.answer.layout !== 'area' ? p.answer.lines.flatMap(l => (l.label ? [l.label] : [])) : [])];
 // "spot the mistake" tasks show a wrong claim in the question on purpose
 const deliberateMistake = (p: Problem) => /^div-check:[zr]:|^est-product:r:/.test(p.id);
 // wrong options of a choice question are wrong on purpose: only the right one is checked
@@ -114,6 +115,7 @@ const expected = (p: Problem): number | { q: number; r: number } | 'choice' => {
             if (p.answer.kind === 'choice') return 'choice';
             return 'rb' in d ? roundTo(n('a'), 10) * roundTo(n('b'), 10) : n('ra') * n('b');
         case 'multiply': return n('a') * n('b');
+        case 'mult-area': case 'mult-dist': case 'mult-partial': case 'mult-standard': return 'choice';
         default: return 'choice';
     }
 };
@@ -129,7 +131,90 @@ describe('the math checker itself', () => {
         expect(() => checkMath(['50 + 50 + 50 = 50 × 3 = 160 miles'], 'x')).toThrow();
         expect(() => checkMath(['Check: 21 × 7 + 3 = 151 ✓'], 'x')).toThrow();
         expect(() => checkMath(['Divide: 18 ÷ 3 = 5.'], 'x')).toThrow();
-        expect(() => checkMath(['1,234 + 1 = 1,235', '1 000 − 400 = 600', '17 ÷ 5 = 3 R 2', '(60 + 20) ÷ 2 = 40', '50 + 50 = 50 × 2 = 100'], 'x')).not.toThrow();
+        expect(() => checkMath(['9 × 300 = 2,701: write it'], 'x')).toThrow();
+        expect(() => checkMath(['1,234 + 1 = 1,235', '9 × 300 = 2,700: write it', '1 000 − 400 = 600', '17 ÷ 5 = 3 R 2', '(60 + 20) ÷ 2 = 40', '50 + 50 = 50 × 2 = 100'], 'x')).not.toThrow();
+    });
+});
+
+// ---------- an independent solver for the strategy worksheets ----------
+
+const placesOf = (n: number) => { const out: number[] = []; let p = 1; for (let x = n; x > 0; x = Math.floor(x / 10), p *= 10) if (x % 10) out.unshift((x % 10) * p); return out; };
+
+const expectedBlanks = (p: Problem): number[] => {
+    const m = Number(p.data.m), a = Number(p.data.a), two = Number(p.data.two) === 1;
+    const pa = placesOf(a), pm = two ? placesOf(m) : [m];
+    if (p.skill === 'mult-area') return [...pa, ...(two ? pm : []), ...pm.flatMap(x => pa.map(y => x * y)), m * a];
+    if (p.skill === 'mult-dist') return [...pa, ...pa.map(y => m * y), m * a];
+    if (p.skill === 'mult-partial') return [...pm.flatMap(x => pa.map(y => x * y)), m * a];
+    // standard algorithm, worked from the ones place: product, sum with the carry, then the digit written and the carry
+    const out: number[] = [];
+    let carry = 0;
+    const digits = String(a).split('').reverse().map(Number);
+    digits.forEach((d, i) => {
+        const sum = m * d + carry;
+        out.push(m * d);
+        if (carry) out.push(sum);
+        if (i < digits.length - 1) out.push(sum % 10, Math.floor(sum / 10));
+        carry = Math.floor(sum / 10);
+    });
+    return [...out, m * a];
+};
+
+const blankRefs = (p: Problem): number[] => {
+    if (p.answer.kind !== 'fill') return [];
+    const parts = p.answer.layout === 'area'
+        ? [...p.answer.top, ...p.answer.left, ...p.answer.cells.flat().map(b => ({ b })), { b: p.answer.total }]
+        : p.answer.lines.flatMap(l => l.parts);
+    return parts.flatMap(x => (typeof x === 'object' && 'b' in x ? [x.b] : []));
+};
+
+describe('multiplication strategy worksheets', () => {
+    for (const skill of ['mult-area', 'mult-dist', 'mult-partial', 'mult-standard'] as SkillId[]) {
+        test(`${skill}: every blank is right and on the sheet once`, () => {
+            let twoDigit = 0;
+            each(skill, p => {
+                if (p.answer.kind !== 'fill') throw new Error('fill expected');
+                expect(p.answer.values).toEqual(expectedBlanks(p));
+                expect(blankRefs(p).sort((x, y) => x - y)).toEqual(p.answer.values.map((_, i) => i));
+                expect(p.answer.values[p.answer.values.length - 1]).toBe(Number(p.data.m) * Number(p.data.a));
+                expect(sameAnswer(p.answer, { blanks: p.answer.values })).toBe(true);
+                expect(sameAnswer(p.answer, { blanks: p.answer.values.map((v, i) => (i === 0 ? v + 1 : v)) })).toBe(false);
+                // 4.NBT.B.5: up to 4-digit × 1-digit, or 2-digit × 2-digit; the standard algorithm only with a 1-digit multiplier
+                const m = Number(p.data.m), a = Number(p.data.a);
+                if (Number(p.data.two)) { twoDigit++; expect(m).toBeLessThan(100); expect(a).toBeLessThan(100); } else { expect(m).toBeLessThan(10); expect(a).toBeLessThan(10000); }
+            });
+            if (skill !== 'mult-standard') expect(twoDigit).toBeGreaterThan(200);
+        });
+    }
+    test('parts of a sum may come in any order, area boxes follow her own order', () => {
+        for (let seed = 1; seed <= 300; seed++) {
+            const d = makeProblem('mult-dist', makeRng(seed));
+            if (d.answer.kind !== 'fill' || d.answer.layout === 'area') throw new Error('sheet');
+            const n = (d.answer.values.length - 1) / 2;
+            const swapped = [...d.answer.values];
+            [swapped[0], swapped[n - 1]] = [swapped[n - 1], swapped[0]];
+            expect(sameAnswer(d.answer, { blanks: swapped })).toBe(true);
+            const area = makeProblem('mult-area', makeRng(seed));
+            if (area.answer.kind !== 'fill' || area.answer.layout !== 'area') throw new Error('area');
+            const v = [...area.answer.values];
+            const topIdx = area.answer.top.flatMap(x => (typeof x === 'object' && 'b' in x ? [x.b] : []));
+            const left = area.answer.left.map(x => (typeof x === 'string' ? Number(x) : 'b' in x ? v[x.b] : 0));
+            // her top in reverse order with boxes that match it is right
+            const tops = topIdx.map(i => v[i]).reverse();
+            topIdx.forEach((i, k) => { v[i] = tops[k]; });
+            area.answer.cells.forEach((row, r) => row.forEach((b, c) => { v[b] = left[r] * tops[c]; }));
+            expect(sameAnswer(area.answer, { blanks: v })).toBe(true);
+            // the same reversed top with the old boxes is wrong
+            const old = [...area.answer.values];
+            topIdx.forEach((i, k) => { old[i] = tops[k]; });
+            if (topIdx.length > 1) expect(sameAnswer(area.answer, { blanks: old })).toBe(false);
+        }
+    });
+    test('the standard algorithm of the anchor chart: 182 × 6', () => {
+        const rows = standardRows(6, 182);
+        expect(rows.map(r => [r.prod, r.sum, r.write, r.carryOut])).toEqual([[12, 12, 2, 1], [48, 49, 9, 4], [6, 10, 10, 0]]);
+        expect(placeParts(182)).toEqual([100, 80, 2]);
+        expect(placeParts(4006)).toEqual([4000, 6]);
     });
 });
 
@@ -171,6 +256,9 @@ describe('every generated task is correct', () => {
                     expect({ q: p.answer.q, r: p.answer.r }).toEqual(want as { q: number; r: number });
                     expect(p.answer.r).toBeLessThan(Number(p.data.divisor));
                     expect(p.answer.r).toBeGreaterThan(0);
+                } else if (p.answer.kind === 'fill') {
+                    // 6 × 0 = 0 in the standard algorithm is a real blank
+                    expect(p.answer.values.every(v => Number.isInteger(v) && v >= 0)).toBe(true);
                 } else {
                     const en = p.answer.options.map(o => o.en);
                     expect(new Set(en).size).toBe(en.length);
@@ -341,12 +429,14 @@ describe('game flow', () => {
         s = applyAnswer(s, makeProblem('div-3d', rng), true, { firstTry: true, hint: false, sec: 5 }).state;
         expect(s.skills['div-3d'].reviewPending).toBe(false);
     });
-    test('the practice test is half division', () => {
+    test('the practice test: 6 division, 3 motion, 3 rounding and 2 different multiplication strategies', () => {
         const test1 = buildTest(newState(), makeRng(9));
-        expect(test1.length).toBe(12);
+        expect(test1.length).toBe(14);
         expect(test1.filter(p => p.topic === 'division').length).toBe(6);
         expect(test1.filter(p => p.topic === 'science').length).toBe(3);
-        expect(test1.filter(p => p.topic === 'estimation').length).toBe(3);
+        expect(test1.filter(p => p.topic === 'estimation').length).toBe(5);
+        const strategies = test1.filter(p => p.skill.startsWith('mult-')).map(p => p.skill);
+        expect(new Set(strategies).size).toBe(2);
     });
     test('a finished picture waits for her choice and keeps the extra stars', () => {
         const parts = () => 20;

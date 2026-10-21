@@ -8,12 +8,46 @@ export type Topic = 'division' | 'science' | 'estimation';
 export type SkillId =
     | 'div-facts' | 'div-2d' | 'div-3d' | 'div-zero' | 'div-4d' | 'div-rem' | 'div-word' | 'div-check'
     | 'speed-basic' | 'speed-find' | 'speed-trip' | 'speed-units' | 'motion-ideas'
-    | 'round' | 'est-sum' | 'est-product' | 'multiply';
+    | 'round' | 'est-sum' | 'est-product' | 'multiply'
+    | 'mult-area' | 'mult-dist' | 'mult-partial' | 'mult-standard';
 
 export type Answer =
     | { kind: 'number'; value: number }
     | { kind: 'remainder'; q: number; r: number }
-    | { kind: 'choice'; options: L10n[]; correct: number };
+    | { kind: 'choice'; options: L10n[]; correct: number }
+    | FillAnswer;
+
+// A worksheet to fill in, like the strategy sheets at school: every blank is one number.
+// A part of a line is plain text or a blank (its index in values).
+// A part is math text, a word in both languages ({ t }), a blank ({ b }, the index in values)
+// or an echo of a blank she already filled ({ echo }), so a number is never typed twice.
+export type FillPart = string | { b: number } | { t: L10n } | { echo: number };
+export type FillLine = { label?: L10n; parts: FillPart[]; note?: string };
+// anyOrder: groups of blanks that may be written in any order (100 + 80 + 2 or 2 + 80 + 100)
+export type FillAnswer =
+    | { kind: 'fill'; layout: 'lines' | 'vertical'; values: number[]; lines: FillLine[]; anyOrder?: number[][] }
+    | { kind: 'fill'; layout: 'area'; values: number[]; top: FillPart[]; left: FillPart[]; cells: number[][]; total: number };
+
+const sameSet = (a: number[], b: number[]) => a.length === b.length && [...a].sort((x, y) => x - y).every((v, i) => v === [...b].sort((x, y) => x - y)[i]);
+
+// Which boxes are right. Checked by meaning, not only by position: parts of a sum may come in any order,
+// and the Area Model boxes are checked against her own top and left numbers.
+export const fillMarks = (answer: FillAnswer, given: number[]): boolean[] => {
+    const ok = answer.values.map((v, i) => given[i] === v);
+    if (answer.layout === 'area') {
+        const idx = (parts: FillPart[]) => parts.flatMap(p => (typeof p === 'object' && 'b' in p ? [p.b] : []));
+        const topIdx = idx(answer.top), leftIdx = idx(answer.left);
+        const topOk = sameSet(topIdx.map(i => given[i]), topIdx.map(i => answer.values[i]));
+        const leftOk = sameSet(leftIdx.map(i => given[i]), leftIdx.map(i => answer.values[i]));
+        if (topOk) topIdx.forEach(i => { ok[i] = true; });
+        if (leftOk) leftIdx.forEach(i => { ok[i] = true; });
+        const num = (p: FillPart) => (typeof p === 'string' ? Number(p) : 'b' in p ? given[p.b] : NaN);
+        if (topOk && leftOk) answer.cells.forEach((row, r) => row.forEach((b, c) => { ok[b] = given[b] === num(answer.left[r]) * num(answer.top[c]); }));
+        return ok;
+    }
+    for (const g of answer.anyOrder ?? []) if (sameSet(g.map(i => given[i]), g.map(i => answer.values[i]))) g.forEach(i => { ok[i] = true; });
+    return ok;
+};
 
 export type Leg = { from: string; to: string; distance: number; time: number; speed: number; vehicle: string };
 
@@ -69,7 +103,7 @@ export const join = (parts: L10n[], sep = ' '): L10n => L(parts.map(p => p.en).j
 
 // 1,234 in English, 1 234 in Russian (thin space would not render in every font, a plain space is used)
 export const fmt = (n: number, lang: Lang) => {
-    const s = String(Math.abs(Math.trunc(n))).replace(/\B(?=(\d{3})+(?!\d))/g, lang === 'en' ? ',' : ' ');
+    const s = String(Math.abs(Math.trunc(n))).replace(/\B(?=(\d{3})+(?!\d))/g, lang === 'en' ? ',' : '\u00a0');
     return n < 0 ? `-${s}` : s;
 };
 export const n2 = (n: number): L10n => L(fmt(n, 'en'), fmt(n, 'ru'));
@@ -98,12 +132,13 @@ export const TOPIC_OF: Record<SkillId, Topic> = {
     'div-rem': 'division', 'div-word': 'division', 'div-check': 'division',
     'speed-basic': 'science', 'speed-find': 'science', 'speed-trip': 'science', 'speed-units': 'science', 'motion-ideas': 'science',
     'round': 'estimation', 'est-sum': 'estimation', 'est-product': 'estimation', 'multiply': 'estimation',
+    'mult-area': 'estimation', 'mult-dist': 'estimation', 'mult-partial': 'estimation', 'mult-standard': 'estimation',
 };
 
 export const SKILLS_OF: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
     science: ['speed-basic', 'speed-find', 'speed-trip', 'speed-units', 'motion-ideas'],
-    estimation: ['round', 'est-sum', 'est-product', 'multiply'],
+    estimation: ['round', 'est-sum', 'est-product', 'multiply', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard'],
 };
 
 // share of learning time the owner asked for
@@ -127,12 +162,16 @@ export const SKILL_NAME: Record<SkillId, L10n> = {
     'est-sum': L('Estimating sums and differences', 'Прикидка суммы и разности'),
     'est-product': L('Estimating products', 'Прикидка произведения'),
     'multiply': L('Multi-digit multiplication', 'Умножение многозначных чисел'),
+    'mult-area': L('Strategy: Area Model', 'Способ: модель площади'),
+    'mult-dist': L('Strategy: Distributive Property', 'Способ: распределительное свойство'),
+    'mult-partial': L('Strategy: Partial Products', 'Способ: частичные произведения'),
+    'mult-standard': L('Strategy: Standard Algorithm', 'Способ: умножение столбиком'),
 };
 
 export const TOPIC_NAME: Record<Topic, L10n> = {
     division: L('Division', 'Деление'),
     science: L('Motion and speed', 'Движение и скорость'),
-    estimation: L('Rounding and estimating', 'Округление и прикидка'),
+    estimation: L('Rounding, estimating and multiplying', 'Округление, прикидка и умножение'),
 };
 
 export const TOPIC_ICON: Record<Topic, string> = { division: '🍪', science: '🚆', estimation: '🎯' };
@@ -147,7 +186,8 @@ export const choice = (rng: Rng, correct: L10n, wrong: L10n[]): Answer => {
     return { kind: 'choice', options, correct: options.indexOf(correct) };
 };
 
-export const sameAnswer = (answer: Answer, given: { value?: number; q?: number; r?: number; choice?: number }) => {
+export const sameAnswer = (answer: Answer, given: { value?: number; q?: number; r?: number; choice?: number; blanks?: number[] }) => {
+    if (answer.kind === 'fill') return fillMarks(answer, given.blanks ?? []).every(Boolean);
     if (answer.kind === 'number') return given.value === answer.value;
     if (answer.kind === 'remainder') return given.q === answer.q && given.r === answer.r;
     return given.choice === answer.correct;
