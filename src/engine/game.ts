@@ -72,7 +72,8 @@ export const normalize = (raw: unknown): GameState => {
 export const LADDER: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
     science: ['speed-basic', 'speed-find', 'speed-units', 'speed-trip'],
-    estimation: ['round', 'est-sum', 'est-product', 'multiply'],
+    // the four multiplication strategies come right after rounding: they are on the Friday test
+    estimation: ['round', 'mult-area', 'mult-partial', 'mult-dist', 'mult-standard', 'est-sum', 'est-product', 'multiply'],
 };
 
 export const unlocked = (state: GameState, topic: Topic): SkillId[] => {
@@ -188,17 +189,19 @@ export const addTime = (prev: GameState, topic: Topic, sec: number, day: string)
     return state;
 };
 
-// Practice test like the one at school: 12 tasks, half division, a quarter motion, a quarter rounding and estimating
+// Practice test like the one at school: 6 division, 3 motion, 3 rounding and estimating, plus 2 different multiplication strategies
 export const TEST_PLAN: SkillId[] = [
     'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word',
     'speed-basic', 'speed-trip', 'motion-ideas',
     'round', 'est-product', 'multiply',
 ];
 
+export const STRATEGIES: SkillId[] = ['mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];
+
 export const buildTest = (state: GameState, rng: Rng): Problem[] => {
     const seen = new Set(state.recent);
     const out: Problem[] = [];
-    for (const s of shuffle(rng, TEST_PLAN)) {
+    for (const s of shuffle(rng, [...TEST_PLAN, ...shuffle(rng, STRATEGIES).slice(0, 2)])) {
         const p = makeFreshProblem(s, rng, seen);
         seen.add(p.id);
         out.push(p);
@@ -215,6 +218,9 @@ export const applyTest = (prev: GameState, problems: Problem[], results: boolean
     const score = results.filter(Boolean).length;
     state.tests = [...state.tests, { t: Date.now(), score, total: problems.length, sec: Math.round(sec), wrong }].slice(-50);
     state.stars += score;
+    // test answers count in the Correct % too
+    state.answered += problems.length;
+    state.correct += score;
     return state;
 };
 

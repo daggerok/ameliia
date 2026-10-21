@@ -1,6 +1,7 @@
 import { type L10n, type Problem, type Rng, type SkillId, type Visual, L, SKILL_NAME, fmt, int, pick, ruPlural } from './core';
 import { longDivisionText, partialQuotientsText } from './division';
 import { makeProblem } from './index';
+import { placeParts, standardRows } from './strategies';
 import { LOVE, WHY_MATH } from './messages';
 
 export type Section =
@@ -72,7 +73,146 @@ const warnLong: Section = { kind: 'warn', title: T.warn, body: [
     L('Do not divide the whole big number at once. Only the part you are working on.', 'Не дели сразу всё большое число. Только ту часть, с которой сейчас работаешь.'),
 ] };
 
+// ---------- multiplication strategies (the anchor chart: Area Model, Distributive Property, Partial Products, Standard Algorithm) ----------
+
+// a one-digit times a 3-digit number without zeros, so every strategy has three real parts
+const chartPair = (rng: Rng) => {
+    const m = int(rng, 3, 9);
+    const a = 100 * int(rng, 1, 9) + 10 * int(rng, 1, 9) + int(rng, 1, 9);
+    return { m, a, parts: placeParts(a) };
+};
+
+const fourWays = (m: number, a: number): Section => {
+    const parts = placeParts(a);
+    const prods = parts.map(p => m * p);
+    const rows = standardRows(m, a);
+    return {
+        kind: 'idea', title: L(`Four roads, one answer: ${m} × ${a}`, `Четыре дороги, один ответ: ${m} × ${a}`),
+        body: [
+            L(`Area Model: boxes ${parts.map(p => `${m} × ${p} = ${fmt(m * p, 'en')}`).join(', ')}; ${prods.map(p => fmt(p, 'en')).join(' + ')} = ${fmt(m * a, 'en')}.`,
+                `Модель площади: клетки ${parts.map(p => `${m} × ${p} = ${fmt(m * p, 'ru')}`).join(', ')}; ${prods.map(p => fmt(p, 'ru')).join(' + ')} = ${fmt(m * a, 'ru')}.`),
+            L(`Distributive Property: ${m} × ${a} = ${m} × (${parts.join(' + ')}) = ${parts.map(p => `(${m} × ${p})`).join(' + ')} = ${prods.map(p => fmt(p, 'en')).join(' + ')} = ${fmt(m * a, 'en')}.`,
+                `Распределительное свойство: ${m} × ${a} = ${m} × (${parts.join(' + ')}) = ${parts.map(p => `(${m} × ${p})`).join(' + ')} = ${prods.map(p => fmt(p, 'ru')).join(' + ')} = ${fmt(m * a, 'ru')}.`),
+            L(`Partial Products: ${prods.map((p, i) => `${fmt(p, 'en')} (${m} × ${parts[i]})`).join(', ')}, added: ${fmt(m * a, 'en')}.`,
+                `Частичные произведения: ${prods.map((p, i) => `${fmt(p, 'ru')} (${m} × ${parts[i]})`).join(', ')}, сумма: ${fmt(m * a, 'ru')}.`),
+            L(`Standard Algorithm (in the US): start in the ones place: ${rows.map(r => r.carryIn ? `${m} × ${r.d} = ${r.prod}, ${r.prod} + ${r.carryIn} = ${r.sum}` : `${m} × ${r.d} = ${r.prod}`).join('; ')}. Answer ${fmt(m * a, 'en')}.`,
+                `Умножение столбиком: начинаем с единиц: ${rows.map(r => r.carryIn ? `${m} × ${r.d} = ${r.prod}, ${r.prod} + ${r.carryIn} = ${r.sum}` : `${m} × ${r.d} = ${r.prod}`).join('; ')}. Ответ ${fmt(m * a, 'ru')}.`),
+            L('Every strategy is the same idea: break the big number into place values, multiply each part, put the parts back together.', 'Все способы - одна идея: разбить большое число по разрядам, умножить каждую часть и собрать части обратно.'),
+        ],
+    };
+};
+
+const zerosWarn: Section = { kind: 'warn', title: L('Watch out!', 'Осторожно!'), body: [
+    L('A zero digit gives a zero part: 804 = 800 + 4, because 0 tens is nothing. 6 × 0 = 0, so you may skip that box or line.', 'Цифра 0 даёт пустую часть: 804 = 800 + 4, ведь 0 десятков - это ничего. 6 × 0 = 0, эту клетку или строку можно пропустить.'),
+    L('Keep the zeros: 6 × 80 = 480, not 48. 6 × 100 = 600, not 6.', 'Не теряй нули: 6 × 80 = 480, а не 48. 6 × 100 = 600, а не 6.'),
+    L('A quick way: 6 × 80 is 6 × 8 = 48, then write the zero back: 480.', 'Быстрый способ: 6 × 80 - это 6 × 8 = 48, потом дописываем ноль: 480.'),
+] };
+
+const strategyBuilders: Record<'mult-area' | 'mult-dist' | 'mult-partial' | 'mult-standard', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'mult-area': rng => {
+        const { m, a, parts } = chartPair(rng);
+        return {
+            hook: [
+                L('Ameliia loves painting rectangles. The Area Model is a rectangle cut into boxes: each box is one easy multiplication!', 'Амелия любит рисовать прямоугольники. Модель площади - это прямоугольник, разрезанный на клетки: каждая клетка - одно лёгкое умножение!'),
+                L(`Grandma Sveta's garden is ${m} rows by ${a} flowers. Too big to count? Cut it into pieces by hundreds, tens and ones.`, `Огород бабушки Светы - ${m} грядок по ${a} цветов. Слишком много, чтобы считать? Разрежем на части: сотни, десятки и единицы.`),
+            ],
+            sections: [
+                { kind: 'steps', title: L('How to do it', 'Как решать'), body: [
+                    L(`1. Break ${a} into place values and write them on top: ${parts.join(' + ')}.`, `1. Разбей ${a} по разрядам и запиши сверху: ${parts.join(' + ')}.`),
+                    L(`2. Write ${m} on the left side.`, `2. Слева запиши ${m}.`),
+                    L('3. In every box multiply the number on the left by the number on top.', '3. В каждой клетке умножь число слева на число сверху.'),
+                    L('4. Add all the boxes together.', '4. Сложи все клетки.'),
+                ] },
+                { kind: 'example', title: L('Let\'s try one together', 'Решим вместе'), prompt: L(`${m} × ${a}`, `${m} × ${a}`),
+                    body: [...parts.map(p => L(`${m} × ${p} = ${fmt(m * p, 'en')}`, `${m} × ${p} = ${fmt(m * p, 'ru')}`)), L(`${parts.map(p => fmt(m * p, 'en')).join(' + ')} = ${fmt(m * a, 'en')}`, `${parts.map(p => fmt(m * p, 'ru')).join(' + ')} = ${fmt(m * a, 'ru')}`)],
+                    visual: { kind: 'area', a, b: m } },
+                { kind: 'trick', title: L('Two-digit times two-digit', 'Двузначное на двузначное'), body: [
+                    L('23 × 45: put 20 + 3 on the left and 40 + 5 on top. Four boxes: 20 × 40 = 800, 20 × 5 = 100, 3 × 40 = 120, 3 × 5 = 15. 800 + 100 + 120 + 15 = 1,035.',
+                        '23 × 45: слева 20 + 3, сверху 40 + 5. Четыре клетки: 20 × 40 = 800, 20 × 5 = 100, 3 × 40 = 120, 3 × 5 = 15. 800 + 100 + 120 + 15 = 1 035.'),
+                ] },
+                zerosWarn,
+                fourWays(m, a),
+            ],
+        };
+    },
+    'mult-dist': rng => {
+        const { m, a, parts } = chartPair(rng);
+        return {
+            hook: [
+                L(`${m} friends each get ${a} stickers. How many in all? The Distributive Property says: give out the hundreds, then the tens, then the ones, and add.`, `Каждый из ${m} друзей получает по ${a} ${ruPlural(a, 'наклейке', 'наклейки', 'наклеек')}. Сколько всего? Распределительное свойство говорит: раздай сотни, потом десятки, потом единицы и сложи.`),
+                L('"Distribute" means "hand out to everyone". The number outside the brackets is handed out to every part inside.', '«Распределить» значит «раздать всем». Число перед скобками раздаётся каждой части в скобках.'),
+            ],
+            sections: [
+                { kind: 'steps', title: L('How to do it', 'Как решать'), body: [
+                    L(`1. Write the big number as a sum of place values in brackets: ${m} × (${parts.join(' + ')}).`, `1. Запиши большое число суммой разрядов в скобках: ${m} × (${parts.join(' + ')}).`),
+                    L(`2. Hand ${m} to every part: ${parts.map(p => `(${m} × ${p})`).join(' + ')}.`, `2. Раздай ${m} каждой части: ${parts.map(p => `(${m} × ${p})`).join(' + ')}.`),
+                    L(`3. Multiply each part: ${parts.map(p => fmt(m * p, 'en')).join(' + ')}.`, `3. Умножь каждую часть: ${parts.map(p => fmt(m * p, 'ru')).join(' + ')}.`),
+                    L(`4. Add: ${fmt(m * a, 'en')}.`, `4. Сложи: ${fmt(m * a, 'ru')}.`),
+                ] },
+                { kind: 'warn', title: L('Watch out!', 'Осторожно!'), body: [
+                    L('A zero digit gives no part: 804 = 800 + 4, so 6 × 804 = (6 × 800) + (6 × 4).', 'Цифра 0 не даёт части: 804 = 800 + 4, значит 6 × 804 = (6 × 800) + (6 × 4).'),
+                    L(`Multiply EVERY part, not only the first one: ${m} × (${parts.join(' + ')}) is not ${m} × ${parts[0]} + ${parts.slice(1).join(' + ')}.`, `Умножай КАЖДУЮ часть, а не только первую: ${m} × (${parts.join(' + ')}) - это не ${m} × ${parts[0]} + ${parts.slice(1).join(' + ')}.`),
+                    L('Keep the zeros: 6 × 80 = 480, not 48.', 'Не теряй нули: 6 × 80 = 480, а не 48.'),
+                ] },
+                fourWays(m, a),
+            ],
+        };
+    },
+    'mult-partial': rng => {
+        const { m, a, parts } = chartPair(rng);
+        return {
+            hook: [
+                L('Partial Products is the Area Model written in a column: one line for every box, then add the lines.', 'Частичные произведения - это модель площади, записанная столбиком: по строке на каждую клетку, потом складываем строки.'),
+                L('Like packing for Florida: socks in one bag, shirts in another, shoes in a third. At the end everything goes into one suitcase!', 'Как сборы во Флориду: носки в один пакет, футболки в другой, обувь в третий. А в конце всё в один чемодан!'),
+            ],
+            sections: [
+                { kind: 'steps', title: L('How to do it', 'Как решать'), body: [
+                    L(`1. Write ${a} on top and × ${m} under it.`, `1. Запиши ${a} сверху и × ${m} под ним.`),
+                    ...parts.map((p, i) => L(`${i + 2}. ${m} × ${p} = ${fmt(m * p, 'en')}: write it on its own line.`, `${i + 2}. ${m} × ${p} = ${fmt(m * p, 'ru')}: запиши на отдельной строке.`)),
+                    L(`${parts.length + 2}. Add the lines: ${parts.map(p => fmt(m * p, 'en')).join(' + ')} = ${fmt(m * a, 'en')}.`, `${parts.length + 2}. Сложи строки: ${parts.map(p => fmt(m * p, 'ru')).join(' + ')} = ${fmt(m * a, 'ru')}.`),
+                ] },
+                { kind: 'trick', title: L('Keep the columns straight', 'Ровные столбики'), body: [
+                    L('Write every partial product so that ones are under ones, tens under tens, hundreds under hundreds. The notepad has grid paper for that!', 'Пиши частичные произведения так, чтобы единицы были под единицами, десятки под десятками, сотни под сотнями. В блокноте бумага в клетку, это удобно!'),
+                ] },
+                zerosWarn,
+                fourWays(m, a),
+            ],
+        };
+    },
+    'mult-standard': rng => {
+        // the worked example always carries, that is the part to learn
+        let { m, a } = chartPair(rng);
+        while (!standardRows(m, a).some(r => r.carryIn > 0)) ({ m, a } = chartPair(rng));
+        const rows = standardRows(m, a);
+        return {
+            hook: [
+                L('The Standard Algorithm is the fastest road. The secret: start in the ONES place and never forget the carried number.', 'Умножение столбиком - самая быстрая дорога. Секрет: начинай с разряда ЕДИНИЦ и не забывай перенесённое число.'),
+                L('Carrying is like Martin\'s blocks: 10 ones make a ten, so they climb up to the tens tower.', 'Перенос - как кубики Мартина: 10 единиц складываются в десяток и переходят в башню десятков.'),
+            ],
+            sections: [
+                { kind: 'steps', title: L('How to do it', 'Как решать'), body: [
+                    L('1. Multiply the ones digit. Write the ones of the answer, carry the tens above the next digit (like the small 4 1 above 182 on the chart).', '1. Умножь цифру единиц. Запиши единицы ответа, а десятки перенеси над следующей цифрой (как маленькие 4 1 над 182 на плакате).'),
+                    L('2. Multiply the tens digit, THEN add the carried number.', '2. Умножь цифру десятков, ПОТОМ прибавь перенесённое число.'),
+                    L('3. Keep going to the left. At the last digit write the whole number.', '3. Двигайся влево. На последней цифре пиши всё число целиком.'),
+                ] },
+                { kind: 'example', title: L('Let\'s try one together', 'Решим вместе'), prompt: L(`${a} × ${m}`, `${a} × ${m}`), body: rows.map((r, i) => {
+                    const head = r.carryIn ? `${m} × ${r.d} = ${r.prod}, ${r.prod} + ${r.carryIn} = ${r.sum}` : `${m} × ${r.d} = ${r.prod}`;
+                    return i === rows.length - 1 ? L(`${head}: write ${r.sum}. Answer ${fmt(m * a, 'en')}.`, `${head}: пишем ${r.sum}. Ответ ${fmt(m * a, 'ru')}.`)
+                        : L(`${head}: write ${r.write}${r.carryOut ? `, carry ${r.carryOut}` : ''}.`, `${head}: пишем ${r.write}${r.carryOut ? `, ${r.carryOut} переносим` : ''}.`);
+                }) },
+                { kind: 'warn', title: L('Watch out!', 'Осторожно!'), body: [
+                    L('Multiply first, then add the carry. 6 × 8 + 1 is 49, not 6 × 9.', 'Сначала умножай, потом прибавляй перенос. 6 × 8 + 1 = 49, а не 6 × 9.'),
+                    L('Cross out a carried number once you used it, so you do not add it twice.', 'Зачёркивай перенесённое число, когда использовала его, чтобы не прибавить дважды.'),
+                    L('Nothing to carry? The carry is 0. A 0 digit: 6 × 0 = 0, then add the carry.', 'Нечего переносить? Перенос 0. Цифра 0: 6 × 0 = 0, потом прибавь перенос.'),
+                ] },
+                fourWays(m, a),
+            ],
+        };
+    },
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    ...strategyBuilders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
         const skip = Array.from({ length: q }, (_, i) => (i + 1) * d);
@@ -442,19 +582,23 @@ export const answerLine = (p: Problem): L10n => {
     const a = p.answer;
     if (a.kind === 'number') return L(`Answer: ${fmt(a.value, 'en')}`, `Ответ: ${fmt(a.value, 'ru')}`);
     if (a.kind === 'remainder') return L(`Answer: ${fmt(a.q, 'en')} R ${a.r}`, `Ответ: ${fmt(a.q, 'ru')} (остаток ${a.r})`);
+    // a worksheet: the last blank is the final product
+    if (a.kind === 'fill') return L(`Answer: ${fmt(a.values[a.values.length - 1], 'en')}`, `Ответ: ${fmt(a.values[a.values.length - 1], 'ru')}`);
     const o = a.options[a.correct];
     return L(`Answer: ${o.en}`, `Ответ: ${o.ru}`);
 };
 
 export const buildTheory = (skill: SkillId, rng: Rng, failed?: Problem): Theory => {
     const { hook, sections } = builders[skill](rng);
-    const out: Section[] = [{ kind: 'story', body: pick(rng, hook) }, ...sections];
+    const out: Section[] = [{ kind: 'story', body: pick(rng, hook) }];
+    // after a mistake her own task comes first, step by step, then the rest of the page
+    if (failed) out.push({ kind: 'example', title: T.yours, prompt: failed.prompt, body: [...failed.steps, answerLine(failed)], visual: failed.visual });
+    out.push(...sections);
     // a brand-new worked example from the real task generator, so the theory never looks the same twice
     // never the same task as the one she just failed
     let fresh = makeProblem(skill, rng);
     for (let i = 0; i < 20 && failed && fresh.id === failed.id; i++) fresh = makeProblem(skill, rng);
     out.push({ kind: 'example', title: T.example2, prompt: fresh.prompt, body: [...fresh.steps, answerLine(fresh)], visual: fresh.visual });
-    if (failed) out.push({ kind: 'example', title: T.yours, prompt: failed.prompt, body: [...failed.steps, answerLine(failed)], visual: failed.visual });
     out.push({ kind: 'life', body: pick(rng, WHY_MATH) });
     out.push({ kind: 'love', body: pick(rng, LOVE) });
     return { skill, title: SKILL_NAME[skill], sections: out };

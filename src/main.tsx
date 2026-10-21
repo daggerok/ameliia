@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fmt, makeRng, sameAnswer } from './engine/core';
+import { type FillAnswer, type FillPart, type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
 import {
     type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, grade, newState, nextProblem, totalTime,
 } from './engine/game';
@@ -57,6 +57,7 @@ const UI = {
             { target: 'hint', icon: '💡', title: 'Stuck?', body: 'A hint gives a little push. You still get 2 stars.' },
             { target: 'learn-first', icon: '📚', title: 'Theory first', body: 'Want to learn it before you try? Read the theory, pass the mini quiz, then come back to this task.' },
         ] as CoachStep[],
+        fillAll: 'Fill in every box first',
         nextQ: 'Next question', finishQuiz: 'Finish the quiz', youAnswered: 'You answered', testIn: (n: number) => n === 0 ? 'The test is today! You are ready!' : n === 1 ? 'The test is tomorrow!' : `The test is in ${n} days`, testDate: 'School test date', almost: '2 of 3, almost perfect! Great learning.', earned: 'stars earned',
     },
     ru: {
@@ -95,6 +96,7 @@ const UI = {
             { target: 'hint', icon: '💡', title: 'Застряла?', body: 'Подсказка немного подтолкнёт. Всё равно получишь 2 звезды.' },
             { target: 'learn-first', icon: '📚', title: 'Сначала теория', body: 'Хочешь сначала разобраться? Прочитай теорию, пройди мини-викторину и возвращайся к этому заданию.' },
         ] as CoachStep[],
+        fillAll: 'Сначала заполни все окошки',
         nextQ: 'Следующий вопрос', finishQuiz: 'Закончить викторину', youAnswered: 'Ты ответила', testIn: (n: number) => n === 0 ? 'Тест сегодня! Ты готова!' : n === 1 ? 'Тест завтра!' : `До теста ${n} ${n < 5 ? 'дня' : 'дней'}`, testDate: 'Дата теста в школе', almost: '2 из 3 - почти идеально! Отлично учишься.', earned: 'звёзд заработано',
     },
 };
@@ -104,9 +106,12 @@ type UIText = typeof UI.en;
 const STARS_PER_PART = 2;
 const params = new URLSearchParams(location.search);
 const SELFTEST = params.has('selftest');
+// self checks only: ?skill=mult-area makes every practice task that skill
+const FORCED_SKILL = SELFTEST && params.get('skill') && ALL_SKILLS.includes(params.get('skill') as SkillId) ? (params.get('skill') as SkillId) : undefined;
 const seed = Number(params.get('seed')) || (Date.now() % 2147483647);
 const today = () => new Date().toISOString().slice(0, 10);
-const tr = (l: L10n, lang: Lang) => l[lang];
+// Russian texts group thousands with a no-break space so a number never breaks across lines
+const tr = (l: L10n, lang: Lang) => (lang === 'ru' ? l.ru.replace(/(\d) (?=\d{3}(?!\d))/g, '$1\u00a0') : l.en);
 
 // ========================================
 // SOUND
@@ -174,8 +179,99 @@ const Steps: React.FC<{ steps: L10n[]; lang: Lang }> = ({ steps, lang }) => (
 // ========================================
 // ANSWER INPUT
 // ========================================
-type Given = { value?: number; q?: number; r?: number; choice?: number };
+type Given = { value?: number; q?: number; r?: number; choice?: number; blanks?: number[] };
 const digitsOnly = (s: string) => s.replace(/[^\d]/g, '');
+
+// A strategy worksheet (Area Model, Distributive Property, Partial Products, Standard Algorithm).
+// Editable while she solves; with review it shows her numbers, green when right, red with the right number when wrong.
+const FillSheet: React.FC<{ answer: FillAnswer; lang: Lang; values?: string[]; setValue?: (i: number, v: string) => void; review?: number[] }> = ({ answer, lang, values, setValue, review }) => {
+    // marks by meaning (parts in any order, area boxes against her own top and left numbers)
+    const marks = review ? fillMarks(answer, review) : [];
+    const blank = (i: number) => {
+        if (review) {
+            const ok = marks[i];
+            return (
+                <span key={`b${i}`} className={`inline-flex flex-col items-center px-2 py-0.5 rounded-lg border-2 font-black text-lg ${ok ? 'border-emerald-400 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200' : 'border-rose-400 bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200'}`} data-testid={`review-${i}`} data-ok={String(ok)}>
+                    <span className={ok ? '' : 'line-through opacity-70'}>{review[i] === undefined || Number.isNaN(review[i]) ? '?' : fmt(review[i], lang)}</span>
+                    {!ok && <span className="text-xs text-emerald-700 dark:text-emerald-300">{fmt(answer.values[i], lang)}</span>}
+                </span>
+            );
+        }
+        return (
+            <input key={`b${i}`} data-testid={`blank-${i}`} inputMode="numeric" enterKeyHint="next" autoComplete="off" value={values?.[i] ?? ''} placeholder="?"
+                onChange={e => setValue?.(i, e.target.value)} aria-label={`blank ${i + 1}`}
+                // a typed number gets its thousands separator: 1045 -> 1,045
+                onBlur={e => { const d = e.target.value.replace(/[^\d]/g, ''); if (d) setValue?.(i, fmt(Number(d), lang)); }}
+                // Enter jumps to the next box in reading order; on the last box it checks the sheet
+                onKeyDown={e => {
+                    if (e.key !== 'Enter') return;
+                    const boxes = Array.from(e.currentTarget.closest('[data-testid=fill-sheet]')?.querySelectorAll<HTMLInputElement>('input') ?? []);
+                    const next = boxes[boxes.indexOf(e.currentTarget) + 1];
+                    if (next) { e.preventDefault(); next.focus(); }
+                }}
+                className={`${answer.layout === 'area' && answer.top.length > 3 ? 'w-[3.75rem] text-sm !px-0' : 'w-[4.5rem]'} sm:w-20 md:w-24 px-1 py-1.5 ${answer.layout === 'vertical' ? 'text-right pr-2' : 'text-center'} text-lg md:text-xl font-black rounded-xl border-[3px] border-indigo-400 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20`} />
+        );
+    };
+    // sheet texts carry English thousands commas (3,578); Russian shows 3 578
+    const local = (s: string) => (lang === 'ru' ? s.replace(/(\d),(?=\d{3}(?!\d))/g, '$1\u00a0') : s);
+    const echo = (i: number) => {
+        const v = review ? review[i] : Number((values?.[i] ?? '').replace(/[^\d]/g, ''));
+        const shown = review ? (v === undefined || Number.isNaN(v) ? '?' : fmt(v, lang)) : (values?.[i] ? fmt(v, lang) : '?');
+        return <span className="inline-block min-w-[2.5rem] px-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 text-center">{shown}</span>;
+    };
+    const part = (p: FillPart, k: number) => (typeof p === 'string' ? <span key={k} className="whitespace-pre">{local(p)}</span>
+        : 't' in p ? <span key={k} className="text-sm md:text-base font-bold text-slate-500 dark:text-slate-400">{tr(p.t, lang)}</span>
+            : 'echo' in p ? <React.Fragment key={k}>{echo(p.echo)}</React.Fragment> : blank(p.b));
+    // a line breaks only before a lone " + " between parts, so "(3 × [ ])" and "+ [ ]" always stay together
+    const chunks = (parts: FillPart[]) => parts.reduce<FillPart[][]>((acc, p) => {
+        if ((p === ' + ' || p === '  →  ' || p === '  ') && acc[acc.length - 1].length) acc.push([p]); else acc[acc.length - 1].push(p);
+        return acc;
+    }, [[]]);
+    if (answer.layout === 'area') {
+        return (
+            <div className="overflow-x-auto" data-testid="fill-sheet" data-layout="area">
+                <table className="border-separate border-spacing-1.5 mx-auto font-black text-slate-800 dark:text-slate-100">
+                    <thead><tr><th className="text-slate-400">×</th>{answer.top.map((p, k) => <th key={k} className="text-indigo-600 dark:text-indigo-400">{part(p, k)}</th>)}</tr></thead>
+                    <tbody>
+                        {answer.cells.map((row, r) => (
+                            <tr key={r}>
+                                <th className="text-indigo-600 dark:text-indigo-400 pr-1">{part(answer.left[r], r)}</th>
+                                {row.map((b, c) => <td key={c} className={`${['bg-rose-100 dark:bg-rose-900/40', 'bg-amber-100 dark:bg-amber-900/40', 'bg-emerald-100 dark:bg-emerald-900/40', 'bg-sky-100 dark:bg-sky-900/40', 'bg-violet-100 dark:bg-violet-900/40'][(r * row.length + c) % 5]} rounded-xl ${answer.top.length > 3 ? 'p-1' : 'p-2'} sm:p-2 text-center`}>{blank(b)}</td>)}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <div className="flex items-center justify-center gap-2 mt-2 font-black text-lg"><span>{lang === 'en' ? 'Total' : 'Итого'} =</span>{blank(answer.total)}</div>
+            </div>
+        );
+    }
+    if (answer.layout === 'vertical') {
+        // Partial Products: one column of numbers aligned on the right (ones under ones), the notes in a second column
+        return (
+            <div className="grid grid-cols-[auto_auto] gap-x-3 gap-y-2 items-center w-fit mx-auto font-black text-lg md:text-xl font-mono text-slate-800 dark:text-slate-100" data-testid="fill-sheet" data-layout="vertical">
+                {answer.lines.map((l, k) => (
+                    <React.Fragment key={k}>
+                        <div className={`flex items-center justify-end gap-1 ${l.label ? 'border-t-[3px] border-slate-500 pt-2' : ''}`}>{l.parts.map(part)}</div>
+                        <div className={`text-sm font-bold text-slate-400 font-sans ${l.label ? 'pt-2' : ''}`}>{l.note ? local(l.note) : l.label ? tr(l.label, lang) : ''}</div>
+                    </React.Fragment>
+                ))}
+            </div>
+        );
+    }
+    return (
+        <div className="space-y-2 font-black text-lg md:text-xl text-slate-800 dark:text-slate-100" data-testid="fill-sheet" data-layout={answer.layout}>
+            {answer.lines.map((l, k) => (
+                <div key={k}>
+                    {l.label && <div className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">{tr(l.label, lang)}</div>}
+                    <div className="flex flex-wrap items-center gap-x-1 gap-y-2">
+                        {chunks(l.parts).map((c, j) => <span key={j} className="inline-flex items-center gap-1 whitespace-nowrap">{c.map(part)}</span>)}
+                        {l.note && <span className="ml-2 text-sm font-bold text-slate-400 font-sans">{local(l.note)}</span>}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
 
 const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit: (g: Given) => void; label?: string }> = ({ problem, lang, t, onSubmit, label }) => {
     // notes belong to this task only: a new task remounts the input and starts a clean page
@@ -184,6 +280,7 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     const [v, setV] = useState('');
     const [r, setR] = useState('');
     const [c, setC] = useState<number | null>(null);
+    const [blanks, setBlanks] = useState<string[]>(() => (problem.answer.kind === 'fill' ? problem.answer.values.map(() => '') : []));
     const [warn, setWarn] = useState(false);
     const ref = useRef<HTMLInputElement>(null);
     // a new task remounts this input (key = task id), so a fast first tap is never wiped by a late reset
@@ -192,6 +289,7 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     const submit = (e?: React.FormEvent) => {
         e?.preventDefault();
         if (a.kind === 'choice') { if (c === null) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; } onSubmit({ choice: c }); return; }
+        if (a.kind === 'fill') { if (blanks.some(x => !digitsOnly(x))) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; } onSubmit({ blanks: blanks.map(x => Number(digitsOnly(x))) }); return; }
         if (!digitsOnly(v) || (a.kind === 'remainder' && !digitsOnly(r))) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; }
         if (a.kind === 'remainder') onSubmit({ q: Number(digitsOnly(v)), r: Number(digitsOnly(r)) });
         else onSubmit({ value: Number(digitsOnly(v)) });
@@ -199,8 +297,10 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     const box = 'p-3 md:p-4 text-center border-[3px] border-indigo-500 rounded-2xl text-2xl md:text-3xl font-black bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 shadow-md';
     return (
         <form onSubmit={submit} className="space-y-3" data-testid="answer-form">
-            {warn && <div className="text-center text-rose-500 font-bold animate-bounce-in">⚠️ {a.kind === 'choice' ? t.pick : t.empty}</div>}
-            {a.kind === 'choice' ? (
+            {warn && <div className="text-center text-rose-500 font-bold animate-bounce-in">⚠️ {a.kind === 'choice' ? t.pick : a.kind === 'fill' ? t.fillAll : t.empty}</div>}
+            {a.kind === 'fill' ? (
+                <FillSheet answer={a} lang={lang} values={blanks} setValue={(i, x) => setBlanks(bs => bs.map((y, k) => (k === i ? x : y)))} />
+            ) : a.kind === 'choice' ? (
                 <div className="grid gap-2">
                     {a.options.map((o, i) => (
                         <button type="button" key={i} data-testid={`choice-${i}`} onClick={() => setC(i)}
@@ -270,9 +370,11 @@ const QuizView: React.FC<{ items: Problem[]; lang: Lang; t: UIText; sound: boole
     const [i, setI] = useState(0);
     const [results, setResults] = useState<boolean[]>([]);
     const [shown, setShown] = useState<boolean | null>(null);
+    const [lastBlanks, setLastBlanks] = useState<number[] | undefined>();
     const p = items[i];
     const answer = (g: Given) => {
         const ok = sameAnswer(p.answer, g);
+        setLastBlanks(g.blanks);
         if (sound) ok ? Sound.good() : Sound.bad();
         setShown(ok);
         setResults(r => [...r, ok]);
@@ -293,6 +395,7 @@ const QuizView: React.FC<{ items: Problem[]; lang: Lang; t: UIText; sound: boole
                 <div className="space-y-3 animate-slide-up">
                     <div className={`p-4 rounded-2xl border-[3px] ${shown ? 'bg-emerald-50 border-emerald-400 text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200' : 'bg-rose-50 border-rose-400 text-rose-900 dark:bg-rose-950/30 dark:text-rose-200'}`} data-testid="quiz-feedback" data-ok={String(shown)}>
                         <div className="font-black text-lg mb-1">{shown ? `✅ ${t.correct}` : `💭 ${t.wrong}`}</div>
+                        {p.answer.kind === 'fill' && lastBlanks && !shown && <div className="mb-3"><FillSheet answer={p.answer} lang={lang} review={lastBlanks} /></div>}
                         <Steps steps={[...p.steps, answerLine(p)]} lang={lang} />
                     </div>
                     <button data-testid="quiz-next" onClick={next} className={`${primary} w-full py-4 text-xl`}>{i + 1 < items.length ? `${t.nextQ} ▶` : `${t.finishQuiz} ✓`}</button>
@@ -307,7 +410,7 @@ const QuizView: React.FC<{ items: Problem[]; lang: Lang; t: UIText; sound: boole
 // ========================================
 type Screen = 'home' | 'play' | 'theory' | 'quiz' | 'quizResult' | 'test' | 'testResult' | 'stats' | 'story' | 'gallery' | 'settings';
 type Learn = { skill: SkillId; failed?: Problem; mode: 'failed' | 'first' | 'due'; theory: Theory; quiz: Problem[]; quizScore: number };
-type Attempt = { hint: boolean; wrong: boolean; afterLearn: boolean; start: number; result: null | { ok: boolean; stars: number; praise: L10n; given: string } };
+type Attempt = { hint: boolean; wrong: boolean; afterLearn: boolean; start: number; result: null | { ok: boolean; stars: number; praise: L10n; given: string; blanks?: number[] } };
 type TestRun = { problems: Problem[]; idx: number; given: Given[]; start: number; results?: boolean[] };
 
 const firstLocal = loadLocal();
@@ -388,7 +491,7 @@ export const App: React.FC = () => {
 
     const play = () => {
         if (problem && !attempt.result) { setScreen('play'); return; }
-        const p = nextProblem(g, rng);
+        const p = nextProblem(g, rng, FORCED_SKILL);
         if (g.skills[p.skill].needsTheory) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); return; }
         startProblem(p);
     };
@@ -400,7 +503,7 @@ export const App: React.FC = () => {
         setG(paint(state, stars));
         if (g.sound) ok ? Sound.good() : Sound.bad();
         if (ok) { setPop(true); setTimeout(() => setPop(false), 500); if (state.streak > 0 && state.streak % 5 === 0) celebrate(); }
-        setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
+        setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), blanks: given.blanks, praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
     };
 
     const theoryDone = () => {
@@ -462,7 +565,7 @@ export const App: React.FC = () => {
                     <button onClick={() => go('home')} className="flex items-center gap-2 text-left min-w-0" data-testid="nav-home">
                         <Pip size={40} className="shrink-0" />
                         <div>
-                            <h1 className="text-base sm:text-xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-wide leading-none truncate">{t.title}</h1>
+                            <h1 className="text-[15px] sm:text-xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-wide leading-none truncate">{t.title}</h1>
                             <p className="text-[10px] md:text-xs text-slate-400 font-bold italic">{t.subtitle}</p>
                         </div>
                     </button>
@@ -482,7 +585,7 @@ export const App: React.FC = () => {
                             onHint={() => setAttempt(a => ({ ...a, hint: true }))}
                             onLearnFirst={() => openTheory(problem.skill, 'first')}
                             onLearn={() => { setBanner(null); openTheory(problem.skill, 'failed', problem); }}
-                            onNext={() => { setBanner(null); const p = nextProblem(g, rng); if (g.skills[p.skill].needsTheory) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); } else startProblem(p); }} />
+                            onNext={() => { setBanner(null); const p = nextProblem(g, rng, FORCED_SKILL); if (g.skills[p.skill].needsTheory) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); } else startProblem(p); }} />
                     )}
                     {screen === 'theory' && learn && <TheoryView theory={learn.theory} lang={lang} t={t} onDone={() => { setBanner(null); theoryDone(); }} onSkip={learn.mode === 'first' ? () => setScreen('play') : undefined} />}
                     {screen === 'quiz' && learn && <QuizView key={learn.quiz.map(q => q.id).join()} items={learn.quiz} lang={lang} t={t} sound={g.sound} onDone={quizDone} />}
@@ -582,9 +685,11 @@ const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UI
             )}
             {res && !res.ok && (
                 <div className="space-y-3 animate-slide-up" data-testid="result" data-ok="false">
-                    <div className="text-center font-black text-rose-600 dark:text-rose-400" data-testid="your-answer">{t.youAnswered}: {res.given}</div>
+                    {problem.answer.kind === 'fill' && res.blanks
+                        ? <div data-testid="your-answer"><div className="text-center font-black text-rose-600 dark:text-rose-400 mb-2">{t.youAnswered}:</div><FillSheet answer={problem.answer} lang={lang} review={res.blanks} /></div>
+                        : <div className="text-center font-black text-rose-600 dark:text-rose-400" data-testid="your-answer">{t.youAnswered}: {res.given}</div>}
                     <Guide mood="care" pip>{tr(res.praise, lang)}</Guide>
-                    <button data-testid="learn" onClick={onLearn} className={`${primary} w-full py-4 text-xl`}>📖 {t.learn}</button>
+                    <button data-testid="learn" onClick={onLearn} className={`${primary} w-full py-4 px-4 text-base sm:text-xl`}>📖 {t.learn}</button>
                 </div>
             )}
         </div>
@@ -607,7 +712,7 @@ const TestView: React.FC<{ run: TestRun; lang: Lang; t: UIText; onAnswer: (g: Gi
     );
 };
 
-const givenText = (p: Problem, g: Given, lang: Lang) => p.answer.kind === 'choice' ? (g.choice !== undefined ? tr(p.answer.options[g.choice], lang) : '-')
+const givenText = (p: Problem, g: Given, lang: Lang) => p.answer.kind === 'fill' ? (g.blanks ?? []).map(x => fmt(x, lang)).join(', ') : p.answer.kind === 'choice' ? (g.choice !== undefined ? tr(p.answer.options[g.choice], lang) : '-')
     : p.answer.kind === 'remainder' ? `${g.q ?? '-'} R ${g.r ?? '-'}` : fmt(g.value ?? 0, lang);
 
 const TestResult: React.FC<{ run: TestRun; lang: Lang; t: UIText; onPractice: () => void; onHome: () => void }> = ({ run, lang, t, onPractice, onHome }) => {
@@ -627,7 +732,7 @@ const TestResult: React.FC<{ run: TestRun; lang: Lang; t: UIText; onPractice: ()
                 <details key={i} className={`${card} !p-4`} open={!results[i]}>
                     <summary className="font-black cursor-pointer">{results[i] ? '✅' : '❌'} {i + 1}. {tr(SKILL_NAME[p.skill], lang)}</summary>
                     <p className="mt-2 font-bold whitespace-pre-line">{tr(p.prompt, lang)}</p>
-                    {!results[i] && <p className="mt-1 text-rose-600 dark:text-rose-400 font-black">{t.yourAnswer}: {givenText(p, run.given[i], lang)}</p>}
+                    {!results[i] && (p.answer.kind === 'fill' ? <div className="mt-2"><FillSheet answer={p.answer} lang={lang} review={run.given[i].blanks ?? []} /></div> : <p className="mt-1 text-rose-600 dark:text-rose-400 font-black">{t.yourAnswer}: {givenText(p, run.given[i], lang)}</p>)}
                     <div className="mt-2 text-emerald-700 dark:text-emerald-300 font-black">{tr(answerLine(p), lang)}</div>
                     {!results[i] && <div className="mt-2"><Steps steps={p.steps} lang={lang} /><VisualView visual={p.visual} lang={lang} stepByStep={false} /></div>}
                 </details>

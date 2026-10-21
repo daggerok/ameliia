@@ -89,7 +89,7 @@ export const AreaModel: React.FC<{ a: number; b: number; lang: Lang }> = ({ a, b
                     ))}
                 </tbody>
             </table>
-            <div className="mt-1 font-bold text-slate-600 dark:text-slate-300">{pa.flatMap(x => pb.map(y => fmt(x * y, lang))).join(' + ')} = <span className="text-emerald-600 dark:text-emerald-400">{fmt(total, lang)}</span></div>
+            <div className="mt-1 font-bold text-slate-600 dark:text-slate-300">{pb.flatMap(y => pa.map(x => fmt(x * y, lang))).join(' + ')} = <span className="text-emerald-600 dark:text-emerald-400">{fmt(total, lang)}</span></div>
         </div>
     );
 };

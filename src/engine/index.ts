@@ -2,11 +2,13 @@ import { type Problem, type Rng, type SkillId, TOPIC_OF } from './core';
 import { makeDivision } from './division';
 import { makeEstimation } from './estimation';
 import { makeScience } from './science';
+import { makeStrategy } from './strategies';
 
 export const makeProblem = (skill: SkillId, rng: Rng): Problem => {
     const topic = TOPIC_OF[skill];
     if (topic === 'division') return makeDivision(rng, skill);
     if (topic === 'science') return makeScience(rng, skill);
+    if (skill.startsWith('mult-')) return makeStrategy(rng, skill);
     return makeEstimation(rng, skill);
 };
 
