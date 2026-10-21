@@ -49,7 +49,7 @@ const checkLine = (m: number, a: number): L10n[] => {
     const len = String(a).length;
     let est = Math.round(a / 10 ** (len - 2)) * 10 ** (len - 2);
     if (est === a) est = Math.round(a / 10 ** (len - 1)) * 10 ** (len - 1);
-    if (est === a) return [];
+    if (est === a || Math.abs(est - a) / a > 0.12) return [];
     return [L(`Check with an estimate: ${fmt(a, 'en')} is about ${fmt(est, 'en')}, ${m} × ${fmt(est, 'en')} = ${fmt(m * est, 'en')}, close to ${fmt(m * a, 'en')} ✓`,
         `Проверь прикидкой: ${fmt(a, 'ru')} - это примерно ${fmt(est, 'ru')}, ${m} × ${fmt(est, 'ru')} = ${fmt(m * est, 'ru')}, близко к ${fmt(m * a, 'ru')} ✓`)];
 };
@@ -109,7 +109,7 @@ const makeDist = (rng: Rng): Problem => {
         id: `mult-dist:${m}x${a}`, skill: 'mult-dist', topic: 'estimation',
         prompt: L(`Solve ${m} × ${fmt(a, 'en')} using the Distributive Property: break ${fmt(a, 'en')} apart by place value, multiply each part by ${m}, then add.`,
             `Реши ${m} × ${fmt(a, 'ru')} с помощью распределительного свойства: разбей ${fmt(a, 'ru')} по разрядам, умножь каждую часть на ${m} и сложи.`),
-        answer: { kind: 'fill', layout: 'lines', values, lines, anyOrder: [group(0), group(pa.length)] },
+        answer: { kind: 'fill', layout: 'lines', values, lines, anyOrder: [group(0)], multiply: { by: m, parts: group(0), products: group(pa.length) } },
         steps: [
             L(`${m} × ${fmt(a, 'en')} = ${m} × (${pa.map(p => fmt(p, 'en')).join(' + ')})`, `${m} × ${fmt(a, 'ru')} = ${m} × (${pa.map(p => fmt(p, 'ru')).join(' + ')})`),
             L(`= ${pa.map(p => `(${m} × ${fmt(p, 'en')})`).join(' + ')}`, `= ${pa.map(p => `(${m} × ${fmt(p, 'ru')})`).join(' + ')}`),
@@ -191,7 +191,7 @@ const makeStandard = (rng: Rng): Problem => {
         const last = i === rows.length - 1;
         const parts: FillPart[] = [`${m} × ${r.d} = `, box(r.prod)];
         if (r.carryIn) parts.push(` + ${r.carryIn} = `, box(r.sum));
-        if (!last) parts.push('  →  ', { t: WRITE }, ' ', box(r.write), ', ', { t: CARRY }, ' ', box(r.carryOut));
+        if (!last) parts.push('  →  ', { t: WRITE }, ' ', box(r.write), ',', '  ', { t: CARRY }, ' ', box(r.carryOut));
         return { parts, label: PLACE_LABEL[i] };
     });
     lines.push({ parts: [`${fmt(a, 'en')} × ${m} = `, box(m * a)], label: L('Answer', 'Ответ') });
@@ -213,8 +213,10 @@ const makeStandard = (rng: Rng): Problem => {
             L('Nothing to carry? Then the carry is 0.', 'Нечего переносить? Тогда перенос 0.'),
             ...checkLine(m, a),
         ],
-        hint: L(`First ${m} × ${rows[0].d} = ${rows[0].prod}. Write the ones digit ${rows[0].write} and carry the tens digit ${rows[0].carryOut} to the next place.`,
-            `Сначала ${m} × ${rows[0].d} = ${rows[0].prod}. Пиши цифру единиц ${rows[0].write}, а цифру десятков ${rows[0].carryOut} переноси в следующий разряд.`),
+        hint: rows[0].carryOut
+            ? L(`First ${m} × ${rows[0].d} = ${rows[0].prod}. Write the ones digit ${rows[0].write} and carry the tens digit ${rows[0].carryOut} to the next place.`,
+                `Сначала ${m} × ${rows[0].d} = ${rows[0].prod}. Пиши цифру единиц ${rows[0].write}, а цифру десятков ${rows[0].carryOut} переноси в следующий разряд.`)
+            : L(`First ${m} × ${rows[0].d} = ${rows[0].prod}: write ${rows[0].write}, there is nothing to carry, so the carry is 0.`, `Сначала ${m} × ${rows[0].d} = ${rows[0].prod}: пишем ${rows[0].write}, переносить нечего, перенос 0.`),
         data: { m, a, two: 0 },
     };
 };

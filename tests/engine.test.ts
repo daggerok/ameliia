@@ -193,7 +193,13 @@ describe('multiplication strategy worksheets', () => {
             const n = (d.answer.values.length - 1) / 2;
             const swapped = [...d.answer.values];
             [swapped[0], swapped[n - 1]] = [swapped[n - 1], swapped[0]];
+            // parts swapped together with their products are right, a product next to the wrong part is not
+            const k = n;
+            [swapped[k], swapped[k + n - 1]] = [swapped[k + n - 1], swapped[k]];
             expect(sameAnswer(d.answer, { blanks: swapped })).toBe(true);
+            const mismatched = [...d.answer.values];
+            [mismatched[0], mismatched[n - 1]] = [mismatched[n - 1], mismatched[0]];
+            if (mismatched[0] !== d.answer.values[0]) expect(sameAnswer(d.answer, { blanks: mismatched })).toBe(false);
             const area = makeProblem('mult-area', makeRng(seed));
             if (area.answer.kind !== 'fill' || area.answer.layout !== 'area') throw new Error('area');
             const v = [...area.answer.values];

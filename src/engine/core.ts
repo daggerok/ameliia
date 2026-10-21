@@ -25,7 +25,8 @@ export type FillPart = string | { b: number } | { t: L10n } | { echo: number };
 export type FillLine = { label?: L10n; parts: FillPart[]; note?: string };
 // anyOrder: groups of blanks that may be written in any order (100 + 80 + 2 or 2 + 80 + 100)
 export type FillAnswer =
-    | { kind: 'fill'; layout: 'lines' | 'vertical'; values: number[]; lines: FillLine[]; anyOrder?: number[][] }
+    // multiply: each products[i] box must be `by` times the number she wrote in parts[i] (the distributive property)
+    | { kind: 'fill'; layout: 'lines' | 'vertical'; values: number[]; lines: FillLine[]; anyOrder?: number[][]; multiply?: { by: number; parts: number[]; products: number[] } }
     | { kind: 'fill'; layout: 'area'; values: number[]; top: FillPart[]; left: FillPart[]; cells: number[][]; total: number };
 
 const sameSet = (a: number[], b: number[]) => a.length === b.length && [...a].sort((x, y) => x - y).every((v, i) => v === [...b].sort((x, y) => x - y)[i]);
@@ -46,6 +47,8 @@ export const fillMarks = (answer: FillAnswer, given: number[]): boolean[] => {
         return ok;
     }
     for (const g of answer.anyOrder ?? []) if (sameSet(g.map(i => given[i]), g.map(i => answer.values[i]))) g.forEach(i => { ok[i] = true; });
+    const mul = answer.multiply;
+    if (mul && mul.parts.every(i => ok[i])) mul.products.forEach((p, k) => { ok[p] = given[p] === mul.by * given[mul.parts[k]]; });
     return ok;
 };
 

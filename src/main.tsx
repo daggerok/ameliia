@@ -209,7 +209,7 @@ const FillSheet: React.FC<{ answer: FillAnswer; lang: Lang; values?: string[]; s
                     const next = boxes[boxes.indexOf(e.currentTarget) + 1];
                     if (next) { e.preventDefault(); next.focus(); }
                 }}
-                className={`w-[4.5rem] sm:w-20 md:w-24 px-1 py-1.5 ${answer.layout === 'vertical' ? 'text-right pr-2' : 'text-center'} text-lg md:text-xl font-black rounded-xl border-[3px] border-indigo-400 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20`} />
+                className={`${answer.layout === 'area' && answer.top.length > 3 ? 'w-[3.75rem] text-sm !px-0' : 'w-[4.5rem]'} sm:w-20 md:w-24 px-1 py-1.5 ${answer.layout === 'vertical' ? 'text-right pr-2' : 'text-center'} text-lg md:text-xl font-black rounded-xl border-[3px] border-indigo-400 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20`} />
         );
     };
     // sheet texts carry English thousands commas (3,578); Russian shows 3 578
@@ -224,7 +224,7 @@ const FillSheet: React.FC<{ answer: FillAnswer; lang: Lang; values?: string[]; s
             : 'echo' in p ? <React.Fragment key={k}>{echo(p.echo)}</React.Fragment> : blank(p.b));
     // a line breaks only before a lone " + " between parts, so "(3 × [ ])" and "+ [ ]" always stay together
     const chunks = (parts: FillPart[]) => parts.reduce<FillPart[][]>((acc, p) => {
-        if ((p === ' + ' || p === '  →  ') && acc[acc.length - 1].length) acc.push([p]); else acc[acc.length - 1].push(p);
+        if ((p === ' + ' || p === '  →  ' || p === '  ') && acc[acc.length - 1].length) acc.push([p]); else acc[acc.length - 1].push(p);
         return acc;
     }, [[]]);
     if (answer.layout === 'area') {
@@ -236,7 +236,7 @@ const FillSheet: React.FC<{ answer: FillAnswer; lang: Lang; values?: string[]; s
                         {answer.cells.map((row, r) => (
                             <tr key={r}>
                                 <th className="text-indigo-600 dark:text-indigo-400 pr-1">{part(answer.left[r], r)}</th>
-                                {row.map((b, c) => <td key={c} className={`${['bg-rose-100 dark:bg-rose-900/40', 'bg-amber-100 dark:bg-amber-900/40', 'bg-emerald-100 dark:bg-emerald-900/40', 'bg-sky-100 dark:bg-sky-900/40', 'bg-violet-100 dark:bg-violet-900/40'][(r * row.length + c) % 5]} rounded-xl p-2 text-center`}>{blank(b)}</td>)}
+                                {row.map((b, c) => <td key={c} className={`${['bg-rose-100 dark:bg-rose-900/40', 'bg-amber-100 dark:bg-amber-900/40', 'bg-emerald-100 dark:bg-emerald-900/40', 'bg-sky-100 dark:bg-sky-900/40', 'bg-violet-100 dark:bg-violet-900/40'][(r * row.length + c) % 5]} rounded-xl ${answer.top.length > 3 ? 'p-1' : 'p-2'} sm:p-2 text-center`}>{blank(b)}</td>)}
                             </tr>
                         ))}
                     </tbody>

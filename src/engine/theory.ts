@@ -103,7 +103,7 @@ const fourWays = (m: number, a: number): Section => {
 };
 
 const zerosWarn: Section = { kind: 'warn', title: L('Watch out!', 'Осторожно!'), body: [
-    L('A zero digit gives a zero part: 804 = 800 + 4, because 0 tens is nothing. 6 × 0 = 0, so you may skip that box.', 'Цифра 0 даёт пустую часть: 804 = 800 + 4, ведь 0 десятков - это ничего. 6 × 0 = 0, эту клетку можно пропустить.'),
+    L('A zero digit gives a zero part: 804 = 800 + 4, because 0 tens is nothing. 6 × 0 = 0, so you may skip that box or line.', 'Цифра 0 даёт пустую часть: 804 = 800 + 4, ведь 0 десятков - это ничего. 6 × 0 = 0, эту клетку или строку можно пропустить.'),
     L('Keep the zeros: 6 × 80 = 480, not 48. 6 × 100 = 600, not 6.', 'Не теряй нули: 6 × 80 = 480, а не 48. 6 × 100 = 600, а не 6.'),
     L('A quick way: 6 × 80 is 6 × 8 = 48, then write the zero back: 480.', 'Быстрый способ: 6 × 80 - это 6 × 8 = 48, потом дописываем ноль: 480.'),
 ] };
