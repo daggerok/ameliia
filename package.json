@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@parcel/transformer-sass": "2.16.4",
+    "@types/bun": "1.4.3",
     "@types/node": "26.0.0",
     "jest": "30.4.2",
     "parcel": "2.16.4",
