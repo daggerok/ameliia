@@ -37,7 +37,7 @@ const UI = {
         parentsText: 'Learning time follows 50% division, 25% motion and speed, 25% rounding and estimating. A wrong answer always leads to theory and a mini quiz, and that skill comes back a few tasks later. Content follows the NJ Student Learning Standards for grade 4 (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity and acceleration are bonus explorer words.',
         perfect: 'Perfect test!', stepsWord: 'Steps', yes: 'Yes', no: 'No', taskOf: 'Task',
         congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
-        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', howToPlay: 'How to play (the welcome tour)',
+        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Homework: Lesson 3-8', hwSub: 'Times as much, word problems, 4 ways to multiply. Theory first, then tasks', howToPlay: 'How to play (the welcome tour)',
         tourNext: 'Next', tourBack: 'Back', tourSkip: 'Skip', tourStart: 'Let\'s start!', tourGo: 'Got it!',
         notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadHas: 'notes',
         intro: [
@@ -76,7 +76,7 @@ const UI = {
         parentsText: 'Время учёбы делится так: 50% деление, 25% движение и скорость, 25% округление и прикидка. После ошибки всегда идёт теория и мини-викторина, а навык возвращается через несколько заданий. Содержание по стандартам NJ для 4 класса (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity и ускорение - бонусные слова исследователя.',
         perfect: 'Идеальный тест!', stepsWord: 'Шаги', yes: 'Да', no: 'Нет', taskOf: 'Задание',
         congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
-        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', howToPlay: 'Как играть (знакомство с игрой)',
+        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'Домашка: Lesson 3-8', hwSub: 'Во сколько раз, текстовые задачи, 4 способа умножать. Сначала теория, потом задания', howToPlay: 'Как играть (знакомство с игрой)',
         tourNext: 'Дальше', tourBack: 'Назад', tourSkip: 'Пропустить', tourStart: 'Поехали!', tourGo: 'Понятно!',
         notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadHas: 'записей',
         intro: [
@@ -107,6 +107,7 @@ const STARS_PER_PART = 2;
 const params = new URLSearchParams(location.search);
 const SELFTEST = params.has('selftest');
 // self checks only: ?skill=mult-area makes every practice task that skill
+const HOMEWORK: SkillId[] = ['compare', 'word-steps', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];
 const FORCED_SKILL = SELFTEST && params.get('skill') && ALL_SKILLS.includes(params.get('skill') as SkillId) ? (params.get('skill') as SkillId) : undefined;
 const seed = Number(params.get('seed')) || (Date.now() % 2147483647);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -513,12 +514,20 @@ export const App: React.FC = () => {
         setScreen('play');
     };
 
-    const play = () => {
-        if (problem && !attempt.result) { setScreen('play'); return; }
-        const p = nextProblem(g, rng, FORCED_SKILL);
-        if (g.skills[p.skill].needsTheory) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); return; }
+    // homework mode: only the topics of the homework sheet; a topic she has never read starts with its theory, like a lesson
+    const [focus, setFocus] = useState<SkillId[] | null>(null);
+    const nextTask = (f: SkillId[] | null) => {
+        const p = nextProblem(g, rng, FORCED_SKILL ?? (f ? f[Math.floor(rng() * f.length)] : undefined));
+        const st = g.skills[p.skill];
+        if (st.needsTheory || (f && st.theoryReads === 0)) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); if (st.needsTheory) setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); return; }
         startProblem(p);
     };
+    const play = () => {
+        if (problem && !attempt.result && !focus) { setScreen('play'); return; }
+        setFocus(null);
+        nextTask(null);
+    };
+    const playHomework = () => { setFocus(HOMEWORK); nextTask(HOMEWORK); };
 
     const submit = (given: Given) => {
         if (!problem) return;
@@ -602,14 +611,14 @@ export const App: React.FC = () => {
                 <StatsBar g={g} t={t} pop={pop} />
                 {banner && <div className="mb-3 animate-bounce-in" onClick={() => setBanner(null)}><Guide mood="cheer">{tr(banner, lang)}</Guide></div>}
                 <main className="w-full pb-8">
-                    {screen === 'home' && <Home g={g} t={t} lang={lang} greeting={greeting[0]} chaptersOpen={chaptersOpen} onPlay={play} onTest={startTest} onStory={() => { setChapter(null); go('story'); }} onGallery={() => go('gallery')} onStats={() => go('stats')} />}
+                    {screen === 'home' && <Home g={g} t={t} lang={lang} greeting={greeting[0]} chaptersOpen={chaptersOpen} onPlay={play} onHomework={playHomework} onTest={startTest} onStory={() => { setChapter(null); go('story'); }} onGallery={() => go('gallery')} onStats={() => go('stats')} />}
                     {screen === 'play' && problem && (
                         <PlayView problem={problem} attempt={attempt} lang={lang} t={t}
                             onSubmit={submit}
                             onHint={() => setAttempt(a => ({ ...a, hint: true }))}
                             onLearnFirst={() => openTheory(problem.skill, 'first')}
                             onLearn={() => { setBanner(null); openTheory(problem.skill, 'failed', problem); }}
-                            onNext={() => { setBanner(null); const p = nextProblem(g, rng, FORCED_SKILL); if (g.skills[p.skill].needsTheory) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); } else startProblem(p); }} />
+                            onNext={() => { setBanner(null); nextTask(focus); }} />
                     )}
                     {screen === 'theory' && learn && <TheoryView theory={learn.theory} lang={lang} t={t} onDone={() => { setBanner(null); theoryDone(); }} onSkip={learn.mode === 'first' ? () => setScreen('play') : undefined} />}
                     {screen === 'quiz' && learn && <QuizView key={learn.quiz.map(q => q.id).join()} items={learn.quiz} lang={lang} t={t} sound={g.sound} onDone={quizDone} />}
@@ -639,7 +648,7 @@ export const App: React.FC = () => {
 // ========================================
 // SCREENS
 // ========================================
-const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chaptersOpen: number; onPlay: () => void; onTest: () => void; onStory: () => void; onGallery: () => void; onStats: () => void }> = ({ g, t, lang, greeting, chaptersOpen, onPlay, onTest, onStory, onGallery, onStats }) => {
+const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chaptersOpen: number; onPlay: () => void; onHomework: () => void; onTest: () => void; onStory: () => void; onGallery: () => void; onStats: () => void }> = ({ g, t, lang, greeting, chaptersOpen, onPlay, onHomework, onTest, onStory, onGallery, onStats }) => {
     const mins = Math.floor((g.daily[today()] ?? 0) / 60);
     // the parents' daily goal: up to 2 hours of learning
     const goal = 120;
@@ -652,6 +661,7 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
                 <span className="text-5xl">🚀</span>
                 <span><span className="block text-3xl font-black">{t.play}</span><span className="block font-bold opacity-80">{t.playSub}</span></span>
             </button>
+            <button data-testid="homework" onClick={onHomework} className="w-full rounded-3xl p-4 text-left flex items-center gap-3 bg-sky-100 dark:bg-sky-950/40 border-2 border-sky-300 dark:border-sky-700 active:scale-[0.98]"><span className="text-3xl">📚</span><span><span className="block font-black text-sky-800 dark:text-sky-200">{t.hw}</span><span className="block text-xs font-bold text-sky-700/70 dark:text-sky-300/70">{t.hwSub}</span></span></button>
             {(() => {
                 const mine = g.tests.filter(x => new Date(x.t).toISOString().slice(0, 10) === today());
                 const lastToday = mine[mine.length - 1];
