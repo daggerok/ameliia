@@ -119,6 +119,8 @@ const tr = (l: L10n, lang: Lang) => (lang === 'ru' ? l.ru.replace(/(\d) (?=\d{3}
 const Sound = {
     ctx: null as AudioContext | null,
     tone(freqs: number[], type: OscillatorType = 'sine', len = 0.12) {
+        // automated self checks run in a hidden browser: never a sound there
+        if (SELFTEST) return;
         try {
             this.ctx = this.ctx ?? new AudioContext();
             const ctx = this.ctx;
