@@ -2,7 +2,7 @@
 /// <reference types="node" />
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 
-// Builds the latest version (src/) into dist/ and dist/<its meta version>/, every backups/vYYYYMMDD-suffix
+// Builds the current version (src/) into dist/, every backups/vYYYYMMDD-suffix
 // into dist/vYYYYMMDD-suffix/ (suffix is one lowercase word) and a list of all of them into dist/backups/
 // Usage: bun scripts/build.ts [public-url], e.g. /ameliia/ for GitHub Pages
 const base = (process.argv[2] ?? '/').replace(/\/?$/, '/');
@@ -33,7 +33,6 @@ if (backups.includes(latest)) throw new Error(`backups/${latest} clashes with th
 
 rmSync('dist', { recursive: true, force: true });
 parcel('src/index.html', 'dist', base);
-parcel('src/index.html', `dist/${latest}`, `${base}${latest}/`);
 for (const v of backups) parcel(`backups/${v}/index.html`, `dist/${v}`, `${base}${v}/`);
 
 const escape = (s: string) => s.replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
@@ -41,7 +40,6 @@ const item = (href: string, name: string, version: string, html: string) =>
     `<li><a href="${href}"><b>${name}</b><time>${dateOf(version)}</time><span>${escape(titleOf(html))}</span><code>${href}</code></a></li>`;
 const items = [
     item(base, 'latest', latest, 'src/index.html'),
-    item(`${base}${latest}/`, latest, latest, 'src/index.html'),
     ...[...backups].reverse().map(v => item(`${base}${v}/`, v, v, `backups/${v}/index.html`)),
 ];
 mkdirSync('dist/backups', { recursive: true });
@@ -78,4 +76,4 @@ ${items.join('\n')}
 </body>
 </html>
 `);
-console.log(`\nbuilt latest, ${latest}, ${backups.join(', ')} + backups/`);
+console.log(`\nbuilt latest (${latest}), ${backups.join(', ')} + backups/`);

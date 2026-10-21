@@ -4,7 +4,7 @@ Tp play Math for Ameliia [open this link](https://daggerok.github.io/ameliia/)
 
 ## Versions
 
-- latest: `src/` -> https://daggerok.github.io/ameliia/ and also by its own name from `<meta name="version">` in `src/index.html`, now https://daggerok.github.io/ameliia/v20260620-allinone/
+- current version: `src/` -> https://daggerok.github.io/ameliia/, its name for the day it gets archived is in `<meta name="version">` of `src/index.html`
 - backups: `backups/vYYYYMMDD-suffix/` -> https://daggerok.github.io/ameliia/vYYYYMMDD-suffix/, the date is when that version was made, the suffix is one lowercase word that says what it is
 - list of all of them: https://daggerok.github.io/ameliia/backups/ (dates come from folder names, titles from each page's `<title>`)
 
