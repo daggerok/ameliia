@@ -5,7 +5,7 @@ import { type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAM
 import {
     type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, grade, newState, nextProblem, totalTime,
 } from './engine/game';
-import { makeFreshProblem } from './engine/index';
+import { makeFreshProblem } from './engine';
 import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
 import { QUIZ_PASS, buildQuiz } from './engine/quiz';
 import { CHAPTERS, STARS_PER_CHAPTER } from './engine/story';
@@ -13,6 +13,8 @@ import { type Section, type Theory, answerLine, buildTheory } from './engine/the
 import { VisualView } from './ui/Boards';
 import { Guide, Lina, Pip } from './ui/Buddy';
 import { PAINTINGS, PaintingView } from './ui/Paintings';
+import { Coach, type CoachStep } from './ui/Coach';
+import { Notepad, type Stroke } from './ui/Notepad';
 import { askPersistent, exportFile, importFile, loadDb, loadLocal, newer, save } from './storage';
 
 // ========================================
@@ -36,6 +38,25 @@ const UI = {
         perfect: 'Perfect test!', stepsWord: 'Steps', yes: 'Yes', no: 'No', taskOf: 'Task',
         congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
         dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', howToPlay: 'How to play (the welcome tour)',
+        tourNext: 'Next', tourBack: 'Back', tourSkip: 'Skip', tourStart: 'Let\'s start!', tourGo: 'Got it!',
+        notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadHas: 'notes',
+        intro: [
+            { icon: '👋', title: 'Hi Ameliia! I am Lina', body: 'And this is Pip the capybara: every time you see her she has a new hobby. Together we will make math your superpower: division, speed and rounding.' },
+            { target: 'play', icon: '🚀', title: 'Play', body: 'Press here to solve tasks. Every right answer gives you stars: 3 on the first try, 2 with a hint.' },
+            { icon: '💡', title: 'Mistakes are OK', body: 'If an answer is wrong, I show you a short story with the theory and examples, then a mini quiz of 3 questions. After that you try a new task. That is how brains grow!' },
+            { target: 'home-painting', icon: '🎨', title: 'Your magic painting', body: 'Every 2 stars paint one part of this picture. When it is finished, you choose which picture to paint next.' },
+            { target: 'story', icon: '📖', title: 'Your story book', body: 'Stars open chapters of a story about your family and the trip to Italy: a new chapter every 30 stars.' },
+            { target: 'progress', icon: '📊', title: 'Progress', body: 'Here you see how many minutes you learned today and which skills are already strong.' },
+            { target: 'daily-test', icon: '📝', title: 'Every day: the practice test', body: 'At the end of each day, press here and take the practice test. It is like your real test on Friday. Every day you will do it better!' },
+            { icon: '❤️', title: 'Mom and Dad love you', body: 'Learn up to 2 hours a day, take little breaks and have fun. Ready?' },
+        ] as CoachStep[],
+        playTour: [
+            { target: 'prompt', icon: '📖', title: 'Read the task', body: 'Read it slowly, like a story. What do we know, and what do we need to find?' },
+            { target: 'notepad-open', icon: '✏️', title: 'Your notepad', body: 'Draw and write with your finger here: break the problem into pieces, do the long division. Close it when you have the answer. Every new task gets a clean page.' },
+            { target: 'answer-form', icon: '⌨️', title: 'Your answer', body: 'Type the answer here and press Check.' },
+            { target: 'hint', icon: '💡', title: 'Stuck?', body: 'A hint gives a little push. You still get 2 stars.' },
+            { target: 'learn-first', icon: '📚', title: 'Theory first', body: 'Want to learn it before you try? Read the theory, pass the mini quiz, then come back to this task.' },
+        ] as CoachStep[],
         nextQ: 'Next question', finishQuiz: 'Finish the quiz', youAnswered: 'You answered', testIn: (n: number) => n === 0 ? 'The test is today! You are ready!' : n === 1 ? 'The test is tomorrow!' : `The test is in ${n} days`, testDate: 'School test date', almost: '2 of 3, almost perfect! Great learning.', earned: 'stars earned',
     },
     ru: {
@@ -55,6 +76,25 @@ const UI = {
         perfect: 'Идеальный тест!', stepsWord: 'Шаги', yes: 'Да', no: 'Нет', taskOf: 'Задание',
         congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
         dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', howToPlay: 'Как играть (знакомство с игрой)',
+        tourNext: 'Дальше', tourBack: 'Назад', tourSkip: 'Пропустить', tourStart: 'Поехали!', tourGo: 'Понятно!',
+        notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadHas: 'записей',
+        intro: [
+            { icon: '👋', title: 'Привет, Амелия! Я Лина', body: 'А это капибара Пип: каждый раз, когда ты её видишь, у неё новое увлечение. Вместе мы сделаем математику твоей суперсилой: деление, скорость и округление.' },
+            { target: 'play', icon: '🚀', title: 'Играть', body: 'Нажимай сюда, чтобы решать задания. За каждый правильный ответ ты получаешь звёзды: 3 с первого раза, 2 с подсказкой.' },
+            { icon: '💡', title: 'Ошибаться не страшно', body: 'Если ответ неверный, я покажу короткую историю с теорией и примерами, а потом мини-викторину из 3 вопросов. После этого ты попробуешь новое задание. Так растёт мозг!' },
+            { target: 'home-painting', icon: '🎨', title: 'Твоя волшебная картина', body: 'Каждые 2 звезды раскрашивают кусочек этой картины. Когда она готова, ты сама выбираешь, какую раскрашивать дальше.' },
+            { target: 'story', icon: '📖', title: 'Твоя книжка-история', body: 'Звёзды открывают главы истории про твою семью и поездку в Италию: новая глава каждые 30 звёзд.' },
+            { target: 'progress', icon: '📊', title: 'Прогресс', body: 'Здесь видно, сколько минут ты сегодня училась и какие навыки уже сильные.' },
+            { target: 'daily-test', icon: '📝', title: 'Каждый день: пробный тест', body: 'В конце каждого дня нажимай сюда и проходи пробный тест. Он как настоящий тест в пятницу. С каждым днём будет получаться лучше!' },
+            { icon: '❤️', title: 'Мама и папа тебя любят', body: 'Занимайся до 2 часов в день, делай маленькие перерывы и получай удовольствие. Готова?' },
+        ] as CoachStep[],
+        playTour: [
+            { target: 'prompt', icon: '📖', title: 'Прочитай задание', body: 'Читай медленно, как историю. Что мы знаем и что нужно найти?' },
+            { target: 'notepad-open', icon: '✏️', title: 'Твой блокнот', body: 'Рисуй и пиши здесь пальцем: разбей задачу на части, дели столбиком. Когда ответ готов, закрой блокнот. Для каждого нового задания - чистая страница.' },
+            { target: 'answer-form', icon: '⌨️', title: 'Твой ответ', body: 'Напиши ответ здесь и нажми «Проверить».' },
+            { target: 'hint', icon: '💡', title: 'Застряла?', body: 'Подсказка немного подтолкнёт. Всё равно получишь 2 звезды.' },
+            { target: 'learn-first', icon: '📚', title: 'Сначала теория', body: 'Хочешь сначала разобраться? Прочитай теорию, пройди мини-викторину и возвращайся к этому заданию.' },
+        ] as CoachStep[],
         nextQ: 'Следующий вопрос', finishQuiz: 'Закончить викторину', youAnswered: 'Ты ответила', testIn: (n: number) => n === 0 ? 'Тест сегодня! Ты готова!' : n === 1 ? 'Тест завтра!' : `До теста ${n} ${n < 5 ? 'дня' : 'дней'}`, testDate: 'Дата теста в школе', almost: '2 из 3 - почти идеально! Отлично учишься.', earned: 'звёзд заработано',
     },
 };
@@ -138,6 +178,9 @@ type Given = { value?: number; q?: number; r?: number; choice?: number };
 const digitsOnly = (s: string) => s.replace(/[^\d]/g, '');
 
 const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit: (g: Given) => void; label?: string }> = ({ problem, lang, t, onSubmit, label }) => {
+    // notes belong to this task only: a new task remounts the input and starts a clean page
+    const [strokes, setStrokes] = useState<Stroke[]>([]);
+    const [pad, setPad] = useState(false);
     const [v, setV] = useState('');
     const [r, setR] = useState('');
     const [c, setC] = useState<number | null>(null);
@@ -175,7 +218,9 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
                     </>)}
                 </div>
             )}
+            <button type="button" data-testid="notepad-open" onClick={() => setPad(true)} className={`${secondary} w-full py-3`}>✏️ {t.notepadOpen}{strokes.length ? ` · ${strokes.length} ${t.notepadHas}` : ''}</button>
             <button type="submit" data-testid="check" className={`${primary} w-full py-4 text-xl`}>{t.check}</button>
+            {pad && <Notepad strokes={strokes} setStrokes={setStrokes} prompt={tr(problem.prompt, lang)} onClose={() => setPad(false)} labels={{ done: t.notepadDone, clear: t.notepadClear, undo: t.notepadUndo, eraser: t.notepadEraser, title: t.notepad }} />}
         </form>
     );
 };
@@ -408,8 +453,10 @@ export const App: React.FC = () => {
     return (
         <div className="min-h-screen w-full px-4 py-3 md:p-6 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors flex flex-col items-center overflow-x-hidden">
             <Confetti on={confetti} />
-            {!g.introSeen && <Intro lang={lang} setLang={setLang} onDone={() => setG(s => ({ ...s, introSeen: true }))} />}
-            {g.introSeen && g.painting.choosing && <PaintingChoice g={g} t={t} lang={lang} justDone={paintDone} onChoose={i => { setG(s => chooseNextPainting(s, i, parts, STARS_PER_PART)); setPaintDone(null); }} />}
+            {!g.introSeen && screen === 'home' && <Coach key={`intro-${lang}`} testId="intro" steps={t.intro} labels={{ next: t.tourNext, back: t.tourBack, skip: t.tourSkip, start: t.tourStart }} onDone={() => setG(s => ({ ...s, introSeen: true }))}
+                extra={<button onClick={() => setLang(lang === 'en' ? 'ru' : 'en')} className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600 text-xs font-black">{lang === 'en' ? 'RU' : 'EN'}</button>} />}
+            {g.introSeen && !g.playTourSeen && screen === 'play' && problem && !attempt.result && <Coach testId="playtour" steps={t.playTour} labels={{ next: t.tourNext, back: t.tourBack, skip: t.tourSkip, start: t.tourGo }} onDone={() => setG(s => ({ ...s, playTourSeen: true }))} />}
+            {g.introSeen && !(screen === 'play' && !g.playTourSeen) && g.painting.choosing && <PaintingChoice g={g} t={t} lang={lang} justDone={paintDone} onChoose={i => { setG(s => chooseNextPainting(s, i, parts, STARS_PER_PART)); setPaintDone(null); }} />}
             <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl flex flex-col">
                 <header className="flex justify-between items-center py-3 mb-1 gap-2">
                     <button onClick={() => go('home')} className="flex items-center gap-2 text-left min-w-0" data-testid="nav-home">
@@ -486,16 +533,16 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
                     : <button data-testid="daily-test" data-done="false" onClick={onTest} className="w-full rounded-3xl p-4 text-left flex items-center gap-3 bg-amber-100 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 active:scale-[0.98]"><span className="text-3xl">📝</span><span><span className="block font-black text-amber-800 dark:text-amber-200">{t.dailyTodo}</span><span className="block text-xs font-bold text-amber-700/70 dark:text-amber-300/70">{t.dailyTodoSub}</span></span></button>;
             })()}
             <div className="grid grid-cols-2 gap-3">
-                <button data-testid="test" onClick={onTest} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📝</div><div className="font-black text-lg">{t.test}</div><div className="text-xs font-bold text-slate-400">{t.testSub}</div></button>
+                <button data-testid="progress" onClick={onStats} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📊</div><div className="font-black text-lg">{t.progress}</div><div className="text-xs font-bold text-slate-400">{mins} / {goal} {t.minutes}</div></button>
                 <button data-testid="story" onClick={onStory} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📖</div><div className="font-black text-lg">{t.story}</div><div className="text-xs font-bold text-slate-400">{chaptersOpen} / {CHAPTERS.length}</div></button>
                 <button data-testid="gallery" onClick={onGallery} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">🎨</div><div className="font-black text-lg">{t.gallery}</div><div className="text-xs font-bold text-slate-400">{g.painting.done.length} ✓</div></button>
-                <button data-testid="progress" onClick={onStats} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📊</div><div className="font-black text-lg">{t.progress}</div><div className="text-xs font-bold text-slate-400">{mins} / {goal} {t.minutes}</div></button>
+                <button data-testid="test" onClick={onTest} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📝</div><div className="font-black text-lg">{t.test}</div><div className="text-xs font-bold text-slate-400">{t.testSub}</div></button>
             </div>
             <div className={`${card} !p-4`}>
                 <div className="flex justify-between font-black mb-2"><span>🎯 {t.goal}</span><span>{mins} / {goal} {t.minutes}</span></div>
                 <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600" style={{ width: `${Math.min(100, (mins / goal) * 100)}%` }} /></div>
             </div>
-            <div className={`${card} !p-4`}>
+            <div className={`${card} !p-4`} data-testid="home-painting">
                 <div className="flex justify-between items-center font-black mb-2"><span>🎨 {t.painting}</span><span className="text-sm text-slate-400">{Math.floor(g.painting.filled / STARS_PER_PART)} / {p.regions.length}</span></div>
                 <PaintingView painting={p} filled={Math.floor(g.painting.filled / STARS_PER_PART)} />
                 <p className="text-xs font-bold text-slate-400 mt-2">{t.paintingHelp}</p>
@@ -678,43 +725,6 @@ const GalleryView: React.FC<{ g: GameState; t: UIText; lang: Lang }> = ({ g, t, 
     );
 };
 
-// The welcome tour on a new device: what the game is about and the daily routine
-const INTRO: { icon: string; title: L10n; body: L10n }[] = [
-    { icon: '👋', title: { en: 'Hi Ameliia! I am Lina', ru: 'Привет, Амелия! Я Лина' }, body: { en: 'And this is Pip the capybara. Together we will make math your superpower: division, speed and rounding. You will see your family, Fort Lee, Florida and Italy in the tasks!', ru: 'А это капибара Пип. Вместе мы сделаем математику твоей суперсилой: деление, скорость и округление. В задачах будут твоя семья, Форт-Ли, Флорида и Италия!' } },
-    { icon: '🚀', title: { en: 'How to play', ru: 'Как играть' }, body: { en: 'Press Play and solve tasks. Every right answer gives you stars: 3 on the first try, 2 with a hint. You can always read the theory first.', ru: 'Нажми «Играть» и решай задания. За каждый правильный ответ ты получаешь звёзды: 3 с первого раза, 2 с подсказкой. Теорию всегда можно прочитать заранее.' } },
-    { icon: '💡', title: { en: 'Mistakes are OK', ru: 'Ошибаться не страшно' }, body: { en: 'If an answer is wrong, I show you a short story with the theory and examples, then a mini quiz of 3 questions. After that you try a new task. That is how brains grow!', ru: 'Если ответ неверный, я покажу короткую историю с теорией и примерами, а потом мини-викторину из 3 вопросов. После этого ты попробуешь новое задание. Так растёт мозг!' } },
-    { icon: '🎨', title: { en: 'Magic paintings', ru: 'Волшебные картины' }, body: { en: 'Every 2 stars paint one part of a picture. When a picture is finished, you choose which picture to paint next.', ru: 'Каждые 2 звезды раскрашивают кусочек картины. Когда картина готова, ты сама выбираешь, какую раскрашивать дальше.' } },
-    { icon: '📖', title: { en: 'Your story book', ru: 'Твоя книжка-история' }, body: { en: 'Stars also open chapters of a story about your family and the trip to Italy: a new chapter every 30 stars. Your progress is in 📊.', ru: 'Звёзды открывают и главы истории про твою семью и поездку в Италию: новая глава каждые 30 звёзд. Свой прогресс смотри в 📊.' } },
-    { icon: '📝', title: { en: 'Every day: the practice test', ru: 'Каждый день: пробный тест' }, body: { en: 'At the end of each day, take the practice test. It is like your real test on Friday. Every day you will do it better!', ru: 'В конце каждого дня проходи пробный тест. Он как настоящий тест в пятницу. С каждым днём у тебя будет получаться лучше!' } },
-    { icon: '❤️', title: { en: 'Mom and Dad love you', ru: 'Мама и папа тебя любят' }, body: { en: 'Learn up to 2 hours a day, take little breaks and have fun. Ready?', ru: 'Занимайся до 2 часов в день, делай маленькие перерывы и получай удовольствие. Готова?' } },
-];
-
-const Intro: React.FC<{ lang: Lang; onDone: () => void; setLang: (l: Lang) => void }> = ({ lang, onDone, setLang }) => {
-    const [i, setI] = useState(0);
-    const s = INTRO[i];
-    const last = i === INTRO.length - 1;
-    return (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4" data-testid="intro">
-            <div className={`${card} max-w-xl mt-6 space-y-4 animate-bounce-in`} key={i}>
-                <div className="flex justify-between items-center">
-                    <div className="flex gap-1.5">{INTRO.map((_, k) => <div key={k} className={`h-2 w-6 rounded-full ${k <= i ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}`} />)}</div>
-                    <button onClick={() => setLang(lang === 'en' ? 'ru' : 'en')} className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600 text-xs font-black">{lang === 'en' ? 'RU' : 'EN'}</button>
-                </div>
-                <div className="flex items-end justify-center gap-2"><Lina mood={last ? 'cheer' : 'happy'} size={110} /><Pip size={64} wink={i % 2 === 1} /></div>
-                <h2 className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400 text-center" data-testid="intro-title">{s.icon} {tr(s.title, lang)}</h2>
-                <p className="text-lg md:text-xl font-medium leading-relaxed text-center text-slate-700 dark:text-slate-200">{tr(s.body, lang)}</p>
-                {s.icon === '🎨' && <PaintingView painting={PAINTINGS[0]} filled={12} />}
-                <div className="grid grid-cols-2 gap-3">
-                    {i > 0 ? <button onClick={() => setI(i - 1)} className={`${secondary} py-4`}>◀ {lang === 'en' ? 'Back' : 'Назад'}</button> : <button data-testid="intro-skip" onClick={onDone} className={`${secondary} py-4`}>{lang === 'en' ? 'Skip' : 'Пропустить'}</button>}
-                    {last
-                        ? <button data-testid="intro-start" onClick={onDone} className={`${primary} py-4 text-xl`}>{lang === 'en' ? 'Let\'s start!' : 'Поехали!'} 🚀</button>
-                        : <button data-testid="intro-next" onClick={() => setI(i + 1)} className={`${primary} py-4 text-xl`}>{lang === 'en' ? 'Next' : 'Дальше'} ▶</button>}
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const PaintingChoice: React.FC<{ g: GameState; t: UIText; lang: Lang; justDone: number | null; onChoose: (i: number) => void }> = ({ g, t, lang, justDone, onChoose }) => {
     const [step, setStep] = useState<'congrats' | 'choose'>(justDone !== null ? 'congrats' : 'choose');
     const done = justDone ?? g.painting.done[g.painting.done.length - 1];
@@ -754,7 +764,7 @@ const SettingsView: React.FC<{ g: GameState; setG: React.Dispatch<React.SetState
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.language}</div><div className="grid grid-cols-2 gap-2">{(['en', 'ru'] as Lang[]).map(l => <button key={l} onClick={() => setG(s => ({ ...s, lang: l }))} className={opt(g.lang === l)}>{l === 'en' ? '🇺🇸 English' : '🇷🇺 Русский'}</button>)}</div></div>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.theme}</div><div className="grid grid-cols-3 gap-2">{(['light', 'dark', 'system'] as const).map(m => <button key={m} onClick={() => setG(s => ({ ...s, theme: m }))} className={opt(g.theme === m)}>{m === 'light' ? `☀️ ${t.light}` : m === 'dark' ? `🌙 ${t.dark}` : `🌓 ${t.system}`}</button>)}</div></div>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.sound}</div><button onClick={() => setG(s => ({ ...s, sound: !s.sound }))} className={`${opt(g.sound)} w-full`}>{g.sound ? `🔊 ${t.on}` : `🔇 ${t.off}`}</button></div>
-            <button data-testid="replay-intro" onClick={() => setG(s => ({ ...s, introSeen: false }))} className={`${secondary} w-full py-3`}>👋 {t.howToPlay}</button>
+            <button data-testid="replay-intro" onClick={() => { setG(s => ({ ...s, introSeen: false, playTourSeen: false })); }} className={`${secondary} w-full py-3`}>👋 {t.howToPlay}</button>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">📅 {t.testDate}</div><input type="date" value={g.testDate} onChange={e => setG(s => ({ ...s, testDate: e.target.value }))} className="w-full p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-bold" /></div>
             <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 p-4"><div className="font-black mb-1">👨‍👩‍👧‍👦 {t.parents}</div><p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed">{t.parentsText}</p></div>
             <div className="rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 p-4 space-y-2">

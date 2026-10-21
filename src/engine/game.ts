@@ -34,6 +34,7 @@ export type GameState = {
     lastLoveAt: number;
     testDate: string;                     // YYYY-MM-DD of the next school test, shown as a countdown
     introSeen: boolean;                   // the welcome tour on a new device
+    playTourSeen: boolean;                // the short tour of the task screen
 };
 
 export const ALL_SKILLS = Object.keys(TOPIC_OF) as SkillId[];
@@ -51,6 +52,7 @@ export const newState = (): GameState => ({
     chaptersRead: [], lastLoveAt: 0,
     testDate: '2026-10-23',
     introSeen: false,
+    playTourSeen: false,
 });
 
 // fills in anything a stored state from an older build is missing
