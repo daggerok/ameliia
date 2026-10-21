@@ -176,47 +176,44 @@ export const standardRows = (m: number, a: number): StandardRow[] => {
     return rows;
 };
 
-const PLACE_LABEL: L10n[] = [L('Ones place: start here!', 'Разряд единиц: начинаем здесь!'), L('Tens place', 'Разряд десятков'), L('Hundreds place', 'Разряд сотен'), L('Thousands place', 'Разряд тысяч')];
-const WRITE = L('write', 'пишем'), CARRY = L('carry', 'переносим');
-
 const makeStandard = (rng: Rng): Problem => {
     // carrying is the point of the standard algorithm, so at least one place gets a carry
     let { m, a } = pickPair(rng, false);
     while (!standardRows(m, a).some(r => r.carryIn > 0)) ({ m, a } = pickPair(rng, false));
     const rows = standardRows(m, a);
-    const values: number[] = [];
-    const box = (v: number) => { values.push(v); return B(values.length - 1); };
-    // every place: the product, plus the carry, then the digit she writes and the digit she carries (like "4 1" above 182)
-    const lines: FillLine[] = rows.map((r, i): FillLine => {
-        const last = i === rows.length - 1;
-        const parts: FillPart[] = [`${m} × ${r.d} = `, box(r.prod)];
-        if (r.carryIn) parts.push(` + ${r.carryIn} = `, box(r.sum));
-        if (!last) parts.push('  →  ', { t: WRITE }, ' ', box(r.write), ',', '  ', { t: CARRY }, ' ', box(r.carryOut));
-        return { parts, label: PLACE_LABEL[i] };
+    const product = String(m * a).split('').map(Number).reverse();
+    // the boxes in the order she fills them: ones digit of the answer, the carry over the tens, the tens digit, the carry over the hundreds...
+    const values: number[] = [], digits: { col: number; b: number }[] = [], carries: { col: number; b: number }[] = [], optional: number[] = [];
+    product.forEach((d, col) => {
+        values.push(d);
+        digits.push({ col, b: values.length - 1 });
+        if (col < rows.length - 1) {
+            values.push(rows[col].carryOut);
+            carries.push({ col: col + 1, b: values.length - 1 });
+            if (!rows[col].carryOut) optional.push(values.length - 1);
+        }
     });
-    lines.push({ parts: [`${fmt(a, 'en')} × ${m} = `, box(m * a)], label: L('Answer', 'Ответ') });
     const place = (i: number) => [L('ones', 'единиц'), L('tens', 'десятков'), L('hundreds', 'сотен'), L('thousands', 'тысяч'), L('ten thousands', 'десятков тысяч')][i];
     return {
         id: `mult-standard:${m}x${a}`, skill: 'mult-standard', topic: 'estimation',
-        prompt: L(`Solve ${fmt(a, 'en')} × ${m} using the Standard Algorithm. Start in the ones place, write one digit and carry the rest to the next place.`,
-            `Реши ${fmt(a, 'ru')} × ${m} умножением столбиком. Начни с разряда единиц: пиши одну цифру, а остальное переноси в следующий разряд.`),
-        answer: { kind: 'fill', layout: 'lines', values, lines },
+        prompt: L(`Solve ${fmt(a, 'en')} × ${m} using the Standard Algorithm. Start in the ones place: write one digit under the line and the carry in the small box over the next digit.`,
+            `Реши ${fmt(a, 'ru')} × ${m} умножением столбиком. Начни с разряда единиц: одну цифру пиши под чертой, а перенос - в маленькое окошко над следующей цифрой.`),
+        answer: { kind: 'fill', layout: 'column', values, top: a, by: m, carries, digits, optional },
         steps: [
             ...rows.map((r, i) => {
                 const head = r.carryIn ? `${m} × ${r.d} = ${r.prod}, ${r.prod} + ${r.carryIn} = ${r.sum}` : `${m} × ${r.d} = ${r.prod}`;
                 return i === rows.length - 1
                     ? L(`${place(i).en[0].toUpperCase()}${place(i).en.slice(1)}: ${head}. It is the last digit, so write ${r.sum}.`, `Разряд ${place(i).ru}: ${head}. Это последняя цифра, пишем ${r.sum}.`)
-                    : L(`${place(i).en[0].toUpperCase()}${place(i).en.slice(1)}: ${head}. Write ${r.write}, carry ${r.carryOut}.`,
-                        `Разряд ${place(i).ru}: ${head}. Пишем ${r.write}, переносим ${r.carryOut}.`);
+                    : L(`${place(i).en[0].toUpperCase()}${place(i).en.slice(1)}: ${head}. Write ${r.write}${r.carryOut ? `, carry ${r.carryOut} over the next digit` : ', nothing to carry'}.`,
+                        `Разряд ${place(i).ru}: ${head}. Пишем ${r.write}${r.carryOut ? `, ${r.carryOut} переносим над следующей цифрой` : ', переносить нечего'}.`);
             }),
             L(`So ${fmt(a, 'en')} × ${m} = ${fmt(m * a, 'en')}.`, `Значит ${fmt(a, 'ru')} × ${m} = ${fmt(m * a, 'ru')}.`),
-            L('Nothing to carry? Then the carry is 0.', 'Нечего переносить? Тогда перенос 0.'),
             ...checkLine(m, a),
         ],
         hint: rows[0].carryOut
-            ? L(`First ${m} × ${rows[0].d} = ${rows[0].prod}. Write the ones digit ${rows[0].write} and carry the tens digit ${rows[0].carryOut} to the next place.`,
-                `Сначала ${m} × ${rows[0].d} = ${rows[0].prod}. Пиши цифру единиц ${rows[0].write}, а цифру десятков ${rows[0].carryOut} переноси в следующий разряд.`)
-            : L(`First ${m} × ${rows[0].d} = ${rows[0].prod}: write ${rows[0].write}, there is nothing to carry, so the carry is 0.`, `Сначала ${m} × ${rows[0].d} = ${rows[0].prod}: пишем ${rows[0].write}, переносить нечего, перенос 0.`),
+            ? L(`First ${m} × ${rows[0].d} = ${rows[0].prod}. Write ${rows[0].write} under the line and carry ${rows[0].carryOut} into the small box over the next digit.`,
+                `Сначала ${m} × ${rows[0].d} = ${rows[0].prod}. Пиши ${rows[0].write} под чертой, а ${rows[0].carryOut} перенеси в маленькое окошко над следующей цифрой.`)
+            : L(`First ${m} × ${rows[0].d} = ${rows[0].prod}: write ${rows[0].write} under the line, nothing to carry, the small box stays empty.`, `Сначала ${m} × ${rows[0].d} = ${rows[0].prod}: пиши ${rows[0].write} под чертой, переносить нечего, окошко остаётся пустым.`),
         data: { m, a, two: 0 },
     };
 };

@@ -60,7 +60,7 @@ const checkMath = (texts: string[], where: string) => {
     }
 };
 
-const textsOf = (p: Problem): L10n[] => [p.prompt, p.hint, ...p.steps, ...(p.answer.kind === 'choice' ? p.answer.options : []), ...(p.answer.kind === 'fill' && p.answer.layout !== 'area' ? p.answer.lines.flatMap(l => (l.label ? [l.label] : [])) : [])];
+const textsOf = (p: Problem): L10n[] => [p.prompt, p.hint, ...p.steps, ...(p.answer.kind === 'choice' ? p.answer.options : []), ...(p.answer.kind === 'fill' && (p.answer.layout === 'lines' || p.answer.layout === 'vertical') ? p.answer.lines.flatMap(l => (l.label ? [l.label] : [])) : [])];
 // "spot the mistake" tasks show a wrong claim in the question on purpose
 const deliberateMistake = (p: Problem) => /^div-check:[zr]:|^est-product:r:/.test(p.id);
 // wrong options of a choice question are wrong on purpose: only the right one is checked
@@ -146,22 +146,21 @@ const expectedBlanks = (p: Problem): number[] => {
     if (p.skill === 'mult-area') return [...pa, ...(two ? pm : []), ...pm.flatMap(x => pa.map(y => x * y)), m * a];
     if (p.skill === 'mult-dist') return [...pa, ...pa.map(y => m * y), m * a];
     if (p.skill === 'mult-partial') return [...pm.flatMap(x => pa.map(y => x * y)), m * a];
-    // standard algorithm, worked from the ones place: product, sum with the carry, then the digit written and the carry
+    // standard algorithm in a column, in solving order: each answer digit from the ones place, then the carry over the next digit
     const out: number[] = [];
-    let carry = 0;
+    const answer = String(m * a).split('').reverse().map(Number);
     const digits = String(a).split('').reverse().map(Number);
-    digits.forEach((d, i) => {
-        const sum = m * d + carry;
-        out.push(m * d);
-        if (carry) out.push(sum);
-        if (i < digits.length - 1) out.push(sum % 10, Math.floor(sum / 10));
-        carry = Math.floor(sum / 10);
+    let carry = 0;
+    answer.forEach((d, i) => {
+        out.push(d);
+        if (i < digits.length - 1) { carry = Math.floor((m * digits[i] + carry) / 10); out.push(carry); }
     });
-    return [...out, m * a];
+    return out;
 };
 
 const blankRefs = (p: Problem): number[] => {
     if (p.answer.kind !== 'fill') return [];
+    if (p.answer.layout === 'column') return [...p.answer.digits, ...p.answer.carries].map(x => x.b);
     const parts = p.answer.layout === 'area'
         ? [...p.answer.top, ...p.answer.left, ...p.answer.cells.flat().map(b => ({ b })), { b: p.answer.total }]
         : p.answer.lines.flatMap(l => l.parts);
@@ -211,7 +210,8 @@ describe('multiplication strategy worksheets', () => {
                 if (p.answer.kind !== 'fill') throw new Error('fill expected');
                 expect(p.answer.values).toEqual(expectedBlanks(p));
                 expect(blankRefs(p).sort((x, y) => x - y)).toEqual(p.answer.values.map((_, i) => i));
-                expect(p.answer.values[p.answer.values.length - 1]).toBe(Number(p.data.m) * Number(p.data.a));
+                if (p.answer.layout === 'column') expect(Number(p.answer.digits.map(d => p.answer.kind === 'fill' ? p.answer.values[d.b] : 0).reverse().join(''))).toBe(Number(p.data.m) * Number(p.data.a));
+                else expect(p.answer.values[p.answer.values.length - 1]).toBe(Number(p.data.m) * Number(p.data.a));
                 expect(sameAnswer(p.answer, { blanks: p.answer.values })).toBe(true);
                 expect(sameAnswer(p.answer, { blanks: p.answer.values.map((v, i) => (i === 0 ? v + 1 : v)) })).toBe(false);
                 // 4.NBT.B.5: up to 4-digit × 1-digit, or 2-digit × 2-digit; the standard algorithm only with a 1-digit multiplier

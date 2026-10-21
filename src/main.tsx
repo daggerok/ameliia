@@ -187,29 +187,31 @@ const digitsOnly = (s: string) => s.replace(/[^\d]/g, '');
 const FillSheet: React.FC<{ answer: FillAnswer; lang: Lang; values?: string[]; setValue?: (i: number, v: string) => void; review?: number[] }> = ({ answer, lang, values, setValue, review }) => {
     // marks by meaning (parts in any order, area boxes against her own top and left numbers)
     const marks = review ? fillMarks(answer, review) : [];
-    const blank = (i: number) => {
+    // size: the column layout uses digit boxes ('digit') and small carry boxes ('carry')
+    const blank = (i: number, size?: 'digit' | 'carry') => {
         if (review) {
             const ok = marks[i];
             return (
-                <span key={`b${i}`} className={`inline-flex flex-col items-center px-2 py-0.5 rounded-lg border-2 font-black text-lg ${ok ? 'border-emerald-400 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200' : 'border-rose-400 bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200'}`} data-testid={`review-${i}`} data-ok={String(ok)}>
-                    <span className={ok ? '' : 'line-through opacity-70'}>{review[i] === undefined || Number.isNaN(review[i]) ? '?' : fmt(review[i], lang)}</span>
+                <span key={`b${i}`} className={`inline-flex flex-col items-center ${size ? 'px-1 min-w-[1.75rem]' : 'px-2'} py-0.5 rounded-lg border-2 font-black ${size === 'carry' ? 'text-sm' : 'text-lg'} ${ok ? 'border-emerald-400 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200' : 'border-rose-400 bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200'}`} data-testid={`review-${i}`} data-ok={String(ok)}>
+                    <span className={ok ? '' : 'line-through opacity-70'}>{review[i] === undefined || Number.isNaN(review[i]) ? '?' : size === 'carry' && review[i] === 0 ? '·' : fmt(review[i], lang)}</span>
                     {!ok && <span className="text-xs text-emerald-700 dark:text-emerald-300">{fmt(answer.values[i], lang)}</span>}
                 </span>
             );
         }
         return (
-            <input key={`b${i}`} data-testid={`blank-${i}`} inputMode="numeric" enterKeyHint="next" autoComplete="off" value={values?.[i] ?? ''} placeholder="?"
+            <input key={`b${i}`} data-testid={`blank-${i}`} inputMode="numeric" enterKeyHint="next" autoComplete="off" value={values?.[i] ?? ''} placeholder={size === 'carry' ? '' : '?'} maxLength={size ? 2 : undefined}
                 onChange={e => setValue?.(i, e.target.value)} aria-label={`blank ${i + 1}`}
                 // a typed number gets its thousands separator: 1045 -> 1,045
                 onBlur={e => { const d = e.target.value.replace(/[^\d]/g, ''); if (d) setValue?.(i, fmt(Number(d), lang)); }}
-                // Enter jumps to the next box in reading order; on the last box it checks the sheet
+                // Enter jumps to the next box in solving order (the order of the blanks); on the last box it checks the sheet
                 onKeyDown={e => {
                     if (e.key !== 'Enter') return;
-                    const boxes = Array.from(e.currentTarget.closest('[data-testid=fill-sheet]')?.querySelectorAll<HTMLInputElement>('input') ?? []);
-                    const next = boxes[boxes.indexOf(e.currentTarget) + 1];
+                    const next = e.currentTarget.closest('[data-testid=fill-sheet]')?.querySelector<HTMLInputElement>(`[data-testid="blank-${i + 1}"]`);
                     if (next) { e.preventDefault(); next.focus(); }
                 }}
-                className={`${answer.layout === 'area' && answer.top.length > 3 ? 'w-[3.75rem] text-sm !px-0' : 'w-[4.5rem]'} sm:w-20 md:w-24 px-1 py-1.5 ${answer.layout === 'vertical' ? 'text-right pr-2' : 'text-center'} text-lg md:text-xl font-black rounded-xl border-[3px] border-indigo-400 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20`} />
+                className={size === 'digit' ? 'w-9 h-11 sm:w-10 sm:h-12 text-center text-2xl font-black rounded-lg border-[3px] border-indigo-400 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 font-mono'
+                    : size === 'carry' ? 'w-7 h-7 sm:w-8 sm:h-8 text-center text-sm font-black rounded-md border-2 border-dashed border-rose-400 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-400/40 font-mono placeholder:text-rose-300'
+                    : `${answer.layout === 'area' && answer.top.length > 3 ? 'w-[3.75rem] text-sm !px-0' : 'w-[4.5rem]'} sm:w-20 md:w-24 px-1 py-1.5 ${answer.layout === 'vertical' ? 'text-right pr-2' : 'text-center'} text-lg md:text-xl font-black rounded-xl border-[3px] border-indigo-400 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20`} />
         );
     };
     // sheet texts carry English thousands commas (3,578); Russian shows 3 578
@@ -242,6 +244,25 @@ const FillSheet: React.FC<{ answer: FillAnswer; lang: Lang; values?: string[]; s
                     </tbody>
                 </table>
                 <div className="flex items-center justify-center gap-2 mt-2 font-black text-lg"><span>{lang === 'en' ? 'Total' : 'Итого'} =</span>{blank(answer.total)}</div>
+            </div>
+        );
+    }
+    if (answer.layout === 'column') {
+        // the standard algorithm on paper: carries in small boxes over the digits, × and the multiplier under the ones, a line, the answer digits
+        const top = String(answer.top);
+        const width = Math.max(top.length, answer.digits.length) + 1;
+        const at = (col: number) => ({ gridColumn: width - col });
+        return (
+            <div className="w-fit mx-auto" data-testid="fill-sheet" data-layout="column">
+                <div className="grid gap-x-1 gap-y-1 items-center justify-items-center font-mono font-black text-2xl md:text-3xl text-slate-800 dark:text-slate-100" style={{ gridTemplateColumns: `repeat(${width}, 2.6rem)` }}>
+                    {answer.carries.map(c => <div key={`c${c.col}`} style={{ ...at(c.col), gridRow: 1 }}>{blank(c.b, 'carry')}</div>)}
+                    {top.split('').reverse().map((d, col) => <div key={`t${col}`} style={{ ...at(col), gridRow: 2 }}>{d}</div>)}
+                    <div style={{ gridColumn: 1, gridRow: 3 }} className="text-slate-500">×</div>
+                    <div style={{ ...at(0), gridRow: 3 }}>{answer.by}</div>
+                    <div style={{ gridColumn: `1 / span ${width}`, gridRow: 4 }} className="w-full border-b-4 border-slate-700 dark:border-slate-300" />
+                    {answer.digits.map(d => <div key={`d${d.col}`} style={{ ...at(d.col), gridRow: 5 }}>{blank(d.b, 'digit')}</div>)}
+                </div>
+                {!review && <p className="text-xs font-bold text-slate-400 mt-2 text-center max-w-xs">{lang === 'en' ? 'Small pink boxes: the carries. Nothing to carry? Leave it empty.' : 'Маленькие розовые окошки - для переноса. Переносить нечего? Оставь пустым.'}</p>}
             </div>
         );
     }
@@ -289,7 +310,8 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     const submit = (e?: React.FormEvent) => {
         e?.preventDefault();
         if (a.kind === 'choice') { if (c === null) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; } onSubmit({ choice: c }); return; }
-        if (a.kind === 'fill') { if (blanks.some(x => !digitsOnly(x))) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; } onSubmit({ blanks: blanks.map(x => Number(digitsOnly(x))) }); return; }
+        // a carry of 0 may stay empty, like on paper
+        if (a.kind === 'fill') { const opt = a.layout === 'column' ? a.optional : []; if (blanks.some((x, i) => !digitsOnly(x) && !opt.includes(i))) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; } onSubmit({ blanks: blanks.map(x => Number(digitsOnly(x))) }); return; }
         if (!digitsOnly(v) || (a.kind === 'remainder' && !digitsOnly(r))) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; }
         if (a.kind === 'remainder') onSubmit({ q: Number(digitsOnly(v)), r: Number(digitsOnly(r)) });
         else onSubmit({ value: Number(digitsOnly(v)) });
