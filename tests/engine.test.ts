@@ -115,7 +115,7 @@ const expected = (p: Problem): number | { q: number; r: number } | 'choice' => {
             if (p.answer.kind === 'choice') return 'choice';
             return 'rb' in d ? roundTo(n('a'), 10) * roundTo(n('b'), 10) : n('ra') * n('b');
         case 'multiply': return n('a') * n('b');
-        case 'mult-area': case 'mult-dist': case 'mult-partial': case 'mult-standard': return 'choice';
+        case 'mult-area': case 'mult-dist': case 'mult-partial': case 'mult-standard': case 'compare': case 'word-steps': return 'choice';
         default: return 'choice';
     }
 };
@@ -167,6 +167,41 @@ const blankRefs = (p: Problem): number[] => {
         : p.answer.lines.flatMap(l => l.parts);
     return parts.flatMap(x => (typeof x === 'object' && 'b' in x ? [x.b] : []));
 };
+
+describe('homework topics: comparison and word problems', () => {
+    test('comparison: times as much multiplies, how much more subtracts, how many times divides', () => {
+        each('compare', p => {
+            const b = Number(p.data.b), k = Number(p.data.k);
+            if (p.answer.kind === 'fill') {
+                const want = p.data.style === 'two' ? [b, k, b * k, b * k, b, b * k - b] : p.data.style === 'times' ? [b, k, b * k] : [b * k, b, k];
+                expect(p.answer.values).toEqual(want);
+            } else if (p.answer.kind === 'choice') {
+                const right = p.answer.options[p.answer.correct].en;
+                expect(right).toBe(p.data.style === 'choose' ? `${right.split(' = ')[0]} = ${b} × ${k}` : `${right.split(' = ')[0]} = ${b * k} − ${b}`);
+            }
+        });
+    });
+    test('word problems: the right numbers belong together, the extra item is never used', () => {
+        each('word-steps', p => {
+            const { c1, p1, c2, p2 } = p.data as Record<string, number>;
+            // both prices are written as money in both languages
+            expect(p.prompt.en).toContain(`$${p1}`);
+            expect(p.prompt.en).toContain(`$${p2}`);
+            expect(p.prompt.ru).toContain(`$${p1}`);
+            if (p.answer.kind === 'fill') {
+                const v = p.answer.values;
+                expect(v.slice(0, 3)).toEqual([c1, p1, c1 * p1]);
+                if (p.data.style === 'one') expect(v.slice(3)).toEqual([Math.round(c1 / 100) * 100, p1, Math.round(c1 / 100) * 100 * p1]);
+                if (p.data.style === 'both') expect(v.slice(3)).toEqual([c2, p2, c2 * p2, c1 * p1, c2 * p2, c1 * p1 + c2 * p2]);
+                if (p.data.style === 'more') expect(v[8]).toBe(Math.abs(c1 * p1 - c2 * p2));
+            } else if (p.answer.kind === 'choice') {
+                const right = p.answer.options[p.answer.correct].en;
+                if (p.data.style === 'need') expect(right).toBe(`${c1.toLocaleString('en-US')} and $${p1}`);
+                if (p.data.style === 'reason') expect(right).toContain('is about');
+            }
+        });
+    });
+});
 
 describe('multiplication strategy worksheets', () => {
     for (const skill of ['mult-area', 'mult-dist', 'mult-partial', 'mult-standard'] as SkillId[]) {

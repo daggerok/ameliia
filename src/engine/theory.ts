@@ -211,8 +211,76 @@ const strategyBuilders: Record<'mult-area' | 'mult-dist' | 'mult-partial' | 'mul
     },
 };
 
+// ---------- homework Topic 3: comparison and word problems with extra information ----------
+
+const wordBuilders: Record<'compare' | 'word-steps', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'compare': rng => {
+        const b = int(rng, 6, 9), k = 10, big = b * k;
+        return {
+            hook: [
+                L(`When Mia was born she weighed ${b} pounds. At 10 years old she weighed 10 times as much. Two different questions hide here: "how much did she weigh?" and "how much MORE did she weigh?"`, `Когда Мия родилась, она весила ${b} ${ruPlural(b, 'фунт', 'фунта', 'фунтов')}. В 10 лет она весила в 10 раз больше. Здесь прячутся два разных вопроса: «сколько она весила?» и «на сколько БОЛЬШЕ она весила?»`),
+                L('"Times as much" and "how much more" sound alike, but they are different math. Today you learn to tell them apart like a detective.', '«В … раз больше» и «на … больше» звучат похоже, но это разная математика. Сегодня научимся различать их, как детектив.'),
+            ],
+            sections: [
+                { kind: 'idea', title: L('Three kinds of comparing', 'Три вида сравнения'), body: [
+                    L(`"${k} times as much as ${b}": equal groups, MULTIPLY. w = ${b} × ${k} = ${big}.`, `«В ${k} раз больше, чем ${b}»: равные группы, УМНОЖАЕМ. w = ${b} × ${k} = ${big}.`),
+                    L(`"How much more is ${big} than ${b}?": a difference, SUBTRACT. d = ${big} − ${b} = ${big - b}.`, `«На сколько ${big} больше, чем ${b}?»: разница, ВЫЧИТАЕМ. d = ${big} − ${b} = ${big - b}.`),
+                    L(`"How many times as much is ${big} as ${b}?": how many groups fit, DIVIDE. ${big} ÷ ${b} = ${k}.`, `«Во сколько раз ${big} больше, чем ${b}?»: сколько раз помещается, ДЕЛИМ. ${big} ÷ ${b} = ${k}.`),
+                ] },
+                { kind: 'example', title: L('The bar diagram', 'Столбчатая модель'), prompt: L(`Mia: ${b} pounds at birth, 10 times as much at 10`, `Мия: ${b} ${ruPlural(b, 'фунт', 'фунта', 'фунтов')} при рождении, в 10 раз больше в 10 лет`), body: [
+                    L(`Top bar: one box of ${b}. Bottom bar: ${k} boxes of ${b}, the whole bar is w.`, `Верхняя полоска: одна клетка ${b}. Нижняя: ${k} клеток по ${b}, вся полоска - это w.`),
+                    L(`w = ${b} × ${k} = ${big} pounds.`, `w = ${b} × ${k} = ${big} ${ruPlural(big, 'фунт', 'фунта', 'фунтов')}.`),
+                    L(`The part of the bottom bar that sticks out past the top bar is d: d = ${big} − ${b} = ${big - b} pounds.`, `Часть нижней полоски, которая выступает за верхнюю, - это d: d = ${big} − ${b} = ${big - b} ${ruPlural(big - b, 'фунт', 'фунта', 'фунтов')}.`),
+                ], visual: { kind: 'bars', rows: [{ label: L('at birth', 'при рождении'), boxes: 1, value: String(b) }, { label: L('at 10', 'в 10 лет'), boxes: k, value: String(b) }], braces: [{ row: 1, label: L(`w = ${k} × ${b}`, `w = ${k} × ${b}`) }, { row: 1, from: 1, label: L(`d = w − ${b}`, `d = w − ${b}`) }] } },
+                { kind: 'warn', title: L('Watch out!', 'Осторожно!'), body: [
+                    L(`"How much more" never uses ×. Writing ${big} × d = ${b} mixes two questions: the right equation is d = ${big} − ${b}.`, `«На сколько больше» никогда не решается через ×. Запись ${big} × d = ${b} путает два вопроса: правильно d = ${big} − ${b}.`),
+                    L('Use the letter the problem gives you: w for weight, d for difference.', 'Используй букву из задачи: w - вес, d - разница.'),
+                    L('Check the difference by adding: smaller + difference = bigger.', 'Проверяй разницу сложением: меньшее + разница = большее.'),
+                ] },
+                { kind: 'trick', title: L('Memory trick', 'Запоминалка'), body: [
+                    L('TIMES makes a train of equal boxes. MORE is the piece that sticks out.', 'РАЗЫ - это поезд из одинаковых вагончиков. НА СКОЛЬКО - это кусочек, который торчит.'),
+                ] },
+            ],
+        };
+    },
+    'word-steps': rng => {
+        const c1 = int(rng, 1102, 1890), p1 = 4, c2 = int(rng, 1102, 1890), p2 = 3;
+        return {
+            hook: [
+                L('A word problem is like a little mystery story. Some clues are important, some are there to trick you. A good detective crosses out the extra clues.', 'Текстовая задача - как маленький детектив. Одни улики важные, другие нужны, чтобы запутать. Хороший сыщик вычёркивает лишние улики.'),
+                L('Ameliia already did something smart in her homework: she wrote "pencils = extra, not needed". That is exactly what good problem solvers do!', 'В домашке Амелия уже сделала умную вещь: написала «карандаши - лишнее, не нужно». Именно так и поступают хорошие решатели задач!'),
+            ],
+            sections: [
+                { kind: 'steps', title: L('Five steps for a word problem', 'Пять шагов для текстовой задачи'), body: [
+                    L('1. Underline the question. What exactly do we need to find?', '1. Подчеркни вопрос. Что именно нужно найти?'),
+                    L('2. Circle the numbers that talk about the same thing as the question. Cross out the extra ones.', '2. Обведи числа, которые говорят о том же, о чём вопрос. Лишние вычеркни.'),
+                    L('3. Match each number with its label: how many of WHAT, how much for WHAT.', '3. Свяжи каждое число с его подписью: сколько ЧЕГО, сколько стоит ЧТО.'),
+                    L('4. Write an equation with a letter and solve it. Do not forget the unit ($, pounds, minutes).', '4. Запиши уравнение с буквой и реши его. Не забудь единицу ($, фунты, минуты).'),
+                    L('5. Check that the answer is reasonable with an estimate.', '5. Проверь прикидкой, что ответ правдоподобный.'),
+                ] },
+                { kind: 'example', title: L('Let\'s try one together', 'Решим вместе'), prompt: L(`A bookstore ordered ${fmt(c1, 'en')} packs of pens and ${fmt(c2, 'en')} packs of pencils. Pens cost ${p1} a pack, pencils ${p2} a pack. How much did it spend on pens?`, `Книжный магазин заказал ${fmt(c1, 'ru')} ${ruPlural(c1, 'пачку', 'пачки', 'пачек')} ручек и ${fmt(c2, 'ru')} ${ruPlural(c2, 'пачку', 'пачки', 'пачек')} карандашей. Ручки стоят ${p1} за пачку, карандаши - ${p2}. Сколько потратили на ручки?`), body: [
+                    L('The question is about PENS. Pencils are extra: cross out the pencil numbers.', 'Вопрос про РУЧКИ. Карандаши лишние: вычёркиваем их числа.'),
+                    L(`Pens: ${fmt(c1, 'en')} packs, ${p1} a pack. Careful: ${fmt(c2, 'en')} belongs to the pencils, not to the pens!`, `Ручки: ${fmt(c1, 'ru')} пачек, ${p1} за пачку. Внимание: ${fmt(c2, 'ru')} относится к карандашам, а не к ручкам!`),
+                    L(`c = ${fmt(c1, 'en')} × ${p1} = ${fmt(c1 * p1, 'en')}, so ${fmt(c1 * p1, 'en')}.`, `c = ${fmt(c1, 'ru')} × ${p1} = ${fmt(c1 * p1, 'ru')}, то есть ${fmt(c1 * p1, 'ru')}.`),
+                    L(`Reasonable? ${fmt(c1, 'en')} is about ${fmt(Math.round(c1 / 100) * 100, 'en')}, ${fmt(Math.round(c1 / 100) * 100, 'en')} × ${p1} = ${fmt(Math.round(c1 / 100) * 100 * p1, 'en')}. Close ✓`, `Правдоподобно? ${fmt(c1, 'ru')} - примерно ${fmt(Math.round(c1 / 100) * 100, 'ru')}, ${fmt(Math.round(c1 / 100) * 100, 'ru')} × ${p1} = ${fmt(Math.round(c1 / 100) * 100 * p1, 'ru')}. Близко ✓`),
+                ] },
+                { kind: 'warn', title: L('Watch out!', 'Осторожно!'), body: [
+                    L('Do not swap the numbers: the number of pens goes with the price of pens.', 'Не перепутай числа: количество ручек идёт с ценой ручек.'),
+                    L('"It is reasonable because I computed accurately" is not a reason. A reason is an estimate: round, multiply, compare.', '«Правдоподобно, потому что я посчитала аккуратно» - это не объяснение. Объяснение - это прикидка: округли, умножь, сравни.'),
+                    L('Write the unit in the answer: $6,112, not just 6,112.', 'Пиши единицу в ответе: $6 112, а не просто 6 112.'),
+                ] },
+                { kind: 'trick', title: L('Have you seen a problem like this before?', 'Встречалась ли тебе такая задача?'), body: [
+                    L('Yes! It is a "number of things × price of one thing" problem, the same as 6 × 182: multiply a big number by a one-digit number with any strategy you like.', 'Да! Это задача «количество × цена одной штуки», такая же, как 6 × 182: умножаем большое число на однозначное любым способом.'),
+                    L('Place-value blocks would take too long for 4-digit numbers: partial products or the standard algorithm are faster.', 'Кубики для разрядов слишком долго рисовать для четырёхзначных чисел: частичные произведения или столбик быстрее.'),
+                ] },
+            ],
+        };
+    },
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
     ...strategyBuilders,
+    ...wordBuilders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
         const skip = Array.from({ length: q }, (_, i) => (i + 1) * d);

@@ -44,7 +44,16 @@ const chart = (rng: Rng) => {
     return { m, a, p: placeParts(a) };
 };
 
+// for the homework topics the concept question is a choice task of the skill itself (which equation, which numbers, which reason)
+const choiceOf = (skill: SkillId, rng: Rng): Problem => {
+    let p = makeProblem(skill, rng);
+    for (let i = 0; i < 50 && p.answer.kind !== 'choice'; i++) p = makeProblem(skill, rng);
+    return p;
+};
+
 const concepts: Partial<Record<SkillId, (rng: Rng) => Problem[]>> = {
+    'compare': rng => [choiceOf('compare', rng)],
+    'word-steps': rng => [choiceOf('word-steps', rng)],
     'mult-area': rng => {
         const { m, a, p } = chart(rng);
         return [

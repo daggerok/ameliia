@@ -148,11 +148,45 @@ export const Groups: React.FC<{ total: number; groups: number; icon: string }> =
     );
 };
 
+// Bar diagram like the textbook: rows on the same scale (one box = one unit), a brace names the whole row or the part that sticks out
+export const BarDiagram: React.FC<{ rows: { label: { en: string; ru: string }; boxes: number; value: string }[]; braces: { row: number; label: { en: string; ru: string }; from?: number }[]; lang: Lang }> = ({ rows, braces, lang }) => {
+    const slots = Math.max(...rows.map(r => r.boxes));
+    return (
+        <div className="my-3 space-y-1" data-testid="bars">
+            {rows.map((r, i) => (
+                <div key={i}>
+                    <div className="grid grid-cols-[5.5rem_1fr] items-center gap-2">
+                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 text-right">{r.label[lang]}</span>
+                        <div className="flex">
+                            {Array.from({ length: slots }, (_, k) => (
+                                <div key={k} className={`flex-1 h-9 flex items-center justify-center text-xs sm:text-sm font-black ${k < r.boxes ? `border-2 -ml-[2px] first:ml-0 border-indigo-400 ${i ? 'bg-amber-100 dark:bg-amber-900/40' : 'bg-sky-100 dark:bg-sky-900/40'} text-slate-800 dark:text-slate-100` : ''}`}>{k < r.boxes ? r.value : ''}</div>
+                            ))}
+                        </div>
+                    </div>
+                    {braces.filter(b => b.row === i).map((b, j) => {
+                        const from = b.from ?? 0;
+                        return (
+                            <div key={j} className="grid grid-cols-[5.5rem_1fr] gap-2">
+                                <span />
+                                <div className="relative h-8">
+                                    <div className="absolute top-1 h-3 border-x-2 border-b-2 rounded-b-lg border-emerald-500" style={{ left: `${(from / slots) * 100}%`, width: `${((r.boxes - from) / slots) * 100}%` }} />
+                                    <div className="absolute top-4 text-xs sm:text-sm font-black text-emerald-700 dark:text-emerald-300 whitespace-nowrap -translate-x-1/2" style={{ left: `${((from + r.boxes) / 2 / slots) * 100}%` }}>{b.label[lang]}</div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            ))}
+        </div>
+    );
+};
+
 export const VisualView: React.FC<{ visual?: Visual; lang: Lang; stepByStep?: boolean }> = ({ visual, lang, stepByStep = true }) => {
     if (!visual) return null;
     if (visual.kind === 'longdiv') return <LongDivisionBoard dividend={visual.dividend} divisor={visual.divisor} lang={lang} stepByStep={stepByStep} />;
     if (visual.kind === 'area') return <AreaModel a={visual.a} b={visual.b} lang={lang} />;
     if (visual.kind === 'numberline') return <NumberLine value={visual.value} low={visual.low} high={visual.high} lang={lang} />;
     if (visual.kind === 'trip') return <TripMap legs={visual.legs} unit={visual.unit} lang={lang} />;
+    if (visual.kind === 'bars') return <BarDiagram rows={visual.rows} braces={visual.braces} lang={lang} />;
     return <Groups total={visual.total} groups={visual.groups} icon={visual.icon} />;
 };
