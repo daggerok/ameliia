@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Ameliia's 3D Block World - A Game for Ameliia Kostromin!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: #87CEEB;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #three-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+
+        #player-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            margin-bottom: 5px;
+        }
+
+        #block-count {
+            font-size: 16px;
+        }
+
+        #toolbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            display: flex;
+            gap: 8px;
+            pointer-events: auto;
+        }
+
+        .block-btn {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            pointer-events: auto;
+        }
+
+        .block-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .block-btn.active {
+            border-color: #FFD700;
+            box-shadow: 0 0 10px #FFD700;
+        }
+
+        #help {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            max-width: 280px;
+            pointer-events: auto;
+        }
+
+        #help h3 {
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+
+        #help ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        #help li {
+            margin-bottom: 5px;
+        }
+
+        #close-help {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+<div id="game-container">
+    <div id="ui">
+        <div>🎮 Ameliia's 3D Block World</div>
+        <div id="player-name">Ameliia Kostromin</div>
+        <div id="block-count">Blocks: 0</div>
+    </div>
+
+    <div id="help">
+        <button id="close-help">×</button>
+        <h3>How to Play:</h3>
+        <ul>
+            <li>🖱️ <b>Left Click</b> - Place block</li>
+            <li>🖱️ <b>Right Click</b> - Remove block</li>
+            <li>🎨 Select blocks below</li>
+            <li>⌨️ <b>1-6</b> - Quick select block type</li>
+            <li>🖱️ <b>Mouse Drag</b> - Rotate camera</li>
+            <li>🖱️ <b>Scroll</b> - Zoom in/out</li>
+        </ul>
+        <h3>Special Message:</h3>
+        <p>This game was made especially for Ameliia Kostromin! Have fun building your own 3D world!</p>
+    </div>
+
+    <div id="controls-hint">
+        Use mouse to look around • WASD/Arrows to move • Space to go up • Shift to go down
+    </div>
+
+    <div id="mode-select-container" style="position:absolute;top:10px;right:10px;">
+    <label for="mode-select" style="color:white;font-size:14px;">Mode:</label>
+    <select id="mode-select" style="margin-left:5px;">
+        <option value="empty">Empty</option>
+        <option value="preset">Preset World</option>
+    </select>
+</div>
+<div id="toolbar"></div>
+</div>
+
+<!-- Three.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// OrbitControls (inlined for self‑containment)
+THREE.OrbitControls = function(object, domElement) {
+    this.object = object;
+    this.domElement = domElement;
+    this.enabled = true;
+    this.target = new THREE.Vector3();
+    this.minDistance = 0;
+    this.maxDistance = Infinity;
+    this.minPolarAngle = 0;
+    this.maxPolarAngle = Math.PI;
+    this.enableDamping = false;
+    this.dampingFactor = 0.05;
+    this.enableZoom = true;
+    this.zoomSpeed = 0.4;
+    this.enableRotate = true;
+    this.rotateSpeed = 0.5;
+    this.enablePan = true;
+    this.panSpeed = 1.0;
+    this.screenSpacePanning = false;
+    this.keyPanSpeed = 2.0;
+
+    var scope = this;
+    var STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2 };
+    var state = STATE.NONE;
+    var spherical = new THREE.Spherical();
+    var sphericalDelta = new THREE.Spherical();
+    var panOffset = new THREE.Vector3();
+    var scale = 1;
+    var rotateStart = new THREE.Vector2();
+    var rotateEnd = new THREE.Vector2();
+    var rotateDelta = new THREE.Vector2();
+    var panStart = new THREE.Vector2();
+    var panEnd = new THREE.Vector2();
+    var panDelta = new THREE.Vector2();
+    var zoomStart = new THREE.Vector2();
+    var zoomEnd = new THREE.Vector2();
+    var zoomDelta = new THREE.Vector2();
+
+    this.getDistance = function() {
+        return scope.object.position.distanceTo(scope.target);
+    };
+
+    this.update = function() {
+        var offset = new THREE.Vector3();
+        var quat = new THREE.Quaternion().setFromUnitVectors(scope.object.up, new THREE.Vector3(0,1,0));
+        var quatInverse = quat.clone().invert();
+        return function() {
+            offset.copy(scope.object.position).sub(scope.target);
+            offset.applyQuaternion(quat);
+            spherical.setFromVector3(offset);
+            spherical.theta += sphericalDelta.theta;
+            spherical.phi += sphericalDelta.phi;
+            spherical.phi = Math.max(scope.minPolarAngle, Math.min(scope.maxPolarAngle, spherical.phi));
+            spherical.makeSafe();
+            spherical.radius *= scale;
+            spherical.radius = Math.max(scope.minDistance, Math.min(scope.maxDistance, spherical.radius));
+            scope.target.add(panOffset);
+            offset.setFromSpherical(spherical);
+            offset.applyQuaternion(quatInverse);
+            scope.object.position.copy(scope.target).add(offset);
+            scope.object.lookAt(scope.target);
+            if (scope.enableDamping) {
+                sphericalDelta.theta *= (1 - scope.dampingFactor);
+                sphericalDelta.phi *= (1 - scope.dampingFactor);
+                panOffset.multiplyScalar(1 - scope.dampingFactor);
+            } else {
+                sphericalDelta.set(0,0,0);
+                panOffset.set(0,0,0);
+            }
+            scale = 1;
+            return false;
+        };
+    }();
+
+    function onMouseDown(event) {
+        if (!scope.enabled) return;
+        event.preventDefault();
+        if (event.button === 0) {
+            if (!scope.enableRotate) return;
+            rotateStart.set(event.clientX, event.clientY);
+            state = STATE.ROTATE;
+        } else if (event.button === 2) {
+            if (!scope.enablePan) return;
+            panStart.set(event.clientX, event.clientY);
+            state = STATE.PAN;
+        }
+        document.addEventListener('mousemove', onMouseMove, false);
+        document.addEventListener('mouseup', onMouseUp, false);
+    }
+
+    function onMouseMove(event) {
+        if (!scope.enabled) return;
+        if (state === STATE.ROTATE) {
+            rotateEnd.set(event.clientX, event.clientY);
+            rotateDelta.subVectors(rotateEnd, rotateStart).multiplyScalar(scope.rotateSpeed);
+            sphericalDelta.theta -= 2 * Math.PI * rotateDelta.x / domElement.clientHeight;
+            sphericalDelta.phi -= 2 * Math.PI * rotateDelta.y / domElement.clientHeight;
+            rotateStart.copy(rotateEnd);
+        } else if (state === STATE.PAN) {
+            panEnd.set(event.clientX, event.clientY);
+            panDelta.subVectors(panEnd, panStart).multiplyScalar(scope.panSpeed);
+            var targetDistance = scope.object.position.distanceTo(scope.target);
+            var fov = scope.object.fov || 50;
+            var panDist = 2 * targetDistance * Math.tan(fov * Math.PI / 360) / domElement.clientHeight;
+            var mouseChange = new THREE.Vector3(-panDelta.x * panDist, panDelta.y * panDist, 0);
+            scope.object.updateMatrixWorld();
+            var cameraUp = new THREE.Vector3();
+            cameraUp.setFromMatrixColumn(scope.object.matrixWorld, 1);
+            var cameraRight = new THREE.Vector3();
+            cameraRight.setFromMatrixColumn(scope.object.matrixWorld, 0);
+            mouseChange.applyQuaternion(scope.object.quaternion);
+            panOffset.add(mouseChange);
+            panStart.copy(panEnd);
+        }
+    }
+
+    function onMouseUp() {
+        if (!scope.enabled) return;
+        document.removeEventListener('mousemove', onMouseMove, false);
+        document.removeEventListener('mouseup', onMouseUp, false);
+        state = STATE.NONE;
+    }
+
+    function onWheel(event) {
+        if (!scope.enabled || !scope.enableZoom) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.deltaY < 0) {
+            scale /= Math.pow(0.95, scope.zoomSpeed);
+        } else if (event.deltaY > 0) {
+            scale *= Math.pow(0.95, scope.zoomSpeed);
+        }
+    }
+
+    function onKeyDown(event) {
+        if (!scope.enabled || !scope.enablePan) return;
+        switch (event.keyCode) {
+            case 87: // w
+            case 38: // up
+                panOffset.z = -scope.keyPanSpeed;
+                break;
+            case 83: // s
+            case 40: // down
+                panOffset.z = scope.keyPanSpeed;
+                break;
+            case 65: // a
+            case 37: // left
+                panOffset.x = -scope.keyPanSpeed;
+                break;
+            case 68: // d
+            case 39: // right
+                panOffset.x = scope.keyPanSpeed;
+                break;
+            case 32: // space
+                panOffset.y = scope.keyPanSpeed;
+                break;
+            case 16: // shift
+                panOffset.y = -scope.keyPanSpeed;
+                break;
+        }
+    }
+
+    this.dispose = function() {
+        domElement.removeEventListener('mousedown', onMouseDown, false);
+        domElement.removeEventListener('wheel', onWheel, false);
+        document.removeEventListener('keydown', onKeyDown, false);
+    };
+
+    domElement.addEventListener('mousedown', onMouseDown, false);
+    domElement.addEventListener('wheel', onWheel, false, { passive: false });
+    document.addEventListener('keydown', onKeyDown, false);
+};
+</script>
+<script>
+(function() {
+    // Game settings
+    const BLOCK_SIZE = 1; // 1 unit per block in 3D
+
+    // Block types with colors (6 matching the original)
+    const BLOCK_TYPES = [
+        { name: 'Grass', color: 0x228B22 },
+        { name: 'Dirt', color: 0x8B4513 },
+        { name: 'Stone', color: 0x808080 },
+        { name: 'Wood', color: 0x8B4513 },
+        { name: 'Sand', color: 0xF4A460 },
+        { name: 'Brick', color: 0xB22222 },
+        { name: 'Water', color: 0x1E90FF },
+        { name: 'Sheep', color: 0xFFFFFF }
+    ];
+
+    let selectedBlock = 0;
+    let blocks = {}; // key: "x,y,z" -> mesh
+    let blockCount = 0;
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB);
+    scene.fog = new THREE.Fog(0x87CEEB, 50, 150);
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(10, 10, 10);
+    camera.lookAt(0, 0, 0);
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.getElementById('game-container').prepend(renderer.domElement);
+    renderer.domElement.id = 'three-canvas';
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(10, 20, 5);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.camera.far = 50;
+    directionalLight.shadow.camera.left = -20;
+    directionalLight.shadow.camera.right = 20;
+    directionalLight.shadow.camera.top = 20;
+    directionalLight.shadow.camera.bottom = -20;
+    scene.add(directionalLight);
+
+    // Ground plane
+    const groundGeometry = new THREE.PlaneGeometry(200, 200);
+    const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x90EE90, side: THREE.DoubleSide });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.5;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Grid helper
+    const gridHelper = new THREE.GridHelper(200, 200, 0x000000, 0x000000);
+    gridHelper.position.y = -0.49;
+    gridHelper.material.opacity = 0.1;
+    gridHelper.material.transparent = true;
+    scene.add(gridHelper);
+
+    // OrbitControls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 3;
+    controls.maxDistance = 100;
+    controls.maxPolarAngle = Math.PI / 2.1; // prevent going under ground
+    controls.target.set(0, 0, 0);
+
+    // Raycaster for block interaction
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    // Block geometry (shared)
+    const blockGeometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+
+    // Create block mesh
+    function createBlockMesh(x, y, z, typeIndex) {
+        const blockType = BLOCK_TYPES[typeIndex];
+        const material = new THREE.MeshStandardMaterial({ color: blockType.color });
+        const mesh = new THREE.Mesh(blockGeometry, material);
+        mesh.position.set(x, y, z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData = { blockType: typeIndex, gridX: x, gridY: y, gridZ: z };
+        scene.add(mesh);
+        return mesh;
+    }
+
+    // Get block key
+    function getBlockKey(x, y, z) {
+        return `${x},${y},${z}`;
+    }
+
+    // Place block
+    function placeBlock(x, y, z) {
+        const key = getBlockKey(x, y, z);
+        if (!blocks[key]) {
+            const mesh = createBlockMesh(x, y, z, selectedBlock);
+            blocks[key] = mesh;
+            blockCount++;
+            document.getElementById('block-count').textContent = `Blocks: ${blockCount}`;
+        }
+    }
+
+    // Remove block
+    function removeBlock(x, y, z) {
+        const key = getBlockKey(x, y, z);
+        if (blocks[key]) {
+            scene.remove(blocks[key]);
+            delete blocks[key];
+            blockCount--;
+            document.getElementById('block-count').textContent = `Blocks: ${blockCount}`;
+        }
+    }
+
+    // Mouse interaction
+    function onMouseClick(event) {
+        // Don't interact if clicking UI
+        if (event.target.tagName === 'BUTTON' || event.target.id === 'toolbar' || event.target.parentElement.id === 'toolbar') {
+            return;
+        }
+
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        // First check if we hit an existing block
+        const blockMeshes = Object.values(blocks);
+        const blockIntersects = raycaster.intersectObjects(blockMeshes);
+
+        if (event.button === 0) { // Left click - place block
+            if (blockIntersects.length > 0) {
+                // Place adjacent to the intersected face
+                const intersect = blockIntersects[0];
+                const normal = intersect.face.normal;
+                const mat = new THREE.Matrix4();
+                intersect.object.matrixWorld.extractRotation(mat);
+                const worldNormal = normal.clone().applyMatrix4(mat).round();
+                const newX = Math.round(intersect.object.position.x + worldNormal.x);
+                const newY = Math.round(intersect.object.position.y + worldNormal.y);
+                const newZ = Math.round(intersect.object.position.z + worldNormal.z);
+                placeBlock(newX, newY, newZ);
+            } else {
+                // Place on ground plane
+                const planeIntersects = raycaster.intersectObject(ground);
+                if (planeIntersects.length > 0) {
+                    const point = planeIntersects[0].point;
+                    const x = Math.round(point.x);
+                    const y = 0;
+                    const z = Math.round(point.z);
+                    placeBlock(x, y, z);
+                }
+            }
+        } else if (event.button === 2) { // Right click - remove block
+            if (blockIntersects.length > 0) {
+                const obj = blockIntersects[0].object;
+                const key = getBlockKey(obj.position.x, obj.position.y, obj.position.z);
+                removeBlock(obj.position.x, obj.position.y, obj.position.z);
+            }
+        }
+    }
+
+    // Prevent context menu
+    renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // Mouse down handler (we use mousedown to allow both left and right)
+    renderer.domElement.addEventListener('mousedown', (e) => {
+        // Only act if not dragging (OrbitControls will handle drag)
+        // We'll use a short timeout to detect click vs drag
+        const startX = e.clientX, startY = e.clientY;
+        const onMouseUp = (upEvent) => {
+            renderer.domElement.removeEventListener('mouseup', onMouseUp);
+            // If mouse didn't move much, it's a click
+            if (Math.abs(upEvent.clientX - startX) < 5 && Math.abs(upEvent.clientY - startY) < 5) {
+                onMouseClick(upEvent);
+            }
+        };
+        renderer.domElement.addEventListener('mouseup', onMouseUp);
+    });
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+        switch(e.key) {
+            case '1': case '2': case '3': case '4': case '5': case '6':
+                selectBlock(parseInt(e.key) - 1);
+                break;
+        }
+    });
+
+    // Toolbar
+    function createToolbar() {
+        const toolbar = document.getElementById('toolbar');
+        BLOCK_TYPES.forEach((block, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'block-btn' + (index === 0 ? ' active' : '');
+            btn.style.backgroundColor = '#' + block.color.toString(16).padStart(6, '0');
+            btn.title = block.name;
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectBlock(index);
+            });
+            toolbar.appendChild(btn);
+        });
+    }
+
+    function selectBlock(index) {
+        selectedBlock = index;
+        document.querySelectorAll('.block-btn').forEach((btn, i) => {
+            btn.classList.toggle('active', i === index);
+        });
+    }
+
+    // Close help button
+    document.getElementById('close-help').addEventListener('click', () => {
+        document.getElementById('help').style.display = 'none';
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Animation loop
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // Initialize
+    createToolbar();
+
+    // Helper to add block with specific type (bypass selectedBlock)
+    function addBlock(x, y, z, typeIdx) {
+        const key = getBlockKey(x, y, z);
+        if (!blocks[key]) {
+            const mesh = createBlockMesh(x, y, z, typeIdx);
+            blocks[key] = mesh;
+            blockCount++;
+        }
+    }
+
+    // Mode handling
+    const modeSelect = document.getElementById('mode-select');
+    modeSelect.addEventListener('change', () => {
+        const mode = modeSelect.value;
+        // Clear current world
+        Object.values(blocks).forEach(mesh => scene.remove(mesh));
+        blocks = {};
+        blockCount = 0;
+        document.getElementById('block-count').textContent = `Blocks: ${blockCount}`;
+        if (mode === 'preset') {
+            loadPresetWorld();
+        } else {
+            addInitialBlocks();
+        }
+    });
+
+    // Save/Load UI
+    const saveBtn = document.createElement('button');
+    saveBtn.id = 'save-btn';
+    saveBtn.textContent = 'Save';
+    saveBtn.style.marginLeft = '10px';
+    const loadBtn = document.createElement('button');
+    loadBtn.id = 'load-btn';
+    loadBtn.textContent = 'Load';
+    loadBtn.style.marginLeft = '5px';
+    const uiDiv = document.getElementById('ui');
+    uiDiv.appendChild(saveBtn);
+    uiDiv.appendChild(loadBtn);
+
+    function saveGame() {
+        const state = Object.entries(blocks).map(([key, mesh]) => {
+            const [x, y, z] = key.split(',').map(Number);
+            return { x, y, z, type: mesh.userData.blockType };
+        });
+        localStorage.setItem('blockWorldSave', JSON.stringify(state));
+        alert('Game saved!');
+    }
+
+    function loadGame() {
+        const data = localStorage.getItem('blockWorldSave');
+        if (!data) { alert('No saved game found.'); return; }
+        // Clear current world
+        Object.values(blocks).forEach(m => scene.remove(m));
+        blocks = {};
+        blockCount = 0;
+        const state = JSON.parse(data);
+        state.forEach(item => {
+            addBlock(item.x, item.y, item.z, item.type);
+        });
+        document.getElementById('block-count').textContent = `Blocks: ${blockCount}`;
+        alert('Game loaded!');
+    }
+
+    saveBtn.addEventListener('click', saveGame);
+    loadBtn.addEventListener('click', loadGame);
+
+    function addInitialBlocks() {
+        // Empty world – no blocks initially
+        document.getElementById('block-count').textContent = `Blocks: ${blockCount}`;
+    }
+
+    function loadPresetWorld() {
+        // Simple house (wood walls) 2x2x2 at (0,0,0)
+        for (let x = 0; x < 2; x++) {
+            for (let y = 0; y < 2; y++) {
+                for (let z = 0; z < 2; z++) {
+                    if (x === 0 && z === 0 && y === 0) continue; // interior
+                    addBlock(x, y, z, 3); // Wood
+                }
+            }
+        }
+        // Pond (water) 3x3 area at (3,0,0)
+        for (let x = 3; x < 6; x++) {
+            for (let z = 0; z < 3; z++) {
+                addBlock(x, 0, z, 6); // Water (type index 6)
+            }
+        }
+        // Tree: trunk (wood) and canopy (grass as leaves) at (6,0,4)
+        for (let y = 0; y < 4; y++) {
+            addBlock(6, y, 4, 3); // Wood trunk
+        }
+        // Canopy (using grass type index 0)
+        const leafY = 4;
+        for (let dx = -2; dx <= 2; dx++) {
+            for (let dz = -2; dz <= 2; dz++) {
+                if (Math.abs(dx) + Math.abs(dz) <= 2) {
+                    addBlock(6 + dx, leafY, 4 + dz, 0);
+                }
+            }
+        }
+        // Sheep (white) at (5,1,2)
+        addBlock(5, 1, 2, 7); // Sheep type index 7
+    }
+
+    // Load saved game state if any
+    const savedState = JSON.parse(localStorage.getItem('blockWorldSave') || 'null');
+    if (savedState && Array.isArray(savedState)) {
+        savedState.forEach(item => {
+            addBlock(item.x, item.y, item.z, item.type);
+        });
+    } else {
+        // Initialize default (preset world)
+        modeSelect.value = 'preset';
+        loadPresetWorld();
+    }
+
+    // Reward timer setup
+    const urlParams = new URLSearchParams(window.location.search);
+    const rewardMinutes = parseInt(urlParams.get('rewardMinutes') || '0', 10);
+    let gameLocked = false;
+    if (rewardMinutes > 0) {
+        // Create a small timer HUD in the top-right corner
+        const timerHud = document.createElement('div');
+        timerHud.id = 'reward-timer-hud';
+        timerHud.style.position = 'fixed';
+        timerHud.style.top = '10px';
+        timerHud.style.right = '10px';
+        timerHud.style.background = 'rgba(0,0,0,0.7)';
+        timerHud.style.color = 'white';
+        timerHud.style.padding = '8px 12px';
+        timerHud.style.borderRadius = '8px';
+        timerHud.style.fontSize = '18px';
+        timerHud.style.zIndex = 2000;
+        timerHud.style.pointerEvents = 'none';
+        timerHud.innerHTML = `⏱️ ${rewardMinutes}:00`;
+        document.body.appendChild(timerHud);
+
+        let remainingSec = rewardMinutes * 60;
+        const intervalId = setInterval(() => {
+            remainingSec--;
+            const mins = Math.floor(remainingSec / 60);
+            const secs = remainingSec % 60;
+            timerHud.innerHTML = `⏱️ ${mins}:${secs.toString().padStart(2, '0')}`;
+            if (remainingSec <= 0) {
+                clearInterval(intervalId);
+                gameLocked = true;
+                if (timerHud.parentNode) timerHud.parentNode.removeChild(timerHud);
+                alert('Time is up! Returning to the learning game.');
+                // Save current state before leaving
+                if (typeof saveGame === 'function') saveGame();
+                // Redirect back to main game
+                window.location.href = 'index.html';
+            }
+        }, 1000);
+
+        // Prevent block interactions when locked
+        const originalPlaceBlock = placeBlock;
+        placeBlock = function(x, y, z) {
+            if (gameLocked) return;
+            originalPlaceBlock(x, y, z);
+        };
+        const originalRemoveBlock = removeBlock;
+        removeBlock = function(x, y, z) {
+            if (gameLocked) return;
+            originalRemoveBlock(x, y, z);
+        };
+    }
+
+    // Save state before unload
+    window.addEventListener('beforeunload', () => {
+        // Serialize blocks
+        const state = Object.entries(blocks).map(([key, mesh]) => {
+            const [x, y, z] = key.split(',').map(Number);
+            return { x, y, z, type: mesh.userData.blockType };
+        });
+        localStorage.setItem('blockWorldSave', JSON.stringify(state));
+    });
+
+    // Start animation
+    animate();
+
+    console.log('🎮 Ameliia\'s 3D Block World loaded! Built with Three.js for Ameliia Kostromin!');
+})();
+</script>
+</body>
+</html>
