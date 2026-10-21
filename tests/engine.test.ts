@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, addTime, applyAnswer, applyQuiz, buildTest, newState, nextProblem, nextSkill, totalTime } from '../src/engine/game';
+import { ALL_SKILLS, addPaintStars, addTime, applyAnswer, applyQuiz, buildTest, chooseNextPainting, newState, nextProblem, nextSkill, totalTime } from '../src/engine/game';
 import { makeFreshProblem, makeProblem } from '../src/engine/index';
 import { buildQuiz } from '../src/engine/quiz';
 import { buildTheory } from '../src/engine/theory';
@@ -347,6 +347,22 @@ describe('game flow', () => {
         expect(test1.filter(p => p.topic === 'division').length).toBe(6);
         expect(test1.filter(p => p.topic === 'science').length).toBe(3);
         expect(test1.filter(p => p.topic === 'estimation').length).toBe(3);
+    });
+    test('a finished picture waits for her choice and keeps the extra stars', () => {
+        const parts = () => 20;
+        let s = newState();
+        let r = addPaintStars(s, 38, parts, 2);
+        expect(r.finished).toBe(null);
+        r = addPaintStars(r.state, 3, parts, 2);
+        expect(r.finished).toBe(0);
+        expect(r.state.painting.choosing).toBe(true);
+        expect(r.state.painting.done).toEqual([0]);
+        expect(r.state.painting.filled).toBe(1);
+        // stars earned while choosing are kept, nothing else finishes
+        r = addPaintStars(r.state, 5, parts, 2);
+        expect(r.finished).toBe(null);
+        s = chooseNextPainting(r.state, 4, parts, 2);
+        expect(s.painting).toEqual({ index: 4, filled: 6, done: [0], choosing: false });
     });
     test('stars: 3 on the first try, 2 with a hint, 1 after learning', () => {
         const p = makeProblem('round', makeRng(1));

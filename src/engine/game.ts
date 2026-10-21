@@ -28,10 +28,12 @@ export type GameState = {
     recent: string[];                     // ids of recent tasks, never repeated
     history: HistoryItem[];
     tests: TestResult[];
-    painting: { index: number; filled: number; done: number[] };
+    // filled counts stars; choosing = a picture is finished and she picks the next one
+    painting: { index: number; filled: number; done: number[]; choosing: boolean };
     chaptersRead: number[];
     lastLoveAt: number;
     testDate: string;                     // YYYY-MM-DD of the next school test, shown as a countdown
+    introSeen: boolean;                   // the welcome tour on a new device
 };
 
 export const ALL_SKILLS = Object.keys(TOPIC_OF) as SkillId[];
@@ -45,9 +47,10 @@ export const newState = (): GameState => ({
     daily: {},
     skills: Object.fromEntries(ALL_SKILLS.map(s => [s, emptyStat()])) as Record<SkillId, SkillStat>,
     recent: [], history: [], tests: [],
-    painting: { index: 0, filled: 0, done: [] },
+    painting: { index: 0, filled: 0, done: [], choosing: false },
     chaptersRead: [], lastLoveAt: 0,
     testDate: '2026-10-23',
+    introSeen: false,
 });
 
 // fills in anything a stored state from an older build is missing
@@ -219,3 +222,23 @@ export const grade = (score: number, total: number) => {
 };
 
 export const skillsOf = (topic: Topic) => SKILLS_OF[topic];
+
+// Stars paint the current picture (perPart stars per part). A finished picture waits for her to choose the next one;
+// stars earned while she chooses are kept for the next picture.
+export const addPaintStars = (prev: GameState, stars: number, parts: (index: number) => number, perPart: number): { state: GameState; finished: number | null } => {
+    if (!stars) return { state: prev, finished: null };
+    const p = { ...prev.painting, done: [...prev.painting.done], filled: prev.painting.filled + stars };
+    let finished: number | null = null;
+    if (!p.choosing && p.filled >= parts(p.index) * perPart) {
+        p.filled -= parts(p.index) * perPart;
+        p.done.push(p.index);
+        p.choosing = true;
+        finished = p.index;
+    }
+    return { state: { ...prev, painting: p }, finished };
+};
+
+export const chooseNextPainting = (prev: GameState, index: number, parts: (index: number) => number, perPart: number): GameState => {
+    const filled = Math.min(prev.painting.filled, parts(index) * perPart - 1);
+    return { ...prev, painting: { ...prev.painting, index, filled, choosing: false } };
+};
