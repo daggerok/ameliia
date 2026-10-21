@@ -4,12 +4,12 @@ Tp play Math for Ameliia [open this link](https://daggerok.github.io/ameliia/)
 
 ## Versions
 
-- latest: `src/` -> https://daggerok.github.io/ameliia/
-- older ones: `versions/v0.N/` -> https://daggerok.github.io/ameliia/v0.N/ (v0.1 is the oldest)
-- list of all of them: https://daggerok.github.io/ameliia/v/
+- latest: `src/` -> https://daggerok.github.io/ameliia/ and also by its own name from `<meta name="version">` in `src/index.html`, now https://daggerok.github.io/ameliia/v20260620-all-in-one/
+- backups: `backups/vYYYYMMDD-suffix/` -> https://daggerok.github.io/ameliia/vYYYYMMDD-suffix/, the date is when that version was made, the suffix says what it is
+- list of all of them: https://daggerok.github.io/ameliia/backups/ (dates come from folder names, titles from each page's `<title>`)
 
 `bun run build` builds every version into `dist/` (`bun run build-github-pages` does the same with `/ameliia/` as public url)
 
-To archive the current latest: copy `src/` into the next free `versions/v0.N/`, add its label to `versions/versions.json` and put the new version into `src/`
+To archive the current latest: copy `src/` into `backups/<its meta version>/`, then put the new version into `src/` with a new `<meta name="version" content="vYYYYMMDD-suffix">`
 
-Run one old version locally: `bunx parcel versions/v0.1/index.html`
+Run one backup locally: `bunx parcel backups/v20230618-addition/index.html`
