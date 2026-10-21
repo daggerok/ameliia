@@ -2,8 +2,8 @@
 /// <reference types="node" />
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 
-// Builds the latest version (src/) into dist/ and dist/v<latest date>/, every backups/vYYYYMMDD[-suffix]
-// into dist/vYYYYMMDD[-suffix]/ and a list of all of them into dist/backups/
+// Builds the latest version (src/) into dist/ and dist/<its meta version>/, every backups/vYYYYMMDD-suffix
+// into dist/vYYYYMMDD-suffix/ (suffix is one lowercase word) and a list of all of them into dist/backups/
 // Usage: bun scripts/build.ts [public-url], e.g. /ameliia/ for GitHub Pages
 const base = (process.argv[2] ?? '/').replace(/\/?$/, '/');
 
@@ -21,7 +21,7 @@ const parcel = (entry: string, distDir: string, publicUrl: string) => {
 const read = (html: string) => readFileSync(html, 'utf8');
 const titleOf = (html: string) => read(html).match(/<title>([^<]*)<\/title>/)?.[1]?.trim() ?? '';
 const dateOf = (v: string) => v.replace(/^v(\d{4})(\d{2})(\d{2}).*$/, '$1-$2-$3');
-const VERSION = /^v\d{8}-[a-z0-9-]+$/;
+const VERSION = /^v\d{8}-[a-z0-9]+$/;
 
 const folders = readdirSync('backups', { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name);
 const wrong = folders.filter(v => !VERSION.test(v));
