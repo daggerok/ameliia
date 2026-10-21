@@ -381,7 +381,7 @@ const makeCheckProblem = (rng: Rng): Problem => {
         ]);
         return {
             id: `div-check:z:${dividend}:${d}`, skill: 'div-check', topic: 'division',
-            prompt: L(`Pip the owl wrote ${fmt(dividend, 'en')} ÷ ${d} = ${fmt(wrongQ, 'en')}. Is Pip right?`, `Сова Пип написала ${fmt(dividend, 'ru')} ÷ ${d} = ${fmt(wrongQ, 'ru')}. Пип права?`),
+            prompt: L(`Pip the capybara wrote ${fmt(dividend, 'en')} ÷ ${d} = ${fmt(wrongQ, 'en')}. Is Pip right?`, `Капибара Пип написала ${fmt(dividend, 'ru')} ÷ ${d} = ${fmt(wrongQ, 'ru')}. Пип права?`),
             answer,
             steps: [L(`Check: ${fmt(wrongQ, 'en')} × ${d} = ${fmt(wrongQ * d, 'en')}, not ${fmt(dividend, 'en')}. Something is wrong!`, `Проверим: ${fmt(wrongQ, 'ru')} × ${d} = ${fmt(wrongQ * d, 'ru')}, а не ${fmt(dividend, 'ru')}. Что-то не так!`),
                 ...longDivisionText(dividend, d)],

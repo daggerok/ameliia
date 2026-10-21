@@ -4,7 +4,7 @@ Tp play Math for Ameliia [open this link](https://daggerok.github.io/ameliia/)
 
 ## Math Quest (current version, v20261021-quest)
 
-A game for a 4th grader in New Jersey with Lina (a girl in glasses) and Pip the owl, in English and Russian:
+A game for a 4th grader in New Jersey with Lina (a girl in glasses) and Pip the capybara, in English and Russian (daily goal 2 hours):
 
 - learning time is split 50% division, 25% motion and speed, 25% rounding and estimating
 - a wrong answer opens a theory page (with fresh examples and her own task step by step), then a mini quiz; after the quiz comes a new task of the same skill, and the skill returns a few tasks later

@@ -128,7 +128,7 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
         return {
             hook: [
                 L('Zero is a sneaky little digit. It hides in the middle of answers, and many kids forget to write it. Not you!', 'Ноль - хитрая маленькая цифра. Он прячется в середине ответа, и многие дети забывают его написать. Но не ты!'),
-                L('Pip the owl once divided 618 by 3 and got 26. Grandpa Valerik laughed: "But 26 × 3 = 78, not 618!" Pip forgot the zero: the right answer is 206.', 'Сова Пип однажды разделила 618 на 3 и получила 26. Дедушка Валерик рассмеялся: «Но 26 × 3 = 78, а не 618!» Пип забыла ноль: правильный ответ 206.'),
+                L('Pip the capybara once divided 618 by 3 and got 26. Grandpa Valerik laughed: "But 26 × 3 = 78, not 618!" Pip forgot the zero: the right answer is 206.', 'Капибара Пип однажды разделила 618 на 3 и получила 26. Дедушка Валерик рассмеялся: «Но 26 × 3 = 78, а не 618!» Пип забыла ноль: правильный ответ 206.'),
             ],
             sections: [
                 { kind: 'idea', title: T.idea, body: [
@@ -198,7 +198,7 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
         return {
             hook: [
                 L('Grown-ups check their math when it matters: money at the store, distances for a trip. You can check every division in 10 seconds!', 'Взрослые проверяют расчёты, когда это важно: деньги в магазине, расстояние в поездке. Любое деление можно проверить за 10 секунд!'),
-                L('Pip the owl makes funny mistakes. Can you catch them? The secret weapon is multiplication.', 'Сова Пип делает смешные ошибки. Сможешь их поймать? Секретное оружие - умножение.'),
+                L('Pip the capybara makes funny mistakes. Can you catch them? The secret weapon is multiplication.', 'Капибара Пип делает смешные ошибки. Сможешь их поймать? Секретное оружие - умножение.'),
             ],
             sections: [
                 { kind: 'idea', title: T.idea, body: [

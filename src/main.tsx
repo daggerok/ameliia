@@ -462,7 +462,8 @@ export const App: React.FC = () => {
 // ========================================
 const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chaptersOpen: number; onPlay: () => void; onTest: () => void; onStory: () => void; onGallery: () => void; onStats: () => void }> = ({ g, t, lang, greeting, chaptersOpen, onPlay, onTest, onStory, onGallery, onStats }) => {
     const mins = Math.floor((g.daily[today()] ?? 0) / 60);
-    const goal = 20;
+    // the parents' daily goal: up to 2 hours of learning
+    const goal = 120;
     const p = PAINTINGS[g.painting.index];
     return (
         <div className="space-y-4 animate-slide-up" data-testid="home">

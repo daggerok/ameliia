@@ -1,6 +1,6 @@
 import { type L10n, type Rng, L, pick } from './core';
 
-// What Lina (the guide) and Pip (the owl) say. Warm, short, never scary.
+// What Lina (the guide) and Pip (the capybara) say. Warm, short, never scary.
 
 export const LOVE: L10n[] = [
     L('Mom and Dad love you so much, Ameliia! ❤️', 'Мама и папа очень-очень тебя любят, Амелия! ❤️'),

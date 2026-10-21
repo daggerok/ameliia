@@ -300,8 +300,8 @@ const makeTrip = (rng: Rng): Problem => {
         ]);
         return {
             id: `speed-trip:trap:${key}:${unit}`, skill: 'speed-trip', topic: 'science',
-            prompt: L(`${intro.en}\n${lines.map(x => x.en).join('\n')}\nPip the owl adds the speeds and divides by ${n}: (${legs.map(l => l.s).join(' + ')}) ÷ ${n} = ${fmt(mean, 'en')}. Is that the average speed of the whole trip?`,
-                `${intro.ru}\n${lines.map(x => x.ru).join('\n')}\nСова Пип складывает скорости и делит на ${n}: (${legs.map(l => l.s).join(' + ')}) ÷ ${n} = ${fmt(mean, 'ru')}. Это средняя скорость всей поездки?`),
+            prompt: L(`${intro.en}\n${lines.map(x => x.en).join('\n')}\nPip the capybara adds the speeds and divides by ${n}: (${legs.map(l => l.s).join(' + ')}) ÷ ${n} = ${fmt(mean, 'en')}. Is that the average speed of the whole trip?`,
+                `${intro.ru}\n${lines.map(x => x.ru).join('\n')}\nКапибара Пип складывает скорости и делит на ${n}: (${legs.map(l => l.s).join(' + ')}) ÷ ${n} = ${fmt(mean, 'ru')}. Это средняя скорость всей поездки?`),
             answer,
             steps: [L('The parts take different amounts of time, so we cannot just average the speeds.', 'Части длятся разное время, поэтому скорости просто усреднять нельзя.'),
                 ...legs.map((l, i) => L(`Part ${i + 1}: ${fmt(l.s, 'en')} × ${l.t} = ${fmt(l.d, 'en')}.`, `Часть ${i + 1}: ${fmt(l.s, 'ru')} × ${l.t} = ${fmt(l.d, 'ru')}.`)),
