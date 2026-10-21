@@ -79,9 +79,27 @@ const STEP = (i: number) => L(`Step ${i}`, `Шаг ${i}`);
 const makeCompare = (rng: Rng): Problem => {
     const c = pick(rng, COMPARE);
     const b = int(rng, c.bMin, c.bMax), k = int(rng, c.kMin, c.kMax), big = b * k, diff = big - b;
-    const style = pick(rng, ['two', 'two', 'times', 'divide', 'choose', 'choose-diff'] as const);
+    const style = pick(rng, ['two', 'two', 'times', 'divide', 'choose', 'choose-diff', 'model'] as const);
     const id = `compare:${style}:${COMPARE.indexOf(c)}:${b}:${k}`;
     const timesWord = L('times as much / as many: multiply', 'в … раз больше: умножаем');
+    // which bar diagram fits: the homework asks to draw one before writing the equation
+    if (style === 'model') {
+        const bars = (n: number, v: number) => L(`${n} ${n === 1 ? 'box' : 'boxes'} of ${v}`, `${n} ${ruPlural(n, 'полоска', 'полоски', 'полосок')} по ${v}`);
+        const two = (big: L10n) => L(`${c.small.en}: ${bars(1, b).en}; ${c.big.en}: ${big.en}`, `${c.small.ru}: ${bars(1, b).ru}; ${c.big.ru}: ${big.ru}`);
+        const answer: Answer = choice(rng, two(bars(k, b)), [
+            two(bars(1, k)), two(L(`${bars(1, b).en} and ${bars(1, k).en}`, `${bars(1, b).ru} и ${bars(1, k).ru}`)), two(bars(k, 1)),
+        ]);
+        return {
+            id, skill: 'compare', topic: 'estimation',
+            prompt: L(`${c.setup(b, k).en} Which bar diagram shows this?`, `${c.setup(b, k).ru} Какая схема из полосок это показывает?`),
+            answer,
+            steps: [L(`"${k} times as much" means ${k} equal boxes, each as big as ${b}.`, `«В ${k} раз больше» - это ${k} одинаковых полосок, каждая как ${b}.`),
+                L(`So ${c.letterBig} = ${b} × ${k} = ${big}.`, `Значит ${c.letterBig} = ${b} × ${k} = ${big}.`)],
+            hint: L(`The smaller amount is one box of ${b}. How many of the same boxes make the bigger amount?`, `Меньшее - одна полоска ${b}. Сколько таких же полосок в большем?`),
+            visual: barsFor(c, b, k, ['big']),
+            data: { b, k, big, style },
+        };
+    }
     if (style === 'two') {
         const lines: FillLine[] = [
             { label: L(`${STEP(1).en}: ${c.letterBig}, the bigger amount`, `${STEP(1).ru}: ${c.letterBig}, большее количество`), parts: [`${c.letterBig} = `, B(0), ' × ', B(1), ' = ', B(2)] },
@@ -184,7 +202,7 @@ const makeWordSteps = (rng: Rng): Problem => {
     let p1 = int(rng, s.price[0], s.price[1]), p2 = int(rng, s.price[0], s.price[1]);
     while (p2 === p1) p2 = int(rng, s.price[0], s.price[1]);
     const cost1 = c1 * p1, cost2 = c2 * p2;
-    const style = pick(rng, ['one', 'one', 'both', 'more', 'need', 'reason'] as const);
+    const style = pick(rng, ['one', 'one', 'both', 'more', 'need', 'reason', 'like', 'meaning', 'diagram', 'blocks'] as const);
     const id = `word-steps:${style}:${SHOPS.indexOf(s)}:${c1}:${p1}:${c2}:${p2}`;
     const [x1, x2] = s.items;
     const setup = L(`${s.place.en} ordered ${fmt(c1, 'en')} ${x1.en} and ${fmt(c2, 'en')} ${x2.en}. The ${x1.name[0]} cost $${p1} ${x1.per[0]}, the ${x2.name[0]} cost $${p2} ${x2.per[0]}.`,
@@ -264,6 +282,80 @@ const makeWordSteps = (rng: Rng): Problem => {
             answer,
             steps: [match, L(`The ${x2.name[0]} are extra information. Cost of ${x1.name[0]}: ${fmt(c1, 'en')} × ${p1} = ${fmt(cost1, 'en')}.`, `${cap(x2.name[1])} - лишние данные. Стоимость: ${fmt(c1, 'ru')} × ${p1} = ${fmt(cost1, 'ru')}.`)],
             hint: L('Underline the question. Which numbers talk about the same thing as the question?', 'Подчеркни вопрос. Какие числа говорят о том же, о чём вопрос?'),
+            data: { c1, p1, c2, p2, cost1, style },
+        };
+    }
+    const ask = L(`How much did the store spend on ${x1.name[0]}?`, `Сколько магазин потратил на ${x1.name[1]}?`);
+    const solve = L(`c = ${fmt(c1, 'en')} × ${p1} = ${fmt(cost1, 'en')}. The store spent $${fmt(cost1, 'en')}.`, `c = ${fmt(c1, 'ru')} × ${p1} = ${fmt(cost1, 'ru')}. Магазин потратил $${fmt(cost1, 'ru')}.`);
+    // "is this problem like other problems you have solved?": the plan, not the number
+    if (style === 'like') {
+        const answer: Answer = choice(rng, L(`Yes: how many ${x1.name[0]} × the price of one, like 6 × 182. The ${x2.name[0]} are extra information`, `Да: количество (${x1.name[1]}) × цена одного, как 6 × 182. ${cap(x2.name[1])} - лишние данные`), [
+            L('Yes: add all four numbers', 'Да: сложить все четыре числа'),
+            L(`Yes: how many ${x1.name[0]} + the price of one`, `Да: количество (${x1.name[1]}) + цена одного`),
+            L('No: it needs all four numbers multiplied together', 'Нет: нужно перемножить все четыре числа'),
+        ]);
+        return {
+            id, skill: 'word-steps', topic: 'estimation',
+            prompt: L(`${setup.en} ${ask.en} Is this problem like other problems you have solved? Which plan is right?`, `${setup.ru} ${ask.ru} Похожа ли задача на те, что ты уже решала? Какой план верный?`),
+            answer,
+            steps: [L(`It is a "how many × price of one" problem: multiply a big number by a one-digit number, like 6 × 182.`, 'Это задача «количество × цена одного»: умножаем большое число на однозначное, как 6 × 182.'),
+                L(`The question is only about ${x1.name[0]}, so the ${x2.name[0]} are extra.`, `Вопрос только про ${x1.name[1]}, поэтому ${x2.name[1]} - лишние.`), solve],
+            hint: L('We know how many and the price of one. Which operation joins equal groups?', 'Мы знаем количество и цену одного. Какое действие соединяет равные группы?'),
+            data: { c1, p1, c2, p2, cost1, style },
+        };
+    }
+    // what each number means: labels first, then the equation
+    if (style === 'meaning') {
+        const labels = [
+            L(`how many ${x1.en} were ordered`, `сколько заказали (${x1.name[1]})`),
+            L(`the price of the ${x1.name[0]} for ${x1.per[0]}`, `цена ${x1.per[1]} (${x1.name[1]})`),
+            L(`how many ${x2.en} were ordered`, `сколько заказали (${x2.name[1]})`),
+            L(`the price of the ${x2.name[0]} for ${x2.per[0]}`, `цена ${x2.per[1]} (${x2.name[1]})`),
+        ];
+        const which = int(rng, 0, 2);
+        const shown = [L(fmt(c1, 'en'), fmt(c1, 'ru')), L(`$${p1}`, `$${p1}`), L(fmt(c2, 'en'), fmt(c2, 'ru'))][which];
+        const answer: Answer = choice(rng, labels[which], labels.filter((_, i) => i !== which));
+        return {
+            id, skill: 'word-steps', topic: 'estimation',
+            prompt: L(`${setup.en} ${ask.en} What does ${shown.en} mean?`, `${setup.ru} ${ask.ru} Что означает ${shown.ru}?`),
+            answer,
+            steps: [match, L(`Only the ${x1.name[0]} numbers are needed: c = ${fmt(c1, 'en')} × ${p1}.`, `Нужны только числа про ${x1.name[1]}: c = ${fmt(c1, 'ru')} × ${p1}.`), solve],
+            hint: L(`Find ${shown.en} in the text. Which words are right next to it?`, `Найди ${shown.ru} в тексте. Какие слова стоят рядом?`),
+            data: { c1, p1, c2, p2, cost1, style, which },
+        };
+    }
+    // which bar diagram fits: equal parts make a whole, so multiply
+    if (style === 'diagram') {
+        const answer: Answer = choice(rng, L(`${p1} equal parts of ${fmt(c1, 'en')}, the whole is c: multiply`, `${p1} равных частей по ${fmt(c1, 'ru')}, целое - c: умножаем`), [
+            L(`One part ${fmt(c1, 'en')} and one part ${p1} side by side: add`, `Одна часть ${fmt(c1, 'ru')} и одна часть ${p1} рядом: складываем`),
+            L(`${p1} equal parts of ${fmt(c2, 'en')}, the whole is c: multiply`, `${p1} равных частей по ${fmt(c2, 'ru')}, целое - c: умножаем`),
+            L(`${fmt(c1, 'en')} split into ${p1} equal parts: divide`, `${fmt(c1, 'ru')} разделить на ${p1} равных частей: делим`),
+        ]);
+        return {
+            id, skill: 'word-steps', topic: 'estimation',
+            prompt: L(`${setup.en} ${ask.en} Which bar diagram fits, and which operation?`, `${setup.ru} ${ask.ru} Какая схема подходит и какое действие?`),
+            answer,
+            steps: [L(`${fmt(c1, 'en')} boxes of $${p1} are too many to draw, so draw it the other way: ${p1} equal parts of ${fmt(c1, 'en')}. The answer is the same.`, `${fmt(c1, 'ru')} полосок по $${p1} не нарисуешь, поэтому рисуем наоборот: ${p1} равных частей по ${fmt(c1, 'ru')}. Ответ тот же.`),
+                L('Equal parts that make a whole: multiply.', 'Равные части складываются в целое: умножаем.'), solve],
+            hint: L(`Use the ${x1.name[0]} numbers only. Equal parts or two different parts?`, `Бери только числа про ${x1.name[1]}. Равные части или две разные?`),
+            visual: { kind: 'bars', rows: [{ label: L(cap(x1.name[0]), cap(x1.name[1])), boxes: p1, value: fmt(c1, 'en') }], braces: [{ row: 0, label: L(`c = ${p1} × ${fmt(c1, 'en')}`, `c = ${p1} × ${fmt(c1, 'ru')}`) }] },
+            data: { c1, p1, c2, p2, cost1, style },
+        };
+    }
+    // would place-value blocks be a good way: no, 4-digit numbers need a written strategy
+    if (style === 'blocks') {
+        const answer: Answer = choice(rng, L(`No: ${fmt(c1, 'en')} is big, drawing blocks ${p1} times takes too long. Partial products or the standard algorithm is faster`, `Нет: ${fmt(c1, 'ru')} - большое число, рисовать кубики ${p1} раз слишком долго. Частичные произведения или столбик быстрее`), [
+            L('Yes: blocks are always the fastest way', 'Да: кубики - всегда самый быстрый способ'),
+            L(`Yes: there are only ${p1} groups`, `Да: групп всего ${p1}`),
+            L('No: you cannot multiply dollars', 'Нет: доллары нельзя умножать'),
+        ]);
+        return {
+            id, skill: 'word-steps', topic: 'estimation',
+            prompt: L(`${setup.en} ${ask.en} Would place-value blocks be a good way to solve it?`, `${setup.ru} ${ask.ru} Удобно ли решать эту задачу кубиками для разрядов?`),
+            answer,
+            steps: [L(`Blocks for ${fmt(c1, 'en')} drawn ${p1} times: thousands, hundreds, tens and ones, again and again. That takes too long.`, `Кубики для ${fmt(c1, 'ru')}, нарисованные ${p1} раз: тысячи, сотни, десятки и единицы снова и снова. Это слишком долго.`),
+                L('Blocks are good for small numbers. For 4-digit numbers use partial products or the standard algorithm.', 'Кубики хороши для маленьких чисел. Для четырёхзначных - частичные произведения или столбик.'), solve],
+            hint: L(`How many blocks would you draw for ${fmt(c1, 'en')}, ${p1} times?`, `Сколько кубиков пришлось бы нарисовать для ${fmt(c1, 'ru')}, ${p1} раз?`),
             data: { c1, p1, c2, p2, cost1, style },
         };
     }

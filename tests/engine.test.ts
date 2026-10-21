@@ -176,7 +176,8 @@ describe('homework topics: comparison and word problems', () => {
                 expect(p.answer.values).toEqual(want);
             } else if (p.answer.kind === 'choice') {
                 const right = p.answer.options[p.answer.correct].en;
-                expect(right).toBe(p.data.style === 'choose' ? `${right.split(' = ')[0]} = ${b} × ${k}` : `${right.split(' = ')[0]} = ${b * k} − ${b}`);
+                if (p.data.style === 'model') expect(right).toMatch(new RegExp(`: 1 box of ${b}; .*: ${k} boxes of ${b}$`));
+                else expect(right).toBe(p.data.style === 'choose' ? `${right.split(' = ')[0]} = ${b} × ${k}` : `${right.split(' = ')[0]} = ${b * k} − ${b}`);
             }
         });
     });
@@ -197,6 +198,13 @@ describe('homework topics: comparison and word problems', () => {
                 const right = p.answer.options[p.answer.correct].en;
                 if (p.data.style === 'need') expect(right).toBe(`${c1.toLocaleString('en-US')} and $${p1}`);
                 if (p.data.style === 'reason') expect(right).toContain('is about');
+                if (p.data.style === 'like') expect(right).toMatch(/^Yes: how many .* × the price of one/);
+                if (p.data.style === 'meaning') expect(right).toMatch([/^how many .* were ordered$/, /^the price of /, /^how many .* were ordered$/][Number(p.data.which)]);
+                if (p.data.style === 'meaning') expect(p.prompt.en.endsWith(`What does ${[c1.toLocaleString('en-US'), `$${p1}`, c2.toLocaleString('en-US')][Number(p.data.which)]} mean?`)).toBe(true);
+                if (p.data.style === 'diagram') expect(right).toBe(`${p1} equal parts of ${c1.toLocaleString('en-US')}, the whole is c: multiply`);
+                if (p.data.style === 'blocks') expect(right).toMatch(/^No: .* takes too long/);
+                // the solution always ends with the cost of the item the question asks about
+                if (['like', 'meaning', 'diagram', 'blocks'].includes(String(p.data.style))) expect(p.steps.at(-1)!.en).toContain(`$${(c1 * p1).toLocaleString('en-US')}`);
             }
         });
     });
