@@ -9,7 +9,8 @@ export type SkillId =
     | 'div-facts' | 'div-2d' | 'div-3d' | 'div-zero' | 'div-4d' | 'div-rem' | 'div-word' | 'div-check'
     | 'speed-basic' | 'speed-find' | 'speed-trip' | 'speed-units' | 'motion-ideas'
     | 'round' | 'est-sum' | 'est-product' | 'multiply'
-    | 'mult-area' | 'mult-dist' | 'mult-partial' | 'mult-standard';
+    | 'mult-area' | 'mult-dist' | 'mult-partial' | 'mult-standard'
+    | 'compare' | 'word-steps';
 
 export type Answer =
     | { kind: 'number'; value: number }
@@ -59,7 +60,9 @@ export type Visual =
     | { kind: 'area'; a: number; b: number }
     | { kind: 'numberline'; value: number; low: number; high: number; place: number }
     | { kind: 'trip'; legs: Leg[]; unit: Unit }
-    | { kind: 'groups'; total: number; groups: number; icon: string };
+    | { kind: 'groups'; total: number; groups: number; icon: string }
+    // a bar diagram: each row is a label and equal boxes of one value; a brace may name the whole row or the gap between rows
+    | { kind: 'bars'; rows: { label: L10n; boxes: number; value: string }[]; braces: { row: number; label: L10n; from?: number }[] };
 
 export type Unit = 'mi' | 'km';
 
@@ -136,12 +139,13 @@ export const TOPIC_OF: Record<SkillId, Topic> = {
     'speed-basic': 'science', 'speed-find': 'science', 'speed-trip': 'science', 'speed-units': 'science', 'motion-ideas': 'science',
     'round': 'estimation', 'est-sum': 'estimation', 'est-product': 'estimation', 'multiply': 'estimation',
     'mult-area': 'estimation', 'mult-dist': 'estimation', 'mult-partial': 'estimation', 'mult-standard': 'estimation',
+    'compare': 'estimation', 'word-steps': 'estimation',
 };
 
 export const SKILLS_OF: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
     science: ['speed-basic', 'speed-find', 'speed-trip', 'speed-units', 'motion-ideas'],
-    estimation: ['round', 'est-sum', 'est-product', 'multiply', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard'],
+    estimation: ['round', 'est-sum', 'est-product', 'multiply', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard', 'compare', 'word-steps'],
 };
 
 // share of learning time the owner asked for
@@ -169,6 +173,8 @@ export const SKILL_NAME: Record<SkillId, L10n> = {
     'mult-dist': L('Strategy: Distributive Property', 'Способ: распределительное свойство'),
     'mult-partial': L('Strategy: Partial Products', 'Способ: частичные произведения'),
     'mult-standard': L('Strategy: Standard Algorithm', 'Способ: умножение столбиком'),
+    'compare': L('Times as much or how much more', 'Во сколько раз или на сколько'),
+    'word-steps': L('Word problems with extra information', 'Задачи с лишними данными'),
 };
 
 export const TOPIC_NAME: Record<Topic, L10n> = {

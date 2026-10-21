@@ -73,7 +73,8 @@ export const LADDER: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
     science: ['speed-basic', 'speed-find', 'speed-units', 'speed-trip'],
     // the four multiplication strategies come right after rounding: they are on the Friday test
-    estimation: ['round', 'mult-area', 'mult-partial', 'mult-dist', 'mult-standard', 'est-sum', 'est-product', 'multiply'],
+    // comparison and word problems with extra information are the current homework (Topic 3), so they open early too
+    estimation: ['round', 'compare', 'word-steps', 'mult-area', 'mult-partial', 'mult-dist', 'mult-standard', 'est-sum', 'est-product', 'multiply'],
 };
 
 export const unlocked = (state: GameState, topic: Topic): SkillId[] => {
@@ -193,7 +194,7 @@ export const addTime = (prev: GameState, topic: Topic, sec: number, day: string)
 export const TEST_PLAN: SkillId[] = [
     'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word',
     'speed-basic', 'speed-trip', 'motion-ideas',
-    'round', 'est-product', 'multiply',
+    'round', 'compare', 'word-steps',
 ];
 
 export const STRATEGIES: SkillId[] = ['mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];
