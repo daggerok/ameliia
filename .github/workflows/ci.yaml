@@ -19,6 +19,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
       - run: bun install -E
+      - run: bun test tests
       - run: bun run build
       - run: bun run build-github-pages
   npm-check-updates:
