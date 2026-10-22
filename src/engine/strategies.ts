@@ -35,7 +35,9 @@ const pickPair = (rng: Rng, allowTwo: boolean): Pair => {
         return { m, a, two: true };
     }
     const m = int(rng, 3, 9);
-    const a = rng() < 0.7 ? int(rng, 112, 989) : int(rng, 1012, 4989);
+    // 2-digit numbers too, like 75 × 5 and 7 × 45 of the Topic 3 reteaching sets
+    const r = rng();
+    const a = r < 0.2 ? 10 * int(rng, 2, 9) + int(rng, 1, 9) : r < 0.75 ? int(rng, 112, 989) : int(rng, 1012, 4989);
     return { m, a, two: false };
 };
 

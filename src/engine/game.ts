@@ -70,13 +70,15 @@ export const normalize = (raw: unknown): GameState => {
     return s;
 };
 
-// Ladders: a skill opens after 2 correct answers in the one before it (motion ideas are open from the start)
+// Ladders: a skill opens after 2 correct answers in the one before it (motion ideas and forces are open from the start)
+export const OPEN_SCIENCE: SkillId[] = ['motion-ideas', 'forces'];
 export const LADDER: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
     science: ['speed-basic', 'speed-find', 'speed-units', 'speed-trip'],
-    // the four multiplication strategies come right after rounding: they are on the Friday test
-    // comparison and word problems with extra information are the current homework (Topic 3), so they open early too
-    estimation: ['round', 'compare', 'word-steps', 'mult-area', 'mult-partial', 'mult-dist', 'mult-standard', 'est-sum', 'est-product', 'multiply'],
+    // Topic 3 test (2026-10-23): multiplying by multiples of 10, estimating products, the four strategies, mental math,
+    // matching expressions and word problems; comparison and extra information (Lesson 3-8) stay early too
+    estimation: ['round', 'mult-tens', 'est-product', 'compare', 'word-steps', 'mult-area', 'mult-partial', 'mult-dist', 'mult-standard',
+        'mult-mental', 'mult-expr', 'mult-word', 'est-sum', 'multiply'],
 };
 
 export const unlocked = (state: GameState, topic: Topic): SkillId[] => {
@@ -86,7 +88,7 @@ export const unlocked = (state: GameState, topic: Topic): SkillId[] => {
         if (i === 0 || state.skills[ladder[i - 1]].correct >= 2 || state.skills[ladder[i]].seen > 0) open.push(ladder[i]);
         else break;
     }
-    if (topic === 'science') open.push('motion-ideas');
+    if (topic === 'science') open.push(...OPEN_SCIENCE);
     return open;
 };
 
@@ -114,7 +116,7 @@ export const nextSkill = (state: GameState, rng: Rng): SkillId => {
     if (due.length) return pick(rng, due);
     const topic = nextTopic(state, rng);
     const open = unlocked(state, topic);
-    const newest = open[open.length - (topic === 'science' ? 2 : 1)];
+    const newest = open[open.length - (topic === 'science' ? OPEN_SCIENCE.length + 1 : 1)];
     const weights = open.map(s => {
         const st = state.skills[s];
         const acc = st.seen ? st.correct / st.seen : 0.5;
@@ -192,11 +194,12 @@ export const addTime = (prev: GameState, topic: Topic, sec: number, day: string)
     return state;
 };
 
-// Practice test like the one at school: 6 division, 3 motion, 3 rounding and estimating, plus 2 different multiplication strategies
+// Practice test like the ones at school: 6 division, 4 science (Chapter 2: speed, trips, velocity, forces),
+// 5 of the Topic 3 assessment (multiples of 10, estimating, mental math, expressions, word problems), plus 2 different multiplication strategies
 export const TEST_PLAN: SkillId[] = [
     'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word',
-    'speed-basic', 'speed-trip', 'motion-ideas',
-    'round', 'compare', 'word-steps',
+    'speed-basic', 'speed-trip', 'motion-ideas', 'forces',
+    'mult-tens', 'est-product', 'mult-mental', 'mult-expr', 'mult-word',
 ];
 
 export const STRATEGIES: SkillId[] = ['mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];

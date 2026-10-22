@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, addPaintStars, addTime, applyAnswer, applyQuiz, buildTest, chooseNextPainting, newState, nextProblem, nextSkill, totalTime } from '../src/engine/game';
+import { ALL_SKILLS, STRATEGIES, addPaintStars, addTime, applyAnswer, applyQuiz, buildTest, chooseNextPainting, newState, nextProblem, nextSkill, totalTime } from '../src/engine/game';
 import { makeFreshProblem, makeProblem } from '../src/engine/index';
 import { buildQuiz } from '../src/engine/quiz';
 import { buildTheory, chainOf } from '../src/engine/theory';
@@ -60,14 +60,15 @@ const checkMath = (texts: string[], where: string) => {
     }
 };
 
-const textsOf = (p: Problem): L10n[] => [p.prompt, p.hint, ...p.steps, ...(p.answer.kind === 'choice' ? p.answer.options : []), ...(p.answer.kind === 'fill' && (p.answer.layout === 'lines' || p.answer.layout === 'vertical') ? p.answer.lines.flatMap(l => (l.label ? [l.label] : [])) : [])];
+const textsOf = (p: Problem): L10n[] => [p.prompt, p.hint, ...p.steps, ...(p.answer.kind === 'choice' || p.answer.kind === 'multi' ? p.answer.options : []), ...(p.answer.kind === 'fill' && (p.answer.layout === 'lines' || p.answer.layout === 'vertical') ? p.answer.lines.flatMap(l => (l.label ? [l.label] : [])) : [])];
 // "spot the mistake" tasks show a wrong claim in the question on purpose
 const deliberateMistake = (p: Problem) => /^div-check:[zr]:|^est-product:r:/.test(p.id);
-// wrong options of a choice question are wrong on purpose: only the right one is checked
-const mathTextsOf = (p: Problem): L10n[] => [
-    ...(deliberateMistake(p) ? [] : [p.prompt]), p.hint, ...p.steps,
-    ...(p.answer.kind === 'choice' ? [p.answer.options[p.answer.correct]] : []),
-];
+const rightOptions = (p: Problem): L10n[] => {
+    const a = p.answer;
+    return a.kind === 'choice' ? [a.options[a.correct]] : a.kind === 'multi' ? a.correct.map(i => a.options[i]) : [];
+};
+// wrong options of a choice question are wrong on purpose: only the right ones are checked
+const mathTextsOf = (p: Problem): L10n[] => [...(deliberateMistake(p) ? [] : [p.prompt]), p.hint, ...p.steps, ...rightOptions(p)];
 
 const checkText = (l: L10n, where: string) => {
     for (const lang of ['en', 'ru'] as const) {
@@ -116,6 +117,10 @@ const expected = (p: Problem): number | { q: number; r: number } | 'choice' => {
             return 'rb' in d ? roundTo(n('a'), 10) * roundTo(n('b'), 10) : n('ra') * n('b');
         case 'multiply': return n('a') * n('b');
         case 'mult-area': case 'mult-dist': case 'mult-partial': case 'mult-standard': case 'compare': case 'word-steps': return 'choice';
+        case 'mult-tens': return n('m') * n('b');
+        // the only number task of these two: 8 × 50 with the associative property, and cups of coffee for some weeks
+        case 'mult-mental': return n('x') * n('y');
+        case 'mult-word': return n('x') * n('w');
         default: return 'choice';
     }
 };
@@ -267,6 +272,114 @@ describe('multiplication strategy worksheets', () => {
     });
 });
 
+describe('Topic 3 test prep and Science Chapter 2', () => {
+    // an option like "(8 × 400) + (8 × 90) + (8 × 3)" or "9,515" is worth exactly its value
+    const valueOf = (o: L10n) => evaluate(o.en);
+    test('select all: an option is right exactly when its value is the product', () => {
+        let multis = 0;
+        each('mult-expr', p => {
+            const a = p.answer;
+            const target = Number(p.data.value);
+            if (a.kind === 'multi') {
+                multis++;
+                a.options.forEach((o, i) => {
+                    const v = p.data.style === 'partials' ? num(o.en) : valueOf(o);
+                    const right = p.data.style === 'partials' ? placesOf(Number(p.data.a)).map(x => x * Number(p.data.m)).includes(v!) : v === target;
+                    if (right !== a.correct.includes(i)) throw new Error(`${p.id}: option "${o.en}" = ${v} marked ${a.correct.includes(i)}`);
+                });
+                if (p.data.style === 'partials') expect(a.correct.length).toBe(placesOf(Number(p.data.a)).length);
+                // the right picks are accepted, a missing or an extra pick is not
+                expect(sameAnswer(a, { choices: a.correct })).toBe(true);
+                expect(sameAnswer(a, { choices: [...a.correct].reverse() })).toBe(true);
+                expect(sameAnswer(a, { choices: a.correct.slice(1) })).toBe(false);
+                const extra = a.options.findIndex((_, i) => !a.correct.includes(i));
+                expect(sameAnswer(a, { choices: [...a.correct, extra] })).toBe(false);
+            } else if (a.kind === 'choice') {
+                a.options.forEach((o, i) => {
+                    const v = valueOf(o);
+                    if ((v === target) !== (i === a.correct)) throw new Error(`${p.id}: option "${o.en}" = ${v}, target ${target}`);
+                });
+            }
+        });
+        expect(multis).toBeGreaterThan(500);
+    });
+    test('multiples of 10, 100 and 1,000', () => {
+        each('mult-tens', p => {
+            const m = Number(p.data.m), b = Number(p.data.b);
+            expect([10, 100, 1000].some(z => b % z === 0 && b / z < 10)).toBe(true);
+            if (p.answer.kind === 'fill') {
+                const d = p.data.style === 'pattern' ? b / 1000 : Number(String(b).replace(/0+$/, ''));
+                expect(p.answer.values).toEqual(p.data.style === 'pattern' ? [1, 10, 100, 1000].map(z => m * d * z) : [d, m * d, m * b]);
+            }
+            if (p.answer.kind === 'choice') expect(num(p.answer.options[p.answer.correct].en)).toBe(m * b);
+        });
+    });
+    test('mental math: a round number close by, then the right fix', () => {
+        each('mult-mental', p => {
+            const { m, a, R, k, sub } = p.data as Record<string, number>;
+            if (p.answer.kind === 'fill') {
+                expect(R % 10).toBe(0);
+                expect(Math.abs(R - a)).toBeLessThanOrEqual(3);
+                expect(sub ? R - k : R + k).toBe(a);
+                expect(p.answer.values).toEqual([R, k, m * R, m * k, m * a]);
+            }
+            if (p.answer.kind === 'choice') expect(p.answer.options[p.answer.correct].en.endsWith(`= ${(m * a).toLocaleString('en-US')}`)).toBe(true);
+        });
+    });
+    test('word problems: every blank recomputed from the story numbers', () => {
+        each('mult-word', p => {
+            const d = p.data as Record<string, number>;
+            const a = p.answer;
+            if (a.kind === 'fill') {
+                const want: Record<string, number[]> = {
+                    bar: [d.n, d.v, d.n * d.v], story: [d.k, d.b, d.k * d.b], rows: [d.r, d.per, d.r * d.per],
+                    area: [...placesOf(d.r), ...placesOf(d.r).map(x => x * d.per), d.r * d.per],
+                    bakery: [d.c + d.f, (d.c + d.f) * d.h],
+                    iced: [d.k * d.hot, d.k * d.hot * d.w, d.hot * d.w, (d.k - 1) * d.hot * d.w],
+                    tickets: [d.n * Math.round(d.A / 100) * 100 + d.n * Math.round(d.C / 100) * 100, d.n * d.A, d.n * d.C, d.n * (d.A + d.C)],
+                    gifts: [d.est, d.k, d.p, d.k * d.p],
+                };
+                expect(a.values).toEqual(want[String(p.data.style)]);
+                expect(sameAnswer(a, { blanks: a.values })).toBe(true);
+            }
+            if (a.kind === 'choice' && p.data.style === 'bags') expect(num(a.options[a.correct].en.split(' ')[0])).toBe(d.nl * d.large + d.ns * d.small);
+            if (a.kind === 'choice' && p.data.style === 'reason') {
+                expect(a.options[a.correct].en.startsWith('Yes')).toBe(d.ok === 1);
+                expect(d.ok === 1).toBe(d.guess === d.est);
+            }
+        });
+    });
+    test('the textbook map: the speed of every part, then of the whole trip', () => {
+        let maps = 0;
+        each('speed-trip', p => {
+            if (!p.id.includes(':map:') || p.answer.kind !== 'fill' || p.visual?.kind !== 'trip') return;
+            maps++;
+            const legs = p.visual.legs, D = legs.reduce((s, l) => s + l.distance, 0), T = legs.reduce((s, l) => s + l.time, 0);
+            expect(p.answer.values).toEqual([...legs.map(l => l.distance / l.time), D, T, D / T]);
+            expect(Number.isInteger(D / T)).toBe(true);
+        });
+        expect(maps).toBeGreaterThan(200);
+    });
+    test('forces: the study guide answers', () => {
+        const right: [RegExp, string][] = [
+            [/^forces:motion:/, 'A change in position of an object'], [/^forces:force:/, 'Any push or pull'], [/^forces:grav-/, 'Gravity'],
+            [/^forces:rel-/, 'Relative motion'], [/^forces:size-dir:/, 'A size and a direction'], [/^forces:tug-equal:/, 'It stays still: the forces are balanced'],
+            [/^forces:moving-balanced-/, 'It keeps moving at the same speed in the same direction'], [/^forces:book:/, 'Balanced forces, so the book stays still'],
+        ];
+        const keys = new Set<string>();
+        each('forces', p => {
+            if (p.answer.kind !== 'choice') throw new Error('choice expected');
+            keys.add(p.id.split(':')[1].replace(/-.*/, ''));
+            const want = right.find(([re]) => re.test(p.id));
+            if (want) expect(p.answer.options[p.answer.correct].en).toBe(want[1]);
+            if (p.id.startsWith('forces:pp-') && /kicks|throws|pushes|presses|closes/.test(p.prompt.en)) expect(p.answer.options[p.answer.correct].en.startsWith('A push')).toBe(true);
+            if (/ pulls? |opens a drawer/.test(p.prompt.en) && p.id.startsWith('forces:pp-')) expect(p.answer.options[p.answer.correct].en.startsWith('A pull')).toBe(true);
+        });
+        // every idea of Part I shows up
+        expect(keys.size).toBeGreaterThanOrEqual(14);
+    });
+});
+
 describe('long division algorithm', () => {
     test('quotient and remainder match plain arithmetic for every dividend up to 9999', () => {
         for (let d = 2; d <= 9; d++) for (let n = 1; n <= 9999; n += 7) {
@@ -308,6 +421,14 @@ describe('every generated task is correct', () => {
                 } else if (p.answer.kind === 'fill') {
                     // 6 × 0 = 0 in the standard algorithm is a real blank
                     expect(p.answer.values.every(v => Number.isInteger(v) && v >= 0)).toBe(true);
+                } else if (p.answer.kind === 'multi') {
+                    // select all: at least one right and one wrong option, every index on the list
+                    const en = p.answer.options.map(o => o.en);
+                    expect(new Set(en).size).toBe(en.length);
+                    expect(p.answer.correct.length).toBeGreaterThanOrEqual(1);
+                    expect(p.answer.correct.length).toBeLessThan(en.length);
+                    expect(new Set(p.answer.correct).size).toBe(p.answer.correct.length);
+                    p.answer.correct.forEach(i => { expect(i).toBeGreaterThanOrEqual(0); expect(i).toBeLessThan(en.length); });
                 } else {
                     const en = p.answer.options.map(o => o.en);
                     expect(new Set(en).size).toBe(en.length);
@@ -496,13 +617,15 @@ describe('game flow', () => {
         s = applyAnswer(s, makeProblem('div-3d', rng), true, { firstTry: true, hint: false, sec: 5 }).state;
         expect(s.skills['div-3d'].reviewPending).toBe(false);
     });
-    test('the practice test: 6 division, 3 motion, 3 rounding and 2 different multiplication strategies', () => {
+    test('the practice test: 6 division, 4 science, 5 of Topic 3 and 2 different multiplication strategies', () => {
         const test1 = buildTest(newState(), makeRng(9));
-        expect(test1.length).toBe(14);
+        expect(test1.length).toBe(17);
         expect(test1.filter(p => p.topic === 'division').length).toBe(6);
-        expect(test1.filter(p => p.topic === 'science').length).toBe(3);
-        expect(test1.filter(p => p.topic === 'estimation').length).toBe(5);
-        const strategies = test1.filter(p => p.skill.startsWith('mult-')).map(p => p.skill);
+        expect(test1.filter(p => p.topic === 'science').length).toBe(4);
+        expect(test1.filter(p => p.topic === 'estimation').length).toBe(7);
+        expect(test1.some(p => p.skill === 'forces')).toBe(true);
+        const strategies = test1.filter(p => STRATEGIES.includes(p.skill)).map(p => p.skill);
+        expect(strategies.length).toBe(2);
         expect(new Set(strategies).size).toBe(2);
     });
     test('a finished picture waits for her choice and keeps the extra stars', () => {

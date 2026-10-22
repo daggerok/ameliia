@@ -54,6 +54,23 @@ const choiceOf = (skill: SkillId, rng: Rng): Problem => {
 const concepts: Partial<Record<SkillId, (rng: Rng) => Problem[]>> = {
     'compare': rng => [choiceOf('compare', rng)],
     'word-steps': rng => [choiceOf('word-steps', rng)],
+    'mult-mental': rng => [choiceOf('mult-mental', rng)],
+    'mult-expr': rng => [choiceOf('mult-expr', rng)],
+    'mult-word': rng => [choiceOf('mult-word', rng)],
+    'mult-tens': rng => {
+        const [m, d] = pick(rng, [[5, 2], [5, 4], [5, 6], [5, 8], [2, 5], [4, 5], [6, 5], [8, 5]]);
+        const z = int(rng, 2, 3), b = d * 10 ** z, p = m * b;
+        const w = int(rng, 2, 9), x = int(rng, 2, 9), place = pick(rng, [[100, L('hundreds', 'сотен')], [1000, L('thousands', 'тысяч')]] as [number, L10n][]);
+        return [
+            concept('mult-tens', `extra-${m}-${b}`, L(`Why does ${m} × ${fmt(b, 'en')} = ${fmt(p, 'en')} have ${z + 1} zeros, one more than ${fmt(b, 'en')}?`, `Почему в ${m} × ${fmt(b, 'ru')} = ${fmt(p, 'ru')} нулей ${z + 1}, на один больше, чем в ${fmt(b, 'ru')}?`),
+                L(`Because the basic fact ${m} × ${d} = ${m * d} already ends in zero`, `Потому что табличный пример ${m} × ${d} = ${m * d} уже заканчивается нулём`),
+                [L('Because you always add one extra zero', 'Потому что всегда дописывают лишний ноль'), L('It is a mistake, it should have fewer zeros', 'Это ошибка, нулей должно быть меньше'), L('Because 5 is an odd number', 'Потому что 5 - нечётное число')],
+                L(`${m} × ${d} = ${m * d}, then the ${z} zeros of ${fmt(b, 'en')}: ${fmt(p, 'en')}.`, `${m} × ${d} = ${m * d}, потом ${z} нуля из ${fmt(b, 'ru')}: ${fmt(p, 'ru')}.`), rng),
+            concept('mult-tens', `place-${w}-${x}-${place[0]}`, L(`${w} × ${fmt(x * place[0], 'en')} is ${w} × ${x} of what?`, `${w} × ${fmt(x * place[0], 'ru')} - это ${w} × ${x} чего?`),
+                L(place[1].en, place[1].ru), [[10, L('tens', 'десятков')], [100, L('hundreds', 'сотен')], [1000, L('thousands', 'тысяч')], [1, L('ones', 'единиц')]].filter(([v]) => v !== place[0]).map(([, l]) => l as L10n),
+                L(`${fmt(x * place[0], 'en')} = ${x} × ${fmt(place[0], 'en')}, so ${w} × ${fmt(x * place[0], 'en')} = ${w * x} × ${fmt(place[0], 'en')} = ${fmt(w * x * place[0], 'en')}.`, `${fmt(x * place[0], 'ru')} = ${x} × ${fmt(place[0], 'ru')}, значит ${w} × ${fmt(x * place[0], 'ru')} = ${w * x} × ${fmt(place[0], 'ru')} = ${fmt(w * x * place[0], 'ru')}.`), rng),
+        ];
+    },
     'mult-area': rng => {
         const { m, a, p } = chart(rng);
         return [
@@ -211,7 +228,7 @@ const concepts: Partial<Record<SkillId, (rng: Rng) => Problem[]>> = {
 };
 
 const conceptFor = (skill: SkillId, rng: Rng): Problem => {
-    if (skill === 'motion-ideas') return makeProblem('motion-ideas', rng);
+    if (skill === 'motion-ideas' || skill === 'forces') return makeProblem(skill, rng);
     const list = (concepts[skill] ?? (r => longDivisionConcepts(skill, r)))(rng);
     return pick(rng, list);
 };

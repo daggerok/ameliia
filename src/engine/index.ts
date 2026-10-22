@@ -1,14 +1,18 @@
 import { type Problem, type Rng, type SkillId, TOPIC_OF } from './core';
 import { makeDivision } from './division';
 import { makeEstimation } from './estimation';
+import { makeForces } from './forces';
 import { makeScience } from './science';
 import { makeStrategy } from './strategies';
+import { makeTopic3 } from './topic3';
 import { makeWordProblem } from './wordproblems';
 
 export const makeProblem = (skill: SkillId, rng: Rng): Problem => {
     const topic = TOPIC_OF[skill];
     if (topic === 'division') return makeDivision(rng, skill);
+    if (skill === 'forces') return makeForces(rng);
     if (topic === 'science') return makeScience(rng, skill);
+    if (skill === 'mult-tens' || skill === 'mult-mental' || skill === 'mult-expr' || skill === 'mult-word') return makeTopic3(rng, skill);
     if (skill.startsWith('mult-')) return makeStrategy(rng, skill);
     if (skill === 'compare' || skill === 'word-steps') return makeWordProblem(rng, skill);
     return makeEstimation(rng, skill);

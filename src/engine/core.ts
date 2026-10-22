@@ -7,15 +7,18 @@ export type Topic = 'division' | 'science' | 'estimation';
 
 export type SkillId =
     | 'div-facts' | 'div-2d' | 'div-3d' | 'div-zero' | 'div-4d' | 'div-rem' | 'div-word' | 'div-check'
-    | 'speed-basic' | 'speed-find' | 'speed-trip' | 'speed-units' | 'motion-ideas'
+    | 'speed-basic' | 'speed-find' | 'speed-trip' | 'speed-units' | 'motion-ideas' | 'forces'
     | 'round' | 'est-sum' | 'est-product' | 'multiply'
     | 'mult-area' | 'mult-dist' | 'mult-partial' | 'mult-standard'
-    | 'compare' | 'word-steps';
+    | 'compare' | 'word-steps'
+    | 'mult-tens' | 'mult-mental' | 'mult-expr' | 'mult-word';
 
 export type Answer =
     | { kind: 'number'; value: number }
     | { kind: 'remainder'; q: number; r: number }
     | { kind: 'choice'; options: L10n[]; correct: number }
+    // "select all that apply" of the school tests: every right option and no wrong one
+    | { kind: 'multi'; options: L10n[]; correct: number[] }
     | FillAnswer;
 
 // A worksheet to fill in, like the strategy sheets at school: every blank is one number.
@@ -140,16 +143,18 @@ export const speedShort = (n: number, unit: Unit): L10n => unit === 'mi'
 export const TOPIC_OF: Record<SkillId, Topic> = {
     'div-facts': 'division', 'div-2d': 'division', 'div-3d': 'division', 'div-zero': 'division', 'div-4d': 'division',
     'div-rem': 'division', 'div-word': 'division', 'div-check': 'division',
-    'speed-basic': 'science', 'speed-find': 'science', 'speed-trip': 'science', 'speed-units': 'science', 'motion-ideas': 'science',
+    'speed-basic': 'science', 'speed-find': 'science', 'speed-trip': 'science', 'speed-units': 'science', 'motion-ideas': 'science', 'forces': 'science',
     'round': 'estimation', 'est-sum': 'estimation', 'est-product': 'estimation', 'multiply': 'estimation',
     'mult-area': 'estimation', 'mult-dist': 'estimation', 'mult-partial': 'estimation', 'mult-standard': 'estimation',
     'compare': 'estimation', 'word-steps': 'estimation',
+    'mult-tens': 'estimation', 'mult-mental': 'estimation', 'mult-expr': 'estimation', 'mult-word': 'estimation',
 };
 
 export const SKILLS_OF: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
-    science: ['speed-basic', 'speed-find', 'speed-trip', 'speed-units', 'motion-ideas'],
-    estimation: ['round', 'est-sum', 'est-product', 'multiply', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard', 'compare', 'word-steps'],
+    science: ['speed-basic', 'speed-find', 'speed-trip', 'speed-units', 'motion-ideas', 'forces'],
+    estimation: ['round', 'est-sum', 'est-product', 'multiply', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard', 'compare', 'word-steps',
+        'mult-tens', 'mult-mental', 'mult-expr', 'mult-word'],
 };
 
 // share of learning time the owner asked for
@@ -169,6 +174,7 @@ export const SKILL_NAME: Record<SkillId, L10n> = {
     'speed-trip': L('Trips with many parts', 'Поездки из нескольких частей'),
     'speed-units': L('Hours and minutes', 'Часы и минуты'),
     'motion-ideas': L('Speed, velocity, acceleration', 'Скорость, направление, ускорение'),
+    'forces': L('Motion and forces', 'Движение и силы'),
     'round': L('Rounding', 'Округление'),
     'est-sum': L('Estimating sums and differences', 'Прикидка суммы и разности'),
     'est-product': L('Estimating products', 'Прикидка произведения'),
@@ -179,6 +185,10 @@ export const SKILL_NAME: Record<SkillId, L10n> = {
     'mult-standard': L('Strategy: Standard Algorithm', 'Способ: умножение столбиком'),
     'compare': L('Times as much or how much more', 'Во сколько раз или на сколько'),
     'word-steps': L('Word problems with extra information', 'Задачи с лишними данными'),
+    'mult-tens': L('Multiply by 10, 100 and 1,000', 'Умножение на 10, 100 и 1 000'),
+    'mult-mental': L('Mental math: properties and compensation', 'Устный счёт: свойства и округление с поправкой'),
+    'mult-expr': L('Which expressions match', 'Какие выражения подходят'),
+    'mult-word': L('Multiplication word problems and bar diagrams', 'Задачи на умножение и схемы из полосок'),
 };
 
 export const TOPIC_NAME: Record<Topic, L10n> = {
@@ -199,8 +209,18 @@ export const choice = (rng: Rng, correct: L10n, wrong: L10n[]): Answer => {
     return { kind: 'choice', options, correct: options.indexOf(correct) };
 };
 
-export const sameAnswer = (answer: Answer, given: { value?: number; q?: number; r?: number; choice?: number; blanks?: number[] }) => {
+// "Select all that apply": the right options shuffled among the wrong ones, duplicates dropped
+export const multi = (rng: Rng, right: L10n[], wrong: L10n[]): Answer => {
+    const seen = new Set<string>();
+    const keep = (xs: L10n[]) => xs.filter(w => (seen.has(w.en) ? false : (seen.add(w.en), true)));
+    const r = keep(right), w = keep(wrong);
+    const options = shuffle(rng, [...r, ...w]);
+    return { kind: 'multi', options, correct: r.map(x => options.indexOf(x)).sort((a, b) => a - b) };
+};
+
+export const sameAnswer = (answer: Answer, given: { value?: number; q?: number; r?: number; choice?: number; choices?: number[]; blanks?: number[] }) => {
     if (answer.kind === 'fill') return fillMarks(answer, given.blanks ?? []).every(Boolean);
+    if (answer.kind === 'multi') return sameSet(given.choices ?? [], answer.correct);
     if (answer.kind === 'number') return given.value === answer.value;
     if (answer.kind === 'remainder') return given.q === answer.q && given.r === answer.r;
     return given.choice === answer.correct;
