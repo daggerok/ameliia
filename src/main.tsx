@@ -37,7 +37,7 @@ const UI = {
         parentsText: 'Learning time follows 50% division, 25% motion and speed, 25% rounding and estimating. A wrong answer always leads to theory and a mini quiz, and that skill comes back a few tasks later. Content follows the NJ Student Learning Standards for grade 4 (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity and acceleration are bonus explorer words.',
         perfect: 'Perfect test!', stepsWord: 'Steps', yes: 'Yes', no: 'No', taskOf: 'Task',
         congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
-        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Homework: Lesson 3-8', hwSub: 'Times as much, word problems, 4 ways to multiply. Theory first, then tasks', howToPlay: 'How to play (the welcome tour)',
+        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Test prep: Topic 3 and Science Chapter 2', hwSub: 'Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', pickAll: 'Select all that apply', howToPlay: 'How to play (the welcome tour)',
         tourNext: 'Next', tourBack: 'Back', tourSkip: 'Skip', tourStart: 'Let\'s start!', tourGo: 'Got it!',
         notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadMove: 'Move the page', notepadZoomIn: 'Zoom in', notepadZoomOut: 'Zoom out', notepadZoomReset: 'Back to 100%', notepadHas: 'notes',
         intro: [
@@ -84,7 +84,7 @@ const UI = {
         parentsText: 'Время учёбы делится так: 50% деление, 25% движение и скорость, 25% округление и прикидка. После ошибки всегда идёт теория и мини-викторина, а навык возвращается через несколько заданий. Содержание по стандартам NJ для 4 класса (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity и ускорение - бонусные слова исследователя.',
         perfect: 'Идеальный тест!', stepsWord: 'Шаги', yes: 'Да', no: 'Нет', taskOf: 'Задание',
         congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
-        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'Домашка: Lesson 3-8', hwSub: 'Во сколько раз, текстовые задачи, 4 способа умножать. Сначала теория, потом задания', howToPlay: 'Как играть (знакомство с игрой)',
+        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'К тесту: Topic 3 и наука, глава 2', hwSub: 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания', pickAll: 'Выбери все подходящие ответы', howToPlay: 'Как играть (знакомство с игрой)',
         tourNext: 'Дальше', tourBack: 'Назад', tourSkip: 'Пропустить', tourStart: 'Поехали!', tourGo: 'Понятно!',
         notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadMove: 'Двигать лист', notepadZoomIn: 'Увеличить', notepadZoomOut: 'Уменьшить', notepadZoomReset: 'Вернуть 100%', notepadHas: 'записей',
         intro: [
@@ -123,7 +123,8 @@ const STARS_PER_PART = 2;
 const params = new URLSearchParams(location.search);
 const SELFTEST = params.has('selftest');
 // self checks only: ?skill=mult-area makes every practice task that skill
-const HOMEWORK: SkillId[] = ['compare', 'word-steps', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];
+// test prep for Friday 2026-10-23: Topic 3 (multiplying by 1-digit numbers) and Science Chapter 2 (what affects motion)
+const HOMEWORK: SkillId[] = ['mult-tens', 'est-product', 'mult-area', 'mult-partial', 'mult-dist', 'mult-standard', 'mult-mental', 'mult-expr', 'mult-word', 'compare', 'forces', 'motion-ideas', 'speed-trip'];
 const FORCED_SKILL = SELFTEST && params.get('skill') && ALL_SKILLS.includes(params.get('skill') as SkillId) ? (params.get('skill') as SkillId) : undefined;
 const seed = Number(params.get('seed')) || (Date.now() % 2147483647);
 // the day on the device clock (her iPad is on New York time), not in UTC: after 8 pm in New York UTC is already tomorrow
@@ -200,7 +201,7 @@ const Steps: React.FC<{ steps: L10n[]; lang: Lang }> = ({ steps, lang }) => (
 // ========================================
 // ANSWER INPUT
 // ========================================
-type Given = { value?: number; q?: number; r?: number; choice?: number; blanks?: number[] };
+type Given = { value?: number; q?: number; r?: number; choice?: number; choices?: number[]; blanks?: number[] };
 const digitsOnly = (s: string) => s.replace(/[^\d]/g, '');
 
 // A strategy worksheet (Area Model, Distributive Property, Partial Products, Standard Algorithm).
@@ -324,6 +325,7 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     const [v, setV] = useState('');
     const [r, setR] = useState('');
     const [c, setC] = useState<number | null>(null);
+    const [picked, setPicked] = useState<number[]>([]);
     const [blanks, setBlanks] = useState<string[]>(() => (problem.answer.kind === 'fill' ? problem.answer.values.map(() => '') : []));
     const [warn, setWarn] = useState(false);
     const ref = useRef<HTMLInputElement>(null);
@@ -333,6 +335,7 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     const submit = (e?: React.FormEvent) => {
         e?.preventDefault();
         if (a.kind === 'choice') { if (c === null) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; } onSubmit({ choice: c }); return; }
+        if (a.kind === 'multi') { if (!picked.length) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; } onSubmit({ choices: [...picked].sort((x, y) => x - y) }); return; }
         // a carry of 0 may stay empty, like on paper
         if (a.kind === 'fill') { const opt = a.layout === 'column' ? a.optional : []; if (blanks.some((x, i) => !digitsOnly(x) && !opt.includes(i))) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; } onSubmit({ blanks: blanks.map(x => Number(digitsOnly(x))) }); return; }
         if (!digitsOnly(v) || (a.kind === 'remainder' && !digitsOnly(r))) { setWarn(true); setTimeout(() => setWarn(false), 1800); return; }
@@ -342,9 +345,22 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     const box = 'p-3 md:p-4 text-center border-[3px] border-indigo-500 rounded-2xl text-2xl md:text-3xl font-black bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 shadow-md';
     return (
         <form onSubmit={submit} className="space-y-3" data-testid="answer-form">
-            {warn && <div className="text-center text-rose-500 font-bold animate-bounce-in">⚠️ {a.kind === 'choice' ? t.pick : a.kind === 'fill' ? t.fillAll : t.empty}</div>}
+            {warn && <div className="text-center text-rose-500 font-bold animate-bounce-in">⚠️ {a.kind === 'choice' || a.kind === 'multi' ? t.pick : a.kind === 'fill' ? t.fillAll : t.empty}</div>}
             {a.kind === 'fill' ? (
                 <FillSheet answer={a} lang={lang} values={blanks} setValue={(i, x) => setBlanks(bs => bs.map((y, k) => (k === i ? x : y)))} />
+            ) : a.kind === 'multi' ? (
+                <div className="grid gap-2" data-testid="multi">
+                    <div className="text-sm font-black text-indigo-600 dark:text-indigo-300">☑️ {t.pickAll}</div>
+                    {a.options.map((o, i) => {
+                        const on = picked.includes(i);
+                        return (
+                            <button type="button" key={i} data-testid={`choice-${i}`} aria-pressed={on} onClick={() => setPicked(ps => (ps.includes(i) ? ps.filter(x => x !== i) : [...ps, i]))}
+                                className={`text-left p-4 rounded-2xl border-2 font-bold text-base md:text-lg transition-all active:scale-[0.98] flex items-center ${on ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-900 dark:text-indigo-100' : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100'}`}>
+                                <span className={`inline-flex shrink-0 w-7 h-7 rounded-md border-2 items-center justify-center text-sm mr-3 ${on ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-500'}`}>{on ? '✓' : ''}</span>{tr(o, lang)}
+                            </button>
+                        );
+                    })}
+                </div>
             ) : a.kind === 'choice' ? (
                 <div className="grid gap-2">
                     {a.options.map((o, i) => (
@@ -782,6 +798,7 @@ const TestView: React.FC<{ run: TestRun; lang: Lang; t: UIText; onAnswer: (g: Gi
 };
 
 const givenText = (p: Problem, g: Given, lang: Lang) => p.answer.kind === 'fill' ? (g.blanks ?? []).map(x => fmt(x, lang)).join(', ') : p.answer.kind === 'choice' ? (g.choice !== undefined ? tr(p.answer.options[g.choice], lang) : '-')
+    : p.answer.kind === 'multi' ? ((g.choices ?? []).map(i => tr((p.answer as { options: L10n[] }).options[i], lang)).join('; ') || '-')
     : p.answer.kind === 'remainder' ? `${g.q ?? '-'} R ${g.r ?? '-'}` : fmt(g.value ?? 0, lang);
 
 const TestResult: React.FC<{ run: TestRun; lang: Lang; t: UIText; onPractice: () => void; onHome: () => void }> = ({ run, lang, t, onPractice, onHome }) => {

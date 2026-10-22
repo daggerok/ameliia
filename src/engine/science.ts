@@ -1,5 +1,5 @@
 import {
-    type Answer, type L10n, type Leg, type Problem, type Rng, type SkillId, type Unit,
+    type Answer, type FillLine, type L10n, type Leg, type Problem, type Rng, type SkillId, type Unit,
     L, choice, dist, fmt, hours, int, minutes, pick, ruPlural, speedShort, speedUnit,
 } from './core';
 import { AMELIIA, FLORIDA, HOUSEHOLD, type Person } from './words';
@@ -245,7 +245,7 @@ const toLegs = (legs: LegPick[]): Leg[] => legs.map(l => ({ from: l.from.en, to:
 const makeTrip = (rng: Rng): Problem => {
     const unit = unitOf(rng);
     const parts = int(rng, 2, 3);
-    let ask = pick(rng, ['total', 'total', 'leg', 'trap'] as const);
+    let ask = pick(rng, ['total', 'total', 'leg', 'trap', 'map', 'map'] as const);
     const sum = (legs: LegPick[], f: (l: LegPick) => number) => legs.reduce((s, l) => s + f(l), 0);
     // different times in the parts, otherwise averaging the speeds would accidentally give the right answer
     let pool = tripCandidates(unit, parts).filter(legs => sum(legs, l => l.d) % sum(legs, l => l.t) === 0 && new Set(legs.map(l => l.t)).size > 1);
@@ -273,6 +273,30 @@ const makeTrip = (rng: Rng): Problem => {
         L(`Average speed: ${fmt(D, 'en')} ÷ ${T} = ${fmt(avg, 'en')}, so ${speedShort(avg, unit).en}.`, `Средняя скорость: ${fmt(D, 'ru')} ÷ ${T} = ${fmt(avg, 'ru')}, то есть ${speedShort(avg, unit).ru}.`),
     ];
     const key = legs.map(l => `${l.from.en}>${l.to.en}/${l.v.id}/${l.t}`).join('-');
+    // the textbook map (Savvas p. 64-65): the speed of every part from point A to point D, then of the whole trip
+    if (ask === 'map') {
+        const pt = (i: number) => 'ABCD'[i];
+        const lines: FillLine[] = [
+            ...legs.map((l, i): FillLine => ({ label: L(`Point ${pt(i)} → point ${pt(i + 1)}`, `Точка ${pt(i)} → точка ${pt(i + 1)}`), parts: [`${fmt(l.d, 'en')} ÷ ${l.t} = `, { b: i }] })),
+            { label: L('The whole trip: all the distance ÷ all the time', 'Вся поездка: всё расстояние ÷ всё время'),
+                parts: [`(${legs.map(l => fmt(l.d, 'en')).join(' + ')}) ÷ (${legs.map(l => l.t).join(' + ')}) = `, { b: n }, ' ÷ ', { b: n + 1 }, ' = ', { b: n + 2 }] },
+        ];
+        const mean = sum(legs, l => l.s) / n;
+        return {
+            id: `speed-trip:map:${key}:${unit}`, skill: 'speed-trip', topic: 'science',
+            prompt: L(`The map shows the route of ${AMELIIA.en}'s family from point A to point ${pt(n)}:\n${legs.map((l, i) => `Point ${pt(i)} (${l.from.en}) → point ${pt(i + 1)} (${l.to.en}): ${dist(l.d, unit).en} in ${hours(l.t).en}`).join('\n')}\nFind the average speed for each part of the trip, then for the whole trip from point A to point ${pt(n)}.`,
+                `На карте маршрут семьи ${AMELIIA.ruGen} от точки A до точки ${pt(n)}:\n${legs.map((l, i) => `Точка ${pt(i)} (${l.from.ru}) → точка ${pt(i + 1)} (${l.to.ru}): ${dist(l.d, unit).ru} за ${hours(l.t).ru}`).join('\n')}\nНайди среднюю скорость каждой части поездки, а потом всей поездки от точки A до точки ${pt(n)}.`),
+            answer: { kind: 'fill', layout: 'lines', values: [...legs.map(l => l.s), D, T, avg], lines },
+            steps: [formula,
+                ...legs.map((l, i) => L(`Point ${pt(i)} → point ${pt(i + 1)}: ${fmt(l.d, 'en')} ÷ ${l.t} = ${fmt(l.s, 'en')}, so ${speedShort(l.s, unit).en}.`, `Точка ${pt(i)} → точка ${pt(i + 1)}: ${fmt(l.d, 'ru')} ÷ ${l.t} = ${fmt(l.s, 'ru')}, то есть ${speedShort(l.s, unit).ru}.`)),
+                ...totals,
+                ...(mean !== avg ? [L(`Do not add the ${n} speeds and divide by ${n}: the parts take different times, so (${legs.map(l => l.s).join(' + ')}) ÷ ${n} is not the average speed of the trip.`,
+                    `Не складывай ${n} скорости и не дели на ${n}: части длятся разное время, поэтому (${legs.map(l => l.s).join(' + ')}) ÷ ${n} - не средняя скорость поездки.`)] : [])],
+            hint: L('Each part: its distance ÷ its time. The whole trip: add all the distances, add all the hours, then divide.', 'Каждая часть: её расстояние ÷ её время. Вся поездка: сложи все расстояния, сложи все часы, потом раздели.'),
+            visual: { kind: 'trip', unit, legs: toLegs(legs) },
+            data: { D, T, avg, mean, value: avg },
+        };
+    }
     if (ask === 'leg') {
         const k = int(rng, 0, n - 1);
         const l = legs[k];
@@ -486,10 +510,29 @@ const ideas = (rng: Rng): Idea[] => {
             wrong: [L('Yes: planes are always accelerating because they are fast', 'Да: самолёты всегда ускоряются, они ведь быстрые'), L('Yes: flying east is acceleration', 'Да: полёт на восток - это ускорение'), L('No: planes have no velocity', 'Нет: у самолётов нет velocity')],
             why: L('Being fast is not acceleration. Acceleration is a CHANGE in speed or direction.', 'Быстро - ещё не значит ускоряется. Ускорение - это ИЗМЕНЕНИЕ скорости или направления.'),
         },
+        // Part II of the Chapter 2 study guide: the definitions, word for word
+        {
+            q: L('What is speed?', 'Что такое скорость (speed)?'),
+            right: L('The rate at which an object changes position', 'То, как быстро предмет меняет своё положение'),
+            wrong: [L('Speed and direction together', 'Скорость и направление вместе'), L('Any change in speed or direction', 'Любое изменение скорости или направления'), L('Any push or pull', 'Любой толчок или тяга')],
+            why: L('Speed is the rate at which an object changes position. Velocity adds the direction, acceleration is a change.', 'Скорость - это то, как быстро предмет меняет положение. Velocity добавляет направление, а ускорение - это изменение.'),
+        },
+        {
+            q: L('Which words describe a direction, so they can be part of a velocity?', 'Какие слова описывают направление и поэтому могут быть частью velocity?'),
+            right: L('North, south, east, west, left, right, up and down', 'Север, юг, восток, запад, влево, вправо, вверх и вниз'),
+            wrong: [L('Fast, slow, faster and slower', 'Быстро, медленно, быстрее и медленнее'), L('Miles, kilometers and hours', 'Мили, километры и часы'), L('Push and pull', 'Толкать и тянуть')],
+            why: L('Velocity combines both the speed and the direction. Direction words: north, south, east, west, or left, right, up and down.', 'Velocity объединяет скорость и направление. Слова направления: север, юг, восток, запад или влево, вправо, вверх и вниз.'),
+        },
+        {
+            q: L(`${who.en} drove ${dist(2 * s, unit).en} in 2 hours. Which formula gives the average speed?`, `${who.ru} ${who.ruShe === 'Она' ? 'проехала' : 'проехал'} ${dist(2 * s, unit).ru} за 2 часа. По какой формуле найти среднюю скорость?`),
+            right: L('Average speed = total distance ÷ total time', 'Средняя скорость = всё расстояние ÷ всё время'),
+            wrong: [L('Average speed = total distance × total time', 'Средняя скорость = всё расстояние × всё время'), L('Average speed = total time ÷ total distance', 'Средняя скорость = всё время ÷ всё расстояние'), L('Average speed = total distance + total time', 'Средняя скорость = всё расстояние + всё время')],
+            why: L(`Average speed = total distance ÷ total time: ${fmt(2 * s, 'en')} ÷ 2 = ${s}, so ${speedShort(s, unit).en}.`, `Средняя скорость = всё расстояние ÷ всё время: ${fmt(2 * s, 'ru')} ÷ 2 = ${s}, то есть ${speedShort(s, unit).ru}.`),
+        },
     ];
 };
 
-export const IDEA_COUNT = 10;
+export const IDEA_COUNT = 13;
 
 const makeIdeas = (rng: Rng): Problem => {
     const all = ideas(rng);

@@ -1,6 +1,7 @@
 import { type L10n, type Problem, type Rng, type SkillId, type Visual, L, SKILL_NAME, fmt, int, pick, ruPlural } from './core';
 import { longDivisionText, partialQuotientsText } from './division';
 import { makeProblem } from './index';
+import { roundTo } from './estimation';
 import { placeParts, standardRows } from './strategies';
 import { LOVE, WHY_MATH } from './messages';
 
@@ -280,9 +281,182 @@ const wordBuilders: Record<'compare' | 'word-steps', (rng: Rng) => { hook: L10n[
     },
 };
 
+
+// ---------- Topic 3 test: multiples of 10, mental math, matching expressions, word problems; Science Chapter 2: forces ----------
+
+const topic3Builders: Record<'mult-tens' | 'mult-mental' | 'mult-expr' | 'mult-word' | 'forces', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'mult-tens': rng => {
+        const m = int(rng, 2, 9), d = int(rng, 2, 9), f = m * d;
+        return {
+            hook: [
+                L(`Grandma Sveta buys ${m} boxes of beads with ${d * 100} beads in each box. ${m} × ${d * 100} looks big, but you already know ${m} × ${d}. The zeros just ride along!`, `Бабушка Света покупает ${m} ${ruPlural(m, 'коробку', 'коробки', 'коробок')} бусин, в каждой по ${d * 100}. ${m} × ${d * 100} выглядит большим, но ты уже знаешь ${m} × ${d}. Нули просто едут следом!`),
+                L(`${m} × ${d} = ${f}. That one fact gives you ${m} × ${d * 10}, ${m} × ${fmt(d * 100, 'en')} and ${m} × ${fmt(d * 1000, 'en')} for free.`, `${m} × ${d} = ${f}. Этот один пример бесплатно даёт ${m} × ${d * 10}, ${m} × ${fmt(d * 100, 'ru')} и ${m} × ${fmt(d * 1000, 'ru')}.`),
+            ],
+            sections: [
+                { kind: 'idea', title: L('The big idea', 'Главная идея'), body: [
+                    L(`${m} × ${d * 10} means ${m} × ${d} tens. ${m} × ${d} = ${f}, and ${f} tens is ${fmt(f * 10, 'en')}.`, `${m} × ${d * 10} - это ${m} × ${d} десятков. ${m} × ${d} = ${f}, а ${f} десятков - это ${fmt(f * 10, 'ru')}.`),
+                    L(`${m} × ${fmt(d * 100, 'en')} means ${m} × ${d} hundreds: ${f} hundreds is ${fmt(f * 100, 'en')}.`, `${m} × ${fmt(d * 100, 'ru')} - это ${m} × ${d} сотен: ${f} сотен - это ${fmt(f * 100, 'ru')}.`),
+                    L(`${m} × ${fmt(d * 1000, 'en')} means ${m} × ${d} thousands: ${f} thousands is ${fmt(f * 1000, 'en')}.`, `${m} × ${fmt(d * 1000, 'ru')} - это ${m} × ${d} тысяч: ${f} тысяч - это ${fmt(f * 1000, 'ru')}.`),
+                ] },
+                { kind: 'steps', title: L('How to do it', 'Как решать'), body: [
+                    L('1. Hide the zeros and use the basic fact.', '1. Спрячь нули и возьми табличный пример.'),
+                    L('2. Count the zeros at the end of the factors.', '2. Посчитай нули в конце множителей.'),
+                    L('3. Write that many zeros after the basic fact answer.', '3. Допиши столько же нулей после ответа табличного примера.'),
+                ] },
+                { kind: 'example', title: L('The pattern', 'Закономерность'), prompt: L(`${m} × ${d}, ${m} × ${d * 10}, ${m} × ${fmt(d * 100, 'en')}, ${m} × ${fmt(d * 1000, 'en')}`, `${m} × ${d}, ${m} × ${d * 10}, ${m} × ${fmt(d * 100, 'ru')}, ${m} × ${fmt(d * 1000, 'ru')}`),
+                    body: [1, 10, 100, 1000].map(z => L(`${m} × ${fmt(d * z, 'en')} = ${fmt(f * z, 'en')}`, `${m} × ${fmt(d * z, 'ru')} = ${fmt(f * z, 'ru')}`)) },
+                { kind: 'warn', title: L('Watch out: the extra zero', 'Осторожно: лишний ноль'), body: [
+                    L('When the basic fact already ends in zero, the answer has one more zero. 5 × 4 = 20, so 5 × 4,000 = 20,000: four zeros, not three!', 'Если табличный пример уже заканчивается нулём, в ответе будет на один ноль больше. 5 × 4 = 20, значит 5 × 4 000 = 20 000: четыре нуля, а не три!'),
+                    L('6 × 50 = 300, not 30. 8 × 500 = 4,000, not 400.', '6 × 50 = 300, а не 30. 8 × 500 = 4 000, а не 400.'),
+                ] },
+                { kind: 'trick', title: L('Use it to estimate', 'Пригодится для прикидки'), body: [
+                    L('9 × 1,993 is about 9 × 2,000 = 18,000. Round a 3-digit number to the nearest hundred and a 4-digit number to the nearest thousand, then multiply with zeros.', '9 × 1 993 - это примерно 9 × 2 000 = 18 000. Трёхзначное число округляй до сотен, четырёхзначное - до тысяч, потом умножай с нулями.'),
+                ] },
+            ],
+        };
+    },
+    'mult-mental': rng => {
+        const m = int(rng, 3, 9), R = 10 * int(rng, 3, 9), k = int(rng, 1, 3), a = R - k;
+        return {
+            hook: [
+                L(`At the store a toy costs $${a}. Dad buys ${m} of them and says the total in two seconds. His secret: $${a} is almost $${R}!`, `В магазине игрушка стоит $${a}. Папа покупает ${m} штук и за две секунды называет сумму. Его секрет: $${a} - это почти $${R}!`),
+                L('Mental math is a set of shortcuts. You move numbers around or use a round number, and the hard problem turns easy.', 'Устный счёт - это набор коротких путей. Переставляешь числа или берёшь круглое число, и трудный пример становится лёгким.'),
+            ],
+            sections: [
+                { kind: 'idea', title: L('Two shortcuts', 'Два коротких пути'), body: [
+                    L('Commutative and Associative Properties: you may swap factors and move the brackets. 8 × 50 = (4 × 2) × 50 = 4 × (2 × 50) = 4 × 100 = 400.', 'Переместительное и сочетательное свойства: множители можно менять местами и переставлять скобки. 8 × 50 = (4 × 2) × 50 = 4 × (2 × 50) = 4 × 100 = 400.'),
+                    L('Compensation: use a round number close to the real one, then fix the difference. 9 × 67: 9 × 70 = 630, 9 × 3 = 27, 630 − 27 = 603.', 'Округление с поправкой: возьми круглое число рядом с настоящим, потом поправь разницу. 9 × 67: 9 × 70 = 630, 9 × 3 = 27, 630 − 27 = 603.'),
+                ] },
+                { kind: 'steps', title: L('Compensation step by step', 'Поправка по шагам'), body: [
+                    L(`1. Think: ${a} = ${R} − ${k}.`, `1. Подумай: ${a} = ${R} − ${k}.`),
+                    L(`2. Multiply the round number: ${m} × ${R} = ${fmt(m * R, 'en')}.`, `2. Умножь круглое число: ${m} × ${R} = ${fmt(m * R, 'ru')}.`),
+                    L(`3. You took ${k} too many ${m} times: ${m} × ${k} = ${m * k}.`, `3. Ты взяла по ${k} лишних ${m} ${ruPlural(m, 'раз', 'раза', 'раз')}: ${m} × ${k} = ${m * k}.`),
+                    L(`4. Subtract: ${fmt(m * R, 'en')} − ${m * k} = ${fmt(m * a, 'en')}.`, `4. Вычти: ${fmt(m * R, 'ru')} − ${m * k} = ${fmt(m * a, 'ru')}.`),
+                ] },
+                { kind: 'example', title: L('Bigger numbers work the same', 'С большими числами так же'), prompt: L('6 × 295 and 4 × 198', '6 × 295 и 4 × 198'), body: [
+                    L('6 × 295: 6 × 300 = 1,800, 6 × 5 = 30, 1,800 − 30 = 1,770.', '6 × 295: 6 × 300 = 1 800, 6 × 5 = 30, 1 800 − 30 = 1 770.'),
+                    L('4 × 198: 4 × 200 = 800, 4 × 2 = 8, 800 − 8 = 792.', '4 × 198: 4 × 200 = 800, 4 × 2 = 8, 800 − 8 = 792.'),
+                    L('7 × 52 rounds DOWN: 7 × 50 = 350, 7 × 2 = 14, 350 + 14 = 364. Rounded down? Add back.', '7 × 52 округляем ВНИЗ: 7 × 50 = 350, 7 × 2 = 14, 350 + 14 = 364. Округлила вниз? Прибавь.'),
+                ] },
+                { kind: 'warn', title: L('Watch out!', 'Осторожно!'), body: [
+                    L(`Subtract ${m} × ${k}, not just ${k}: every one of the ${m} groups got ${k} extra.`, `Вычитай ${m} × ${k}, а не просто ${k}: каждая из ${m} групп получила по ${k} лишних.`),
+                    L('Rounded up: subtract. Rounded down: add.', 'Округлила вверх - вычитай. Округлила вниз - прибавляй.'),
+                ] },
+                { kind: 'trick', title: L('Friendly pairs', 'Дружные пары'), body: [
+                    L('2 × 5 = 10, 2 × 50 = 100, 4 × 25 = 100, 2 × 500 = 1,000, 4 × 250 = 1,000. Spot a pair, multiply it first.', '2 × 5 = 10, 2 × 50 = 100, 4 × 25 = 100, 2 × 500 = 1 000, 4 × 250 = 1 000. Нашла пару - умножай её первой.'),
+                ] },
+            ],
+        };
+    },
+    'mult-expr': rng => {
+        const m = int(rng, 3, 9), a = 1000 + 100 * int(rng, 1, 9) + 10 * int(rng, 1, 9) + int(rng, 1, 9), parts = placeParts(a);
+        const prods = parts.map(p => m * p);
+        return {
+            hook: [
+                L('On the test some questions say "Select all that apply". That means there can be MORE than one right answer, so check every box, one by one.', 'В тесте бывают вопросы «Выбери все подходящие». Значит, верных ответов может быть БОЛЬШЕ одного, поэтому проверь каждый вариант по очереди.'),
+                L('Expressions are like costumes: (8 × 400) + (8 × 90) + (8 × 3) and 493 × 8 look different, but underneath they are the same number.', 'Выражения - как костюмы: (8 × 400) + (8 × 90) + (8 × 3) и 493 × 8 выглядят по-разному, но внутри одно и то же число.'),
+            ],
+            sections: [
+                { kind: 'idea', title: L(`Ways to write ${m} × ${fmt(a, 'en')}`, `Способы записать ${m} × ${fmt(a, 'ru')}`), body: [
+                    L(`Expanded form in brackets: ${m} × (${parts.map(p => fmt(p, 'en')).join(' + ')}).`, `Разряды в скобках: ${m} × (${parts.map(p => fmt(p, 'ru')).join(' + ')}).`),
+                    L(`Distributive Property: ${parts.map(p => `(${m} × ${fmt(p, 'en')})`).join(' + ')} = ${prods.map(p => fmt(p, 'en')).join(' + ')} = ${fmt(m * a, 'en')}.`, `Распределительное свойство: ${parts.map(p => `(${m} × ${fmt(p, 'ru')})`).join(' + ')} = ${prods.map(p => fmt(p, 'ru')).join(' + ')} = ${fmt(m * a, 'ru')}.`),
+                    L(`Swapped factors: ${fmt(a, 'en')} × ${m}.`, `Множители наоборот: ${fmt(a, 'ru')} × ${m}.`),
+                    L(`The partial products are ${prods.map(p => fmt(p, 'en')).join(', ')}: one for every place.`, `Частичные произведения: ${prods.map(p => fmt(p, 'ru')).join(', ')} - по одному на каждый разряд.`),
+                ] },
+                { kind: 'steps', title: L('Select all that apply', 'Выбери все подходящие'), body: [
+                    L('1. Read every option, not only until you find one right answer.', '1. Прочитай каждый вариант, а не только до первого верного.'),
+                    L('2. Check that the brackets hold the WHOLE number, with the right place values.', '2. Проверь, что в скобках ВСЁ число и правильные разряды.'),
+                    L('3. Check that EVERY part is multiplied.', '3. Проверь, что умножена КАЖДАЯ часть.'),
+                    L('4. Not sure? Find the value of the option and compare.', '4. Сомневаешься? Посчитай значение варианта и сравни.'),
+                ] },
+                { kind: 'warn', title: L('Traps from the test', 'Ловушки из теста'), body: [
+                    L('Digits are not place values: 5 × 617 is (5 × 600) + (5 × 10) + (5 × 7), not (5 × 6) + (5 × 1) + (5 × 7).', 'Цифры - это не разряды: 5 × 617 - это (5 × 600) + (5 × 10) + (5 × 7), а не (5 × 6) + (5 × 1) + (5 × 7).'),
+                    L('Multiply every part: (8 × 400) + 93 is not 8 × 493.', 'Умножай каждую часть: (8 × 400) + 93 - это не 8 × 493.'),
+                    L('Add the parts, do not multiply them: (6 × 100) + (4 × 10) = 640, but (6 × 100) × (4 × 10) = 24,000.', 'Части складывают, а не перемножают: (6 × 100) + (4 × 10) = 640, а (6 × 100) × (4 × 10) = 24 000.'),
+                    L('Compensation must take away the right amount: 8 × 493 = (8 × 500) − (8 × 7), not (8 × 500) − (8 × 93).', 'Поправка должна отнять правильное число: 8 × 493 = (8 × 500) − (8 × 7), а не (8 × 500) − (8 × 93).'),
+                ] },
+                { kind: 'trick', title: L('Read it backwards', 'Читай наоборот'), body: [
+                    L('(400 × 3) + (36 × 3): both parts are multiplied by 3, so it is (400 + 36) × 3 = 436 × 3.', '(400 × 3) + (36 × 3): обе части умножены на 3, значит это (400 + 36) × 3 = 436 × 3.'),
+                ] },
+            ],
+        };
+    },
+    'mult-word': rng => {
+        const b = int(rng, 21, 49), k = int(rng, 3, 6), big = b * k;
+        return {
+            hook: [
+                L(`Mia has ${b} dolls. A toy store's warehouse has ${k} times as many. A bar diagram turns those words into a picture, and the picture tells you to multiply.`, `У Мии ${b} ${ruPlural(b, 'кукла', 'куклы', 'кукол')}. На складе магазина в ${k} ${ruPlural(k, 'раз', 'раза', 'раз')} больше. Схема из полосок превращает слова в картинку, а картинка подсказывает: умножай.`),
+                L('Test word problems often have two steps and a table with extra numbers. A good plan beats fast guessing.', 'В тестовых задачах часто два шага и таблица с лишними числами. Хороший план лучше быстрой догадки.'),
+            ],
+            sections: [
+                { kind: 'steps', title: L('A plan for every word problem', 'План для любой задачи'), body: [
+                    L('1. Underline the question. What do you need to find?', '1. Подчеркни вопрос. Что нужно найти?'),
+                    L('2. Pick only the numbers you need. A table may have extra rows.', '2. Выбери только нужные числа. В таблице могут быть лишние строки.'),
+                    L('3. Draw a bar diagram: equal boxes mean multiply, two different parts mean add or subtract.', '3. Нарисуй схему из полосок: одинаковые полоски - умножаем, две разные части - складываем или вычитаем.'),
+                    L('4. Write an equation with a letter and solve it.', '4. Запиши уравнение с буквой и реши его.'),
+                    L('5. Check with an estimate and write the unit.', '5. Проверь прикидкой и напиши единицы.'),
+                ] },
+                { kind: 'example', title: L('Times as many', 'Во сколько раз больше'), prompt: L(`Mia has ${b} dolls. The warehouse has ${k} times as many dolls. How many dolls are in the warehouse?`, `У Мии ${b} ${ruPlural(b, 'кукла', 'куклы', 'кукол')}. На складе в ${k} ${ruPlural(k, 'раз', 'раза', 'раз')} больше. Сколько кукол на складе?`), body: [
+                    L(`One box of ${b} for Mia, ${k} boxes of ${b} for the warehouse.`, `Одна полоска ${b} для Мии, ${k} полосок по ${b} для склада.`),
+                    L(`d = ${k} × ${b} = ${big}.`, `d = ${k} × ${b} = ${big}.`),
+                    L(`Reasonable? ${b} is about ${roundTo(b, 10)}, ${k} × ${roundTo(b, 10)} = ${k * roundTo(b, 10)}, close to ${big} ✓`, `Правдоподобно? ${b} - это примерно ${roundTo(b, 10)}, ${k} × ${roundTo(b, 10)} = ${k * roundTo(b, 10)}, близко к ${big} ✓`),
+                ], visual: { kind: 'bars', rows: [{ label: L('Mia', 'Мия'), boxes: 1, value: String(b) }, { label: L('warehouse', 'склад'), boxes: k, value: String(b) }], braces: [{ row: 1, label: L(`d = ${k} × ${b}`, `d = ${k} × ${b}`) }] } },
+                { kind: 'example', title: L('Two kinds of bags', 'Два вида пакетов'), prompt: L('Mr. Ortiz sells 4 bags of 50 tortillas and 6 bags of 25 tortillas. How many tortillas?', 'Мистер Ортис продал 4 пакета по 50 тортилий и 6 пакетов по 25. Сколько всего тортилий?'), body: [
+                    L('4 × 50 = 200 and 6 × 25 = 150.', '4 × 50 = 200 и 6 × 25 = 150.'),
+                    L('200 + 150 = 350 tortillas. Not 4 + 6 = 10: that only counts the bags!', '200 + 150 = 350 тортилий. Не 4 + 6 = 10: так считаются только пакеты!'),
+                ] },
+                { kind: 'warn', title: L('Watch out!', 'Осторожно!'), body: [
+                    L('"5 times as many" multiplies. "How many more" subtracts. Some problems ask both, one step after the other.', '«В 5 раз больше» - умножаем. «На сколько больше» - вычитаем. В некоторых задачах нужно и то, и другое, по очереди.'),
+                    L('"Every hour" or "each week" means the same amount again and again: find one hour first, then multiply by the hours.', '«Каждый час» или «каждую неделю» значит одно и то же количество снова и снова: сначала найди за один час, потом умножь на число часов.'),
+                    L('Is "about $200" reasonable for 4 gifts of $105? 4 × $100 = $400, so no.', '«Примерно $200» за 4 подарка по $105 - правдоподобно? 4 × $100 = $400, значит нет.'),
+                ] },
+                { kind: 'trick', title: L('Equation from a bar diagram', 'Уравнение по схеме'), body: [
+                    L('Boxes 48, 48, 48, 48 with b over the whole bar: b = 4 × 48 = 192.', 'Полоски 48, 48, 48, 48, над всей полосой b: b = 4 × 48 = 192.'),
+                ] },
+            ],
+        };
+    },
+    'forces': () => ({
+        hook: [
+            L('On the playground you push a swing, pull a wagon and slide down the slide because gravity pulls you. Forces are everywhere!', 'На площадке ты толкаешь качели, тянешь тележку и скатываешься с горки, потому что тебя тянет гравитация. Силы повсюду!'),
+            L('Test on Friday: Chapter 2, What Affects Motion? Here are all the words of Part I with examples you know from real life.', 'Тест в пятницу: глава 2 «Что влияет на движение?». Здесь все слова из части I с примерами из жизни.'),
+        ],
+        sections: [
+            { kind: 'idea', title: L('Study guide words', 'Слова из памятки'), body: [
+                L('MOTION: a change in position of an object.', 'ДВИЖЕНИЕ: изменение положения предмета.'),
+                L('REFERENCE POINT: a place or object used to tell if an object is in motion. Choose something that stays still, like a tree or a building.', 'ТОЧКА ОТСЧЁТА: место или предмет, по которому видно, движется ли предмет. Выбирай то, что стоит на месте: дерево или здание.'),
+                L('FORCE: any push or pull.', 'СИЛА: любой толчок или тяга.'),
+                L('GRAVITY: the force that pulls all objects toward each other. It makes a dropped apple fall.', 'ГРАВИТАЦИЯ: сила, которая притягивает все предметы друг к другу. Из-за неё падает отпущенное яблоко.'),
+                L('RELATIVE MOTION: the change of one object\'s position compared with another object\'s position. On a train Mom looks still to you, but moving to a person on the platform.', 'ОТНОСИТЕЛЬНОЕ ДВИЖЕНИЕ: изменение положения одного предмета по сравнению с другим. В поезде мама для тебя неподвижна, а для человека на платформе движется.'),
+            ] },
+            { kind: 'steps', title: L('Four ways to move', 'Четыре вида движения'), body: [
+                L('A straight line: a bowling ball rolling down the lane.', 'По прямой: шар катится по дорожке боулинга.'),
+                L('A curved path: a basketball flying into the hoop.', 'По кривой: баскетбольный мяч летит в корзину.'),
+                L('Back and forth, a vibration: a plucked guitar string.', 'Туда-сюда, вибрация: дёрнутая струна гитары.'),
+                L('A rotation: a spinning top or a fan.', 'Вращение: юла или вентилятор.'),
+            ] },
+            { kind: 'idea', title: L('What a force does', 'Что делает сила'), body: [
+                L('All forces have a size and a direction.', 'У всех сил есть величина и направление.'),
+                L('A force can make a still object start to move in the direction of the force.', 'Сила может сдвинуть неподвижный предмет в направлении силы.'),
+                L('It can make a moving object go faster, slow down, stop or change direction.', 'Она может заставить движущийся предмет ехать быстрее, медленнее, остановиться или повернуть.'),
+                L('The amount of force matters: a hard kick changes the speed of a ball more than a soft kick.', 'Величина силы важна: сильный удар меняет скорость мяча больше, чем слабый.'),
+            ] },
+            { kind: 'warn', title: L('Balanced or unbalanced?', 'Уравновешенные или нет?'), body: [
+                L('Balanced forces: equal in size, opposite in direction. A still object stays still, a moving object keeps the same speed and direction.', 'Уравновешенные силы: равные по величине, противоположные по направлению. Неподвижный предмет остаётся на месте, движущийся сохраняет скорость и направление.'),
+                L('Unbalanced forces: one side is stronger, so the object moves toward the stronger force, like the rope in a tug of war.', 'Неуравновешенные силы: одна сторона сильнее, и предмет движется в сторону большей силы, как канат в перетягивании.'),
+                L('A book on a table is not "forceless": gravity pulls it down, the table pushes it up just as hard.', 'На книгу на столе силы действуют: гравитация тянет вниз, а стол так же сильно толкает вверх.'),
+            ] },
+            { kind: 'trick', title: L('Memory trick', 'Запоминалка'), body: [
+                L('PUSH sends it away, PULL brings it closer. A tie in tug of war = balanced.', 'ТОЛЧОК - от себя, ТЯГА - к себе. Ничья в перетягивании каната = уравновешенные силы.'),
+            ] },
+        ],
+    }),
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
     ...strategyBuilders,
     ...wordBuilders,
+    ...topic3Builders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
         const skip = Array.from({ length: q }, (_, i) => (i + 1) * d);
@@ -488,6 +662,11 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
                     L('3. Add all the times.', '3. Сложи всё время.'),
                     L('4. Divide total distance by total time.', '4. Раздели всё расстояние на всё время.'),
                 ] },
+                { kind: 'example', title: L('The map from the textbook: point A to point D', 'Карта из учебника: от точки A до точки D'), prompt: L('A → B: 120 km in 2 hours, B → C: 231 km in 3 hours, C → D: 90 km in 2 hours', 'A → B: 120 км за 2 часа, B → C: 231 км за 3 часа, C → D: 90 км за 2 часа'), body: [
+                    L('A → B: 120 ÷ 2 = 60 km/h. B → C: 231 ÷ 3 = 77 km/h. C → D: 90 ÷ 2 = 45 km/h.', 'A → B: 120 ÷ 2 = 60 км/ч. B → C: 231 ÷ 3 = 77 км/ч. C → D: 90 ÷ 2 = 45 км/ч.'),
+                    L('Whole trip: 120 + 231 + 90 = 441 km, 2 + 3 + 2 = 7 hours, 441 ÷ 7 = 63 km/h.', 'Вся поездка: 120 + 231 + 90 = 441 км, 2 + 3 + 2 = 7 часов, 441 ÷ 7 = 63 км/ч.'),
+                    L('The 3 hours at 77 km/h count more than the 2-hour parts, so the speeds cannot simply be added and divided by 3.', '3 часа со скоростью 77 км/ч весят больше, чем части по 2 часа, поэтому скорости нельзя просто сложить и разделить на 3.'),
+                ] },
                 { kind: 'warn', title: L('The trap: do not average the speeds!', 'Ловушка: не усредняй скорости!'), body: [
                     L(`Part 1: ${s1} mph for ${t1} hour. Part 2: ${s2} mph for ${t2} hours.`, `Часть 1: ${s1} миль/ч в течение ${t1} часа. Часть 2: ${s2} миль/ч в течение ${t2} часов.`),
                     L(`Wrong: (${s1} + ${s2}) ÷ 2 = ${(s1 + s2) / 2}.`, `Неверно: (${s1} + ${s2}) ÷ 2 = ${(s1 + s2) / 2}.`),
@@ -527,6 +706,12 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
                 L('VELOCITY: speed AND direction. 30 mph north. Same speed but a new direction means a new velocity.', 'VELOCITY: скорость И направление. 30 миль/ч на север. Скорость та же, но направление новое - значит velocity другая.'),
                 L('ACCELERATION: a change in velocity. Speeding up, slowing down AND turning are all acceleration.', 'УСКОРЕНИЕ (acceleration): изменение velocity. Разгон, торможение И поворот - всё это ускорение.'),
                 L('ENERGY: the same object has more energy when it moves faster. The same ball rolled fast hits the pins harder, the same bumper car going fast bumps harder and louder.', 'ЭНЕРГИЯ: один и тот же предмет, когда движется быстрее, имеет больше энергии. Тот же шар, пущенный быстро, сильнее бьёт по кеглям, та же машинка на большой скорости бьёт сильнее и громче.'),
+            ] },
+            { kind: 'idea', title: L('Study guide, Part II: what is speed?', 'Памятка, часть II: что такое скорость?'), body: [
+                L('Speed: the rate at which an object changes position.', 'Скорость (speed): то, как быстро предмет меняет положение.'),
+                L('Velocity: the speed AND the direction. Direction words: north, south, east and west, or left, right, up and down.', 'Velocity: скорость И направление. Слова направления: север, юг, восток и запад или влево, вправо, вверх и вниз.'),
+                L('Acceleration: any change in the speed or the direction of an object\'s motion.', 'Ускорение (acceleration): любое изменение скорости или направления движения.'),
+                L('Average speed = total distance ÷ total time.', 'Средняя скорость = всё расстояние ÷ всё время.'),
             ] },
             { kind: 'steps', title: L('Is the velocity constant?', 'Velocity постоянна?'), body: [
                 L('Ask two questions: Does the speed change? Does the direction change?', 'Задай два вопроса: меняется ли скорость? Меняется ли направление?'),
@@ -655,9 +840,10 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'div-rem': ['div-facts'], 'div-word': ['div-rem'], 'div-check': ['div-2d', 'mult-standard'],
     'speed-basic': ['div-2d'], 'speed-find': ['speed-basic', 'mult-standard'], 'speed-trip': ['speed-find'],
     'speed-units': ['div-facts'], 'motion-ideas': ['speed-basic'],
-    'est-sum': ['round'], 'est-product': ['round'], 'multiply': ['mult-area'],
+    'est-sum': ['round'], 'est-product': ['round', 'mult-tens'], 'multiply': ['mult-area'],
     'mult-dist': ['mult-area'], 'mult-partial': ['mult-area'], 'mult-standard': ['mult-partial'],
     'compare': ['div-facts'], 'word-steps': ['mult-standard', 'round'],
+    'mult-mental': ['mult-tens', 'mult-dist'], 'mult-expr': ['mult-dist', 'mult-partial'], 'mult-word': ['compare', 'mult-standard'],
 };
 
 // every building block in learning order: a skill comes after everything it needs
@@ -681,6 +867,7 @@ export const answerLine = (p: Problem): L10n => {
     if (a.kind === 'remainder') return L(`Answer: ${fmt(a.q, 'en')} R ${a.r}`, `Ответ: ${fmt(a.q, 'ru')} (остаток ${a.r})`);
     // a worksheet: the last blank is the final product
     if (a.kind === 'fill') return L(`Answer: ${fmt(a.values[a.values.length - 1], 'en')}`, `Ответ: ${fmt(a.values[a.values.length - 1], 'ru')}`);
+    if (a.kind === 'multi') return L(`Answer: ${a.correct.map(i => a.options[i].en).join('; ')}`, `Ответ: ${a.correct.map(i => a.options[i].ru).join('; ')}`);
     const o = a.options[a.correct];
     return L(`Answer: ${o.en}`, `Ответ: ${o.ru}`);
 };

@@ -9,10 +9,12 @@ A game for a 4th grader in New Jersey with Lina (a girl in glasses) and Pip the 
 - learning time is split 50% division, 25% motion and speed, 25% rounding and estimating
 - a wrong answer opens a theory page (with fresh examples and her own task step by step), then a mini quiz; after the quiz comes a new task of the same skill, and the skill returns a few tasks later
 - tasks follow NJSLS grade 4: 4.NBT.B.6 division up to 4-digit by 1-digit with remainders, 4.OA.A.3 interpreting remainders and reasonableness, 4.NBT.A.3 rounding, 4.NBT.B.5 multiplication, 4.M.A.1-2 time and distance, 4-PS3-1 and 4-PS3-3 speed and energy; velocity and acceleration are bonus explorer words
-- a welcome tour on the first visit (again after a reset or from Settings), a daily practice test card (12 tasks, half division, like the Friday test), stars that paint a magic picture with a congratulation and her own choice of the next one (6 pictures), a story book that opens chapter by chapter, progress with time per topic
+- a welcome tour on the first visit (again after a reset or from Settings), a daily practice test card (17 tasks: 6 division, 4 science, 5 of Topic 3 and 2 multiplication strategies), stars that paint a magic picture with a congratulation and her own choice of the next one (6 pictures), a story book that opens chapter by chapter, progress with time per topic
 - progress is saved on the device in localStorage with a copy in IndexedDB (the newer one wins), persistent storage is requested, and Settings can save or load progress as a file
 
-Code: `src/engine/` (task generators, theory, quizzes, game rules), `src/ui/` (Lina and Pip, long division board, area model, number line, trip map, paintings), `src/main.tsx` (screens).
+- test prep for Friday 2026-10-23 (home screen button, theory first, then tasks): Topic 3 "multiply by 1-digit numbers" (multiples of 10, 100 and 1,000; estimating products; mental math with properties and compensation; "select all that apply" expressions and partial products; bar diagrams and multi-step word problems with tables) and Science Chapter 2 "What affects motion?" (motion, reference point, force, gravity, relative motion, kinds of motion, balanced forces, the speed words of Part II and the point A to D map of the textbook)
+
+Code: `src/engine/` (task generators, `topic3.ts` and `forces.ts` for the test prep, theory, quizzes, game rules), `src/ui/` (Lina and Pip, long division board, area model, number line, trip map, paintings), `src/main.tsx` (screens).
 
 `bun test tests` checks every generated task: answers recomputed independently, every equation in steps and theory checked, realistic speeds and story numbers, no repeats, the 50/25/25 time split.
 
