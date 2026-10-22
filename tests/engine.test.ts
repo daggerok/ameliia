@@ -6,7 +6,7 @@ import { roundTo } from '../src/engine/estimation';
 import { ALL_SKILLS, addPaintStars, addTime, applyAnswer, applyQuiz, buildTest, chooseNextPainting, newState, nextProblem, nextSkill, totalTime } from '../src/engine/game';
 import { makeFreshProblem, makeProblem } from '../src/engine/index';
 import { buildQuiz } from '../src/engine/quiz';
-import { buildTheory } from '../src/engine/theory';
+import { buildTheory, chainOf } from '../src/engine/theory';
 import { placeParts, standardRows } from '../src/engine/strategies';
 
 const N = 1500;
@@ -392,6 +392,22 @@ describe('tasks are realistic', () => {
 });
 
 describe('theory and quizzes', () => {
+    test('theory teaches the building blocks first, from the basics up', () => {
+        const blocks = (skill: SkillId) => buildTheory(skill, makeRng(1)).sections.flatMap(s => (s.kind === 'prereq' ? [s.title.en] : []));
+        // average speed of a trip: divide first, then speed, then multiply for each part's distance
+        expect(chainOf('speed-trip')).toEqual(['div-facts', 'div-2d', 'speed-basic', 'mult-area', 'mult-partial', 'mult-standard', 'speed-find']);
+        expect(blocks('speed-trip')[0]).toBe('Building block 1: Division facts');
+        for (const skill of ALL_SKILLS) {
+            const chain = chainOf(skill);
+            expect(chain).not.toContain(skill);
+            // every block comes after the blocks it needs
+            chain.forEach((s, i) => chainOf(s).forEach(n => expect(chain.indexOf(n)).toBeLessThan(i)));
+            expect(blocks(skill).length).toBe(chain.length);
+        }
+        expect(chainOf('speed-basic')).toEqual(['div-facts', 'div-2d']);
+        expect(chainOf('word-steps')).toEqual(['mult-area', 'mult-partial', 'mult-standard', 'round']);
+        expect(chainOf('div-facts')).toEqual([]);
+    });
     test('every theory page has correct math in both languages and changes its examples', () => {
         for (const skill of ALL_SKILLS) {
             const firstExamples = new Set<string>();
@@ -401,9 +417,11 @@ describe('theory and quizzes', () => {
                 const th = buildTheory(skill, rng, failed);
                 const texts: L10n[] = [th.title];
                 const prompts: L10n[] = [];
-                for (const s of th.sections) {
+                const all = th.sections.flatMap(s => (s.kind === 'prereq' ? [s, ...s.sections] : [s]));
+                for (const s of all) {
                     if ('title' in s) texts.push(s.title);
                     if ('prompt' in s) prompts.push(s.prompt);
+                    if (s.kind === 'prereq') continue;
                     if (Array.isArray(s.body)) texts.push(...s.body); else texts.push(s.body);
                 }
                 [...texts, ...prompts].forEach(t => checkText(t, `theory ${skill}#${seed}`));

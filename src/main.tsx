@@ -357,6 +357,12 @@ const SectionView: React.FC<{ s: Section; lang: Lang }> = ({ s, lang }) => {
     const box = 'rounded-2xl p-4 md:p-5';
     if (s.kind === 'story') return <p className="text-lg md:text-xl leading-relaxed font-serif italic text-slate-700 dark:text-slate-200 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-400 rounded-r-2xl p-4">{tr(s.body, lang)}</p>;
     if (s.kind === 'life') return <div className={`${box} bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 font-bold`}>🌱 {tr(s.body, lang)}</div>;
+    if (s.kind === 'prereq') return (
+        <details className="rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/30 p-3 md:p-4" data-testid="prereq">
+            <summary className="font-black text-lg md:text-xl cursor-pointer text-indigo-700 dark:text-indigo-300">🧱 {tr(s.title, lang)}</summary>
+            <div className="space-y-3 mt-3">{s.sections.map((x, i) => <SectionView key={i} s={x} lang={lang} />)}</div>
+        </details>
+    );
     if (s.kind === 'love') return <div className={`${box} bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 font-black text-center`}>{tr(s.body, lang)}</div>;
     const tone = s.kind === 'warn' ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800' : s.kind === 'trick' ? 'bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-800'
         : s.kind === 'example' ? 'bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700';
@@ -382,6 +388,7 @@ const TheoryView: React.FC<{ theory: Theory; lang: Lang; t: UIText; onDone: () =
                 <h2 className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400">{tr(theory.title, lang)}</h2>
             </div>
         </div>
+        {onSkip && <button data-testid="theory-back-top" onClick={onSkip} className={`${secondary} w-full py-3`}>↩ {t.skipTheory}</button>}
         {theory.sections.map((s, i) => <SectionView key={i} s={s} lang={lang} />)}
         <button data-testid="theory-done" onClick={onDone} className={`${primary} w-full py-4 text-xl`}>📝 {t.readDone}</button>
         {onSkip && <button onClick={onSkip} className={`${secondary} w-full py-3`}>{t.skipTheory}</button>}
@@ -620,7 +627,7 @@ export const App: React.FC = () => {
                             onLearn={() => { setBanner(null); openTheory(problem.skill, 'failed', problem); }}
                             onNext={() => { setBanner(null); nextTask(focus); }} />
                     )}
-                    {screen === 'theory' && learn && <TheoryView theory={learn.theory} lang={lang} t={t} onDone={() => { setBanner(null); theoryDone(); }} onSkip={learn.mode === 'first' ? () => setScreen('play') : undefined} />}
+                    {screen === 'theory' && learn && <TheoryView theory={learn.theory} lang={lang} t={t} onDone={() => { setBanner(null); theoryDone(); }} onSkip={learn.mode !== 'failed' && problem && !attempt.result ? () => setScreen('play') : undefined} />}
                     {screen === 'quiz' && learn && <QuizView key={learn.quiz.map(q => q.id).join()} items={learn.quiz} lang={lang} t={t} sound={g.sound} onDone={quizDone} />}
                     {screen === 'quizResult' && learn && (
                         <div className={`${card} space-y-4 text-center animate-bounce-in`} data-testid="quiz-result" data-passed={String(learn.quizScore >= QUIZ_PASS)}>
