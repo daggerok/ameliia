@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type FillAnswer, type FillPart, type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
 import {
-    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, grade, newState, nextProblem, totalTime,
+    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, dailyGoal, dayOf, grade, newState, nextProblem, prepSkills, totalTime,
 } from './engine/game';
 import { makeFreshProblem } from './engine';
 import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
@@ -22,14 +22,14 @@ import { askPersistent, exportFile, importFile, loadDb, loadLocal, newer, save }
 // ========================================
 const UI = {
     en: {
-        title: 'Math Quest', subtitle: 'with Lina and Pip', play: 'Play', playSub: 'Learn by playing', test: 'Practice test', testSub: '12 tasks, like at school on Friday',
+        title: 'Math Quest', subtitle: 'with Lina and Pip', play: 'Play', playSub: 'Learn by playing', test: 'Practice test', testSub: '17 tasks, like at school on Friday',
         story: 'Story book', gallery: 'My paintings', progress: 'Progress', settings: 'Settings', home: 'Home', check: 'Check', hint: 'Hint', next: 'Next task',
         learn: 'Let\'s learn it with Lina', learnFirst: 'Read the theory first', readDone: 'I read it! Quiz time', quiz: 'Mini quiz', question: 'Question', of: 'of',
         quizPassed: 'Quiz passed!', quizFailed: 'Not yet, let\'s read it once more', tryNew: 'Try a new task', backToTask: 'Back to my task', readAgain: 'Read again with new examples',
         howSolve: 'How to solve it', correct: 'Correct!', wrong: 'Not quite', stars: 'Stars', streak: 'Streak', today: 'Today', accuracy: 'Correct', quotient: 'Answer',
         remainder: 'R', empty: 'Type your answer first', pick: 'Choose an answer', startTest: 'Start the test', finish: 'Finish the test', result: 'Your result', gradeL: 'Grade',
         time: 'Time', practiceMistakes: 'Practice my mistakes', back: 'Back', locked: 'Opens at', chapter: 'Chapter', read: 'Read', language: 'Language', theme: 'Theme',
-        sound: 'Sound', reset: 'Reset all progress', resetConfirm: 'Really delete all stars and progress?', parents: 'For Mom and Dad', minutes: 'min', goal: 'Daily goal',
+        sound: 'Sound', reset: 'Reset all progress', resetConfirm: 'Really delete all stars and progress?', parents: 'For Mom and Dad', minutes: 'min', goal: 'Daily goal', goalShort: 'Goal', goalPrep: 'Goal for the test: right answers', goalPrepSub: 'Every kind of task from the homework, a few right answers each', goalSub: (n: number) => `${n} right answers today`, goalDone: 'Goal done! Extra practice makes you even stronger',
         balance: 'Learning time', target: 'goal', skill: 'Skill', solved: 'Solved', reads: 'Theory', quizzes: 'Quizzes', tests: 'Practice tests', noTests: 'No tests yet',
         painting: 'Magic painting', finished: 'Finished paintings', newPainting: 'Your painting is finished! A new one is waiting.', light: 'Light', dark: 'Dark', system: 'Auto',
         on: 'On', off: 'Off', yourAnswer: 'Your answer', rightAnswer: 'Right answer', starsWord: 'stars', reviewFirst: 'Let\'s look at the theory for this one first, then you will crush it!',
@@ -48,7 +48,7 @@ const UI = {
             { target: 'story', icon: '📖', title: 'Your story book', body: 'Stars open chapters of a story about your family and the trip to Italy: a new chapter every 30 stars.' },
             { target: 'progress', icon: '📊', title: 'Progress', body: 'Here you see how many minutes you learned today and which skills are already strong.' },
             { target: 'daily-test', icon: '📝', title: 'Every day: the practice test', body: 'At the end of each day, press here and take the practice test. It is like your real test on Friday. Every day you will do it better!' },
-            { icon: '❤️', title: 'Mom and Dad love you', body: 'Learn up to 2 hours a day, take little breaks and have fun. Ready?' },
+            { icon: '❤️', title: 'Mom and Dad love you', body: 'Reach your daily goal of right answers, take little breaks and have fun. The clock shows how long you have studied today. Ready?' },
         ] as CoachStep[],
         playTour: [
             { target: 'prompt', icon: '📖', title: 'Read the task', body: 'Read it slowly, like a story. What do we know, and what do we need to find?' },
@@ -69,14 +69,14 @@ const UI = {
         nextQ: 'Next question', finishQuiz: 'Finish the quiz', youAnswered: 'You answered', testIn: (n: number) => n === 0 ? 'The test is today! You are ready!' : n === 1 ? 'The test is tomorrow!' : `The test is in ${n} days`, testDate: 'School test date', almost: '2 of 3, almost perfect! Great learning.', earned: 'stars earned',
     },
     ru: {
-        title: 'Математический квест', subtitle: 'с Линой и Пип', play: 'Играть', playSub: 'Учимся, играя', test: 'Пробный тест', testSub: '12 заданий, как в школе в пятницу',
+        title: 'Математический квест', subtitle: 'с Линой и Пип', play: 'Играть', playSub: 'Учимся, играя', test: 'Пробный тест', testSub: '17 заданий, как в школе в пятницу',
         story: 'Книжка-история', gallery: 'Мои картины', progress: 'Прогресс', settings: 'Настройки', home: 'Домой', check: 'Проверить', hint: 'Подсказка', next: 'Следующее задание',
         learn: 'Разберёмся вместе с Линой', learnFirst: 'Сначала прочитать теорию', readDone: 'Прочитала! К викторине', quiz: 'Мини-викторина', question: 'Вопрос', of: 'из',
         quizPassed: 'Викторина пройдена!', quizFailed: 'Пока не получилось, прочитаем ещё раз', tryNew: 'Новое задание', backToTask: 'Вернуться к заданию', readAgain: 'Прочитать ещё раз с новыми примерами',
         howSolve: 'Как решать', correct: 'Верно!', wrong: 'Не совсем', stars: 'Звёзды', streak: 'Серия', today: 'Сегодня', accuracy: 'Верно', quotient: 'Ответ',
         remainder: 'Ост.', empty: 'Сначала напиши ответ', pick: 'Выбери ответ', startTest: 'Начать тест', finish: 'Закончить тест', result: 'Твой результат', gradeL: 'Оценка',
         time: 'Время', practiceMistakes: 'Потренировать ошибки', back: 'Назад', locked: 'Откроется при', chapter: 'Глава', read: 'Читать', language: 'Язык', theme: 'Тема',
-        sound: 'Звук', reset: 'Сбросить весь прогресс', resetConfirm: 'Точно удалить все звёзды и прогресс?', parents: 'Для мамы и папы', minutes: 'мин', goal: 'Цель на день',
+        sound: 'Звук', reset: 'Сбросить весь прогресс', resetConfirm: 'Точно удалить все звёзды и прогресс?', parents: 'Для мамы и папы', minutes: 'мин', goal: 'Цель на день', goalShort: 'Цель', goalPrep: 'Цель к тесту: верные ответы', goalPrepSub: 'Все виды заданий из домашки, по нескольку верных ответов', goalSub: (n: number) => `${n} верных ответов за день`, goalDone: 'Цель выполнена! Дополнительная практика сделает тебя ещё сильнее',
         balance: 'Время учёбы', target: 'цель', skill: 'Навык', solved: 'Решено', reads: 'Теория', quizzes: 'Викторины', tests: 'Пробные тесты', noTests: 'Тестов пока нет',
         painting: 'Волшебная картина', finished: 'Готовые картины', newPainting: 'Картина готова! Тебя ждёт новая.', light: 'Светлая', dark: 'Тёмная', system: 'Авто',
         on: 'Вкл', off: 'Выкл', yourAnswer: 'Твой ответ', rightAnswer: 'Правильный ответ', starsWord: 'звёзд', reviewFirst: 'Давай сначала заглянем в теорию к этому заданию, и всё получится!',
@@ -95,7 +95,7 @@ const UI = {
             { target: 'story', icon: '📖', title: 'Твоя книжка-история', body: 'Звёзды открывают главы истории про твою семью и поездку в Италию: новая глава каждые 30 звёзд.' },
             { target: 'progress', icon: '📊', title: 'Прогресс', body: 'Здесь видно, сколько минут ты сегодня училась и какие навыки уже сильные.' },
             { target: 'daily-test', icon: '📝', title: 'Каждый день: пробный тест', body: 'В конце каждого дня нажимай сюда и проходи пробный тест. Он как настоящий тест в пятницу. С каждым днём будет получаться лучше!' },
-            { icon: '❤️', title: 'Мама и папа тебя любят', body: 'Занимайся до 2 часов в день, делай маленькие перерывы и получай удовольствие. Готова?' },
+            { icon: '❤️', title: 'Мама и папа тебя любят', body: 'Выполни дневную цель верных ответов, делай маленькие перерывы и получай удовольствие. Часы показывают, сколько ты сегодня занималась. Готова?' },
         ] as CoachStep[],
         playTour: [
             { target: 'prompt', icon: '📖', title: 'Прочитай задание', body: 'Читай медленно, как историю. Что мы знаем и что нужно найти?' },
@@ -123,12 +123,9 @@ const STARS_PER_PART = 2;
 const params = new URLSearchParams(location.search);
 const SELFTEST = params.has('selftest');
 // self checks only: ?skill=mult-area makes every practice task that skill
-// test prep for Friday 2026-10-23: Topic 3 (multiplying by 1-digit numbers) and Science Chapter 2 (what affects motion)
-const HOMEWORK: SkillId[] = ['mult-tens', 'est-product', 'mult-area', 'mult-partial', 'mult-dist', 'mult-standard', 'mult-mental', 'mult-expr', 'mult-word', 'compare', 'forces', 'motion-ideas', 'speed-trip'];
 const FORCED_SKILL = SELFTEST && params.get('skill') && ALL_SKILLS.includes(params.get('skill') as SkillId) ? (params.get('skill') as SkillId) : undefined;
 const seed = Number(params.get('seed')) || (Date.now() % 2147483647);
-// the day on the device clock (her iPad is on New York time), not in UTC: after 8 pm in New York UTC is already tomorrow
-const dayOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// the day on the device clock (dayOf): after 8 pm in New York UTC is already tomorrow
 const today = () => dayOf(new Date());
 // Russian texts group thousands with a no-break space so a number never breaks across lines
 const tr = (l: L10n, lang: Lang) => (lang === 'ru' ? l.ru.replace(/(\d) (?=\d{3}(?!\d))/g, '$1\u00a0') : l.en);
@@ -179,15 +176,37 @@ const Confetti: React.FC<{ on: boolean }> = ({ on }) => {
     );
 };
 
-const StatsBar: React.FC<{ g: GameState; t: UIText; pop: boolean }> = ({ g, t, pop }) => {
-    const mins = Math.floor((g.daily[today()] ?? 0) / 60);
+// 75 -> 1:15, 3725 -> 1:02:05
+const clockText = (sec: number) => {
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), x = sec % 60;
+    return h ? `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}` : `${m}:${String(x).padStart(2, '0')}`;
+};
+
+// today's learning time, ticking every second while she studies; the game stores it every 5 seconds,
+// so the clock adds the seconds since the last stored tick and never runs ahead of it by more than that
+const LiveTimer: React.FC<{ base: number; running: boolean }> = ({ base, running }) => {
+    const [extra, setExtra] = useState(0);
+    useEffect(() => { setExtra(0); }, [base]);
+    useEffect(() => {
+        if (!running) { setExtra(0); return; }
+        const id = setInterval(() => setExtra(e => Math.min(e + 1, 4)), 1000);
+        return () => clearInterval(id);
+    }, [running, base]);
+    return <span data-testid="timer" data-running={String(running)}>{clockText(base + extra)}</span>;
+};
+
+const StatsBar: React.FC<{ g: GameState; t: UIText; pop: boolean; running: boolean }> = ({ g, t, pop, running }) => {
     const acc = g.answered ? Math.round((g.correct / g.answered) * 100) : 0;
+    const goal = dailyGoal(g, today());
+    const label = 'opacity-70 text-[9px] sm:text-[10px] md:text-xs uppercase font-extrabold tracking-wider';
+    const value = 'text-base sm:text-xl md:text-2xl font-black whitespace-nowrap';
     return (
-        <div className="grid grid-cols-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-3 md:p-4 text-center text-white shadow-xl mb-4 w-full" data-testid="statsbar">
-            <div><div className={`text-xl md:text-2xl font-black ${pop ? 'animate-counter-up' : ''}`} data-testid="stars">⭐ {g.stars}</div><div className="opacity-70 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">{t.stars}</div></div>
-            <div><div className="text-xl md:text-2xl font-black">🔥 {g.streak}</div><div className="opacity-70 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">{t.streak}</div></div>
-            <div><div className="text-xl md:text-2xl font-black">⏱ {mins}</div><div className="opacity-70 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">{t.today}, {t.minutes}</div></div>
-            <div><div className="text-xl md:text-2xl font-black">✓ {acc}%</div><div className="opacity-70 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">{t.accuracy}</div></div>
+        <div className="grid grid-cols-5 gap-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-3 md:p-4 text-center text-white shadow-xl mb-4 w-full" data-testid="statsbar">
+            <div><div className={`${value} ${pop ? 'animate-counter-up' : ''}`} data-testid="stars">⭐ {g.stars}</div><div className={label}>{t.stars}</div></div>
+            <div><div className={value}>🔥 {g.streak}</div><div className={label}>{t.streak}</div></div>
+            <div><div className={value} data-testid="goal-bar">{goal.done >= goal.total ? '🏆' : '🎯'} {goal.done}/{goal.total}</div><div className={label}>{t.goalShort}</div></div>
+            <div><div className={`${value} tabular-nums`}>⏱ <LiveTimer base={g.daily[today()] ?? 0} running={running} /></div><div className={label}>{t.today}</div></div>
+            <div><div className={value}>✓ {acc}%</div><div className={label}>{t.accuracy}</div></div>
         </div>
     );
 };
@@ -560,25 +579,27 @@ export const App: React.FC = () => {
         setScreen('play');
     };
 
-    // homework mode: only the topics of the homework sheet; a topic she has never read starts with its theory, like a lesson
-    const [focus, setFocus] = useState<SkillId[] | null>(null);
-    const nextTask = (f: SkillId[] | null) => {
-        const p = nextProblem(g, rng, FORCED_SKILL ?? (f ? f[Math.floor(rng() * f.length)] : undefined));
+    // test prep: only the task types of the homework for the test, first the ones she has not covered today;
+    // a topic she has never read starts with its theory, like a lesson
+    const [focus, setFocus] = useState(false);
+    const nextTask = (f: boolean) => {
+        const open = prepSkills(g, today());
+        const p = nextProblem(g, rng, FORCED_SKILL ?? (f ? open[Math.floor(rng() * open.length)] : undefined));
         const st = g.skills[p.skill];
         if (st.needsTheory || (f && st.theoryReads === 0)) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); if (st.needsTheory) setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); return; }
         startProblem(p);
     };
     const play = () => {
         if (problem && !attempt.result && !focus) { setScreen('play'); return; }
-        setFocus(null);
-        nextTask(null);
+        setFocus(false);
+        nextTask(false);
     };
-    const playHomework = () => { setFocus(HOMEWORK); nextTask(HOMEWORK); };
+    const playHomework = () => { setFocus(true); nextTask(true); };
 
     const submit = (given: Given) => {
         if (!problem) return;
         const ok = sameAnswer(problem.answer, given);
-        const { state, stars } = applyAnswer(g, problem, ok, { firstTry: !attempt.afterLearn, hint: attempt.hint, sec: (Date.now() - attempt.start) / 1000 });
+        const { state, stars } = applyAnswer(g, problem, ok, { firstTry: !attempt.afterLearn, hint: attempt.hint, sec: (Date.now() - attempt.start) / 1000, day: today() });
         setG(paint(state, stars));
         if (g.sound) ok ? Sound.good() : Sound.bad();
         if (ok) { setPop(true); setTimeout(() => setPop(false), 500); if (state.streak > 0 && state.streak % 5 === 0) celebrate(); }
@@ -617,7 +638,7 @@ export const App: React.FC = () => {
         if (test.idx + 1 < test.problems.length) { setTest({ ...test, given: all, idx: test.idx + 1 }); return; }
         const results = test.problems.map((p, i) => sameAnswer(p.answer, all[i]));
         const sec = (Date.now() - test.start) / 1000;
-        setG(paint(applyTest(g, test.problems, results, sec), results.filter(Boolean).length));
+        setG(paint(applyTest(g, test.problems, results, sec, today()), results.filter(Boolean).length));
         setTest({ ...test, given: all, results });
         if (results.every(Boolean)) celebrate();
         setScreen('testResult');
@@ -658,7 +679,7 @@ export const App: React.FC = () => {
                         <button data-testid="nav-settings" onClick={() => go('settings')} className="px-2.5 sm:px-3 py-2 bg-white dark:bg-slate-800 shadow-md rounded-xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm font-black">⚙️</button>
                     </div>
                 </header>
-                <StatsBar g={g} t={t} pop={pop} />
+                <StatsBar g={g} t={t} pop={pop} running={!!currentTopic} />
                 {banner && <div className="mb-3 animate-bounce-in" onClick={() => setBanner(null)}><Guide mood="cheer">{tr(banner, lang)}</Guide></div>}
                 <main className="w-full pb-8">
                     {screen === 'home' && <Home g={g} t={t} lang={lang} greeting={greeting[0]} chaptersOpen={chaptersOpen} onPlay={play} onHomework={playHomework} onTest={startTest} onStory={() => { setChapter(null); go('story'); }} onGallery={() => go('gallery')} onStats={() => go('stats')} />}
@@ -701,8 +722,9 @@ export const App: React.FC = () => {
 // ========================================
 const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chaptersOpen: number; onPlay: () => void; onHomework: () => void; onTest: () => void; onStory: () => void; onGallery: () => void; onStats: () => void }> = ({ g, t, lang, greeting, chaptersOpen, onPlay, onHomework, onTest, onStory, onGallery, onStats }) => {
     const mins = Math.floor((g.daily[today()] ?? 0) / 60);
-    // the parents' daily goal: up to 2 hours of learning
-    const goal = 120;
+    // the daily goal is right answers: before the test, every task type of the homework for it
+    const goal = dailyGoal(g, today());
+    const done = goal.done >= goal.total;
     const p = PAINTINGS[g.painting.index];
     return (
         <div className="space-y-4 animate-slide-up" data-testid="home">
@@ -721,14 +743,24 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
                     : <button data-testid="daily-test" data-done="false" onClick={onTest} className="w-full rounded-3xl p-4 text-left flex items-center gap-3 bg-amber-100 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 active:scale-[0.98]"><span className="text-3xl">📝</span><span><span className="block font-black text-amber-800 dark:text-amber-200">{t.dailyTodo}</span><span className="block text-xs font-bold text-amber-700/70 dark:text-amber-300/70">{t.dailyTodoSub}</span></span></button>;
             })()}
             <div className="grid grid-cols-2 gap-3">
-                <button data-testid="progress" onClick={onStats} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📊</div><div className="font-black text-lg">{t.progress}</div><div className="text-xs font-bold text-slate-400">{mins} / {goal} {t.minutes}</div></button>
+                <button data-testid="progress" onClick={onStats} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📊</div><div className="font-black text-lg">{t.progress}</div><div className="text-xs font-bold text-slate-400">{goal.done} / {goal.total} ✓ · {mins} {t.minutes}</div></button>
                 <button data-testid="story" onClick={onStory} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📖</div><div className="font-black text-lg">{t.story}</div><div className="text-xs font-bold text-slate-400">{chaptersOpen} / {CHAPTERS.length}</div></button>
                 <button data-testid="gallery" onClick={onGallery} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">🎨</div><div className="font-black text-lg">{t.gallery}</div><div className="text-xs font-bold text-slate-400">{g.painting.done.length} ✓</div></button>
                 <button data-testid="test" onClick={onTest} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📝</div><div className="font-black text-lg">{t.test}</div><div className="text-xs font-bold text-slate-400">{t.testSub}</div></button>
             </div>
-            <div className={`${card} !p-4`}>
-                <div className="flex justify-between font-black mb-2"><span>🎯 {t.goal}</span><span>{mins} / {goal} {t.minutes}</span></div>
-                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600" style={{ width: `${Math.min(100, (mins / goal) * 100)}%` }} /></div>
+            <div className={`${card} !p-4`} data-testid="goal" data-done={String(done)}>
+                <div className="flex justify-between font-black mb-1"><span>{done ? '🏆' : '🎯'} {goal.rows.length ? t.goalPrep : t.goal}</span><span>{goal.done} / {goal.total}</span></div>
+                <div className="text-xs font-bold text-slate-400 mb-2">{done ? t.goalDone : goal.rows.length ? t.goalPrepSub : t.goalSub(goal.total)} · ⏱ {mins} {t.minutes}</div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"><div className={`h-full bg-gradient-to-r ${done ? 'from-amber-400 to-amber-500' : 'from-emerald-400 to-emerald-600'}`} style={{ width: `${Math.min(100, (goal.done / goal.total) * 100)}%` }} /></div>
+                {goal.rows.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-3" data-testid="goal-rows">
+                        {goal.rows.map(r => (
+                            <span key={r.skill} data-testid={`goal-${r.skill}`} className={`text-xs font-bold rounded-full px-2.5 py-1 border ${r.done >= r.need ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300'}`}>
+                                {r.done >= r.need ? '✓' : `${r.done}/${r.need}`} {tr(SKILL_NAME[r.skill], lang)}
+                            </span>
+                        ))}
+                    </div>
+                )}
             </div>
             <div className={`${card} !p-4`} data-testid="home-painting">
                 <div className="flex justify-between items-center font-black mb-2"><span>🎨 {t.painting}</span><span className="text-sm text-slate-400">{Math.floor(g.painting.filled / STARS_PER_PART)} / {p.regions.length}</span></div>

@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, STRATEGIES, addPaintStars, addTime, applyAnswer, applyQuiz, buildTest, chooseNextPainting, newState, nextProblem, nextSkill, totalTime } from '../src/engine/game';
+import { ALL_SKILLS, DAILY_RIGHT, STRATEGIES, TEST_PREP, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, dailyGoal, dayOf, newState, normalize, nextProblem, nextSkill, prepSkills, totalTime } from '../src/engine/game';
 import { makeFreshProblem, makeProblem } from '../src/engine/index';
 import { buildQuiz } from '../src/engine/quiz';
 import { buildTheory, chainOf } from '../src/engine/theory';
@@ -643,6 +643,51 @@ describe('game flow', () => {
         expect(r.finished).toBe(null);
         s = chooseNextPainting(r.state, 4, parts, 2);
         expect(s.painting).toEqual({ index: 4, filled: 6, done: [0], choosing: false });
+    });
+    test('the daily goal is right answers: before the test every homework task type, later 30 a day', () => {
+        const day = '2026-10-22', s0 = newState();
+        expect(Object.keys(TEST_PREP).every(k => ALL_SKILLS.includes(k as never))).toBe(true);
+        // every task type of the photos is in the plan
+        for (const k of ['mult-tens', 'est-product', 'mult-mental', 'mult-expr', 'mult-word', 'forces', 'motion-ideas', 'speed-trip', 'mult-partial', 'mult-dist'] as SkillId[]) expect(TEST_PREP[k]).toBeGreaterThan(0);
+        const g0 = dailyGoal(s0, day);
+        expect(g0.total).toBe(Object.values(TEST_PREP).reduce((a, b) => a + (b ?? 0), 0));
+        expect(g0.total).toBeGreaterThanOrEqual(30);
+        expect(g0.total).toBeLessThanOrEqual(50);
+        expect(g0.done).toBe(0);
+        const rng = makeRng(5);
+        let s = s0;
+        // wrong answers and right answers on another day do not count
+        s = applyAnswer(s, makeProblem('forces', rng), false, { firstTry: true, hint: false, sec: 5, day }).state;
+        s = applyAnswer(s, makeProblem('forces', rng), true, { firstTry: true, hint: false, sec: 5, day: '2026-10-21' }).state;
+        expect(dailyGoal(s, day).done).toBe(0);
+        // extra right answers of one type cover only that type
+        for (let i = 0; i < 9; i++) s = applyAnswer(s, makeProblem('forces', rng), true, { firstTry: true, hint: false, sec: 5, day }).state;
+        expect(dailyGoal(s, day).done).toBe(TEST_PREP.forces);
+        expect(prepSkills(s, day)).not.toContain('forces');
+        expect(prepSkills(s, day).length).toBe(Object.keys(TEST_PREP).length - 1);
+        // practice test answers count too
+        const problems = [makeProblem('mult-expr', rng), makeProblem('mult-word', rng)];
+        s = applyTest(s, problems, [true, false], 60, day);
+        expect(s.dailySkills[day]['mult-expr']).toBe(1);
+        expect(s.dailySkills[day]['mult-word']).toBeUndefined();
+        // everything covered: test prep keeps going with all the types
+        for (const [k, n] of Object.entries(TEST_PREP)) for (let i = 0; i < (n ?? 0); i++) s = applyAnswer(s, makeProblem(k as SkillId, rng), true, { firstTry: true, hint: false, sec: 5, day }).state;
+        expect(dailyGoal(s, day).done).toBe(dailyGoal(s, day).total);
+        expect(prepSkills(s, day).length).toBe(Object.keys(TEST_PREP).length);
+        // after the test day: 30 right answers of any kind
+        const after = '2026-10-24';
+        expect(dailyGoal(s, after)).toEqual({ rows: [], done: 0, total: DAILY_RIGHT });
+        for (let i = 0; i < 40; i++) s = applyAnswer(s, makeProblem('round', rng), true, { firstTry: true, hint: false, sec: 5, day: after }).state;
+        expect(dailyGoal(s, after).done).toBe(DAILY_RIGHT);
+    });
+    test('progress saved by an older build keeps today\'s right answers', () => {
+        const t = new Date(2026, 9, 22, 21, 30).getTime();
+        const old = { ...newState(), history: [{ t, skill: 'forces', ok: true, firstTry: true, hint: false, sec: 9 }, { t, skill: 'forces', ok: false, firstTry: true, hint: false, sec: 9 }, { t, skill: 'mult-expr', ok: true, firstTry: true, hint: false, sec: 9 }] } as Record<string, unknown>;
+        delete old.dailySkills;
+        const s = normalize(old);
+        // 9:30 pm in New York is still the 22nd on the device clock
+        expect(dayOf(new Date(t))).toBe('2026-10-22');
+        expect(s.dailySkills['2026-10-22']).toEqual({ forces: 1, 'mult-expr': 1 });
     });
     test('stars: 3 on the first try, 2 with a hint, 1 after learning', () => {
         const p = makeProblem('round', makeRng(1));
