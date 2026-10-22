@@ -12,7 +12,9 @@ export type Section =
     | { kind: 'warn'; title: L10n; body: L10n[] }
     | { kind: 'trick'; title: L10n; body: L10n[] }
     | { kind: 'life'; body: L10n }
-    | { kind: 'love'; body: L10n };
+    | { kind: 'love'; body: L10n }
+    // a skill this one is built on, shown before its own theory: the whole lesson of that skill, folded
+    | { kind: 'prereq'; title: L10n; sections: Section[] };
 
 export type Theory = { skill: SkillId; title: L10n; sections: Section[] };
 
@@ -646,6 +648,33 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
     },
 };
 
+// the skills a task is built on, nearest first; the page shows the whole chain from the basics up
+// (average speed divides, a word problem multiplies and rounds, the standard algorithm is short partial products)
+const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
+    'div-2d': ['div-facts'], 'div-3d': ['div-2d'], 'div-zero': ['div-3d'], 'div-4d': ['div-3d'],
+    'div-rem': ['div-facts'], 'div-word': ['div-rem'], 'div-check': ['div-2d', 'mult-standard'],
+    'speed-basic': ['div-2d'], 'speed-find': ['speed-basic', 'mult-standard'], 'speed-trip': ['speed-find'],
+    'speed-units': ['div-facts'], 'motion-ideas': ['speed-basic'],
+    'est-sum': ['round'], 'est-product': ['round'], 'multiply': ['mult-area'],
+    'mult-dist': ['mult-area'], 'mult-partial': ['mult-area'], 'mult-standard': ['mult-partial'],
+    'compare': ['div-facts'], 'word-steps': ['mult-standard', 'round'],
+};
+
+// every building block in learning order: a skill comes after everything it needs
+export const chainOf = (skill: SkillId): SkillId[] => {
+    const out: SkillId[] = [];
+    const visit = (s: SkillId) => { for (const n of NEEDS[s] ?? []) visit(n); if (!out.includes(s)) out.push(s); };
+    visit(skill);
+    return out.slice(0, -1);
+};
+
+const blocksIntro = (skill: SkillId, chain: SkillId[]): Section => ({
+    kind: 'steps', title: L('What you need for this, in order', 'Что для этого нужно, по порядку'),
+    body: [...chain, skill].map((s, i) => (i === chain.length
+        ? L(`${i + 1}. ${SKILL_NAME[s].en} - this page`, `${i + 1}. ${SKILL_NAME[s].ru} - эта страница`)
+        : L(`${i + 1}. ${SKILL_NAME[s].en} - tap the block below to read it`, `${i + 1}. ${SKILL_NAME[s].ru} - нажми на блок ниже, чтобы прочитать`))),
+});
+
 export const answerLine = (p: Problem): L10n => {
     const a = p.answer;
     if (a.kind === 'number') return L(`Answer: ${fmt(a.value, 'en')}`, `Ответ: ${fmt(a.value, 'ru')}`);
@@ -661,6 +690,12 @@ export const buildTheory = (skill: SkillId, rng: Rng, failed?: Problem): Theory 
     const out: Section[] = [{ kind: 'story', body: pick(rng, hook) }];
     // after a mistake her own task comes first, step by step, then the rest of the page
     if (failed) out.push({ kind: 'example', title: T.yours, prompt: failed.prompt, body: [...failed.steps, answerLine(failed)], visual: failed.visual });
+    // the building blocks first, from the basics up, then this skill
+    const chain = chainOf(skill);
+    if (chain.length) {
+        out.push(blocksIntro(skill, chain));
+        chain.forEach((s, i) => out.push({ kind: 'prereq', title: L(`Building block ${i + 1}: ${SKILL_NAME[s].en}`, `Кирпичик ${i + 1}: ${SKILL_NAME[s].ru}`), sections: builders[s](rng).sections }));
+    }
     out.push(...sections);
     // a brand-new worked example from the real task generator, so the theory never looks the same twice
     // never the same task as the one she just failed
