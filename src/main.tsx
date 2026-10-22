@@ -14,7 +14,7 @@ import { VisualView } from './ui/Boards';
 import { Guide, Lina, Pip } from './ui/Buddy';
 import { PAINTINGS, PaintingView } from './ui/Paintings';
 import { Coach, type CoachStep } from './ui/Coach';
-import { Notepad, type Stroke } from './ui/Notepad';
+import { Notepad, START_VIEW, type Stroke, type View } from './ui/Notepad';
 import { askPersistent, exportFile, importFile, loadDb, loadLocal, newer, save } from './storage';
 
 // ========================================
@@ -39,7 +39,7 @@ const UI = {
         congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
         dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Homework: Lesson 3-8', hwSub: 'Times as much, word problems, 4 ways to multiply. Theory first, then tasks', howToPlay: 'How to play (the welcome tour)',
         tourNext: 'Next', tourBack: 'Back', tourSkip: 'Skip', tourStart: 'Let\'s start!', tourGo: 'Got it!',
-        notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadHas: 'notes',
+        notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadMove: 'Move the page', notepadZoomIn: 'Zoom in', notepadZoomOut: 'Zoom out', notepadZoomReset: 'Back to 100%', notepadHas: 'notes',
         intro: [
             { icon: '👋', title: 'Hi Ameliia! I am Lina', body: 'And this is Pip the capybara: every time you see her she has a new hobby. Together we will make math your superpower: division, speed and rounding.' },
             { target: 'play', icon: '🚀', title: 'Play', body: 'Press here to solve tasks. Every right answer gives you stars: 3 on the first try, 2 with a hint.' },
@@ -78,7 +78,7 @@ const UI = {
         congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
         dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'Домашка: Lesson 3-8', hwSub: 'Во сколько раз, текстовые задачи, 4 способа умножать. Сначала теория, потом задания', howToPlay: 'Как играть (знакомство с игрой)',
         tourNext: 'Дальше', tourBack: 'Назад', tourSkip: 'Пропустить', tourStart: 'Поехали!', tourGo: 'Понятно!',
-        notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadHas: 'записей',
+        notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadMove: 'Двигать лист', notepadZoomIn: 'Увеличить', notepadZoomOut: 'Уменьшить', notepadZoomReset: 'Вернуть 100%', notepadHas: 'записей',
         intro: [
             { icon: '👋', title: 'Привет, Амелия! Я Лина', body: 'А это капибара Пип: каждый раз, когда ты её видишь, у неё новое увлечение. Вместе мы сделаем математику твоей суперсилой: деление, скорость и округление.' },
             { target: 'play', icon: '🚀', title: 'Играть', body: 'Нажимай сюда, чтобы решать задания. За каждый правильный ответ ты получаешь звёзды: 3 с первого раза, 2 с подсказкой.' },
@@ -300,6 +300,7 @@ const FillSheet: React.FC<{ answer: FillAnswer; lang: Lang; values?: string[]; s
 const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit: (g: Given) => void; label?: string }> = ({ problem, lang, t, onSubmit, label }) => {
     // notes belong to this task only: a new task remounts the input and starts a clean page
     const [strokes, setStrokes] = useState<Stroke[]>([]);
+    const [view, setView] = useState<View>(START_VIEW);
     const [pad, setPad] = useState(false);
     const [v, setV] = useState('');
     const [r, setR] = useState('');
@@ -345,7 +346,7 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
             )}
             <button type="button" data-testid="notepad-open" onClick={() => setPad(true)} className={`${secondary} w-full py-3`}>✏️ {t.notepadOpen}{strokes.length ? ` · ${strokes.length} ${t.notepadHas}` : ''}</button>
             <button type="submit" data-testid="check" className={`${primary} w-full py-4 text-xl`}>{t.check}</button>
-            {pad && <Notepad strokes={strokes} setStrokes={setStrokes} prompt={tr(problem.prompt, lang)} onClose={() => setPad(false)} labels={{ done: t.notepadDone, clear: t.notepadClear, undo: t.notepadUndo, eraser: t.notepadEraser, title: t.notepad }} />}
+            {pad && <Notepad strokes={strokes} setStrokes={setStrokes} view={view} setView={setView} prompt={tr(problem.prompt, lang)} onClose={() => setPad(false)} labels={{ done: t.notepadDone, clear: t.notepadClear, undo: t.notepadUndo, eraser: t.notepadEraser, title: t.notepad, move: t.notepadMove, zoomIn: t.notepadZoomIn, zoomOut: t.notepadZoomOut, zoomReset: t.notepadZoomReset }} />}
         </form>
     );
 };
