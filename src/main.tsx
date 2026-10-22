@@ -126,7 +126,9 @@ const SELFTEST = params.has('selftest');
 const HOMEWORK: SkillId[] = ['compare', 'word-steps', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];
 const FORCED_SKILL = SELFTEST && params.get('skill') && ALL_SKILLS.includes(params.get('skill') as SkillId) ? (params.get('skill') as SkillId) : undefined;
 const seed = Number(params.get('seed')) || (Date.now() % 2147483647);
-const today = () => new Date().toISOString().slice(0, 10);
+// the day on the device clock (her iPad is on New York time), not in UTC: after 8 pm in New York UTC is already tomorrow
+const dayOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const today = () => dayOf(new Date());
 // Russian texts group thousands with a no-break space so a number never breaks across lines
 const tr = (l: L10n, lang: Lang) => (lang === 'ru' ? l.ru.replace(/(\d) (?=\d{3}(?!\d))/g, '$1\u00a0') : l.en);
 
@@ -696,7 +698,7 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
             </button>
             <button data-testid="homework" onClick={onHomework} className="w-full rounded-3xl p-4 text-left flex items-center gap-3 bg-sky-100 dark:bg-sky-950/40 border-2 border-sky-300 dark:border-sky-700 active:scale-[0.98]"><span className="text-3xl">📚</span><span><span className="block font-black text-sky-800 dark:text-sky-200">{t.hw}</span><span className="block text-xs font-bold text-sky-700/70 dark:text-sky-300/70">{t.hwSub}</span></span></button>
             {(() => {
-                const mine = g.tests.filter(x => new Date(x.t).toISOString().slice(0, 10) === today());
+                const mine = g.tests.filter(x => dayOf(new Date(x.t)) === today());
                 const lastToday = mine[mine.length - 1];
                 return lastToday
                     ? <button data-testid="daily-test" data-done="true" onClick={onTest} className={`${card} !p-4 text-left flex items-center gap-3 !border-emerald-300 active:scale-[0.98]`}><span className="text-3xl">✅</span><span><span className="block font-black">{t.dailyDone(lastToday.score, lastToday.total)}</span><span className="block text-xs font-bold text-slate-400">{t.dailyAgain}</span></span></button>

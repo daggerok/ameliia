@@ -66,7 +66,8 @@ export const exportFile = (state: GameState) => {
     const blob = new Blob([JSON.stringify(wrap(state), null, 1)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `math-quest-progress-${new Date().toISOString().slice(0, 10)}.json`;
+    const d = new Date();
+    a.download = `math-quest-progress-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
