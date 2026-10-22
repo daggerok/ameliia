@@ -24,6 +24,7 @@ export type GameState = {
     bestStreak: number;
     time: Record<Topic, number>;          // seconds of real learning per topic
     daily: Record<string, number>;        // seconds per day (YYYY-MM-DD)
+    dailySkills: Record<string, Partial<Record<SkillId, number>>>; // right answers per day and skill (tasks and practice tests)
     skills: Record<SkillId, SkillStat>;
     recent: string[];                     // ids of recent tasks, never repeated
     history: HistoryItem[];
@@ -47,6 +48,7 @@ export const newState = (): GameState => ({
     stars: 0, answered: 0, correct: 0, streak: 0, bestStreak: 0,
     time: { division: 0, science: 0, estimation: 0 },
     daily: {},
+    dailySkills: {},
     skills: Object.fromEntries(ALL_SKILLS.map(s => [s, emptyStat()])) as Record<SkillId, SkillStat>,
     recent: [], history: [], tests: [],
     painting: { index: 0, filled: 0, done: [], choosing: false },
@@ -67,7 +69,45 @@ export const normalize = (raw: unknown): GameState => {
     const rawSkills = (raw as Partial<GameState>).skills ?? {};
     for (const k of ALL_SKILLS) s.skills[k] = { ...emptyStat(), ...(rawSkills as Record<string, SkillStat>)[k] };
     s.painting = { ...base.painting, ...(s.painting ?? {}) };
+    // an older build kept no right answers per day: rebuild them from the history, so today's progress is not lost
+    if (!(raw as Partial<GameState>).dailySkills) for (const h of s.history) if (h.ok) countRight(s, dayOf(new Date(h.t)), h.skill, 1);
     return s;
+};
+
+// the day on the device clock (her iPad is on New York time), not in UTC
+export const dayOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const countRight = (state: GameState, day: string, skill: SkillId, n: number) => {
+    const d = { ...(state.dailySkills[day] ?? {}) };
+    d[skill] = (d[skill] ?? 0) + n;
+    state.dailySkills = { ...state.dailySkills, [day]: d };
+};
+
+// The daily goal is a number of right answers. Up to the day of the school test it is a plan that covers every task type
+// of the homework sent for that test (2026-10-23: Topic 3 and Science Chapter 2), more answers for the topics with more kinds of tasks.
+export const TEST_PREP: Partial<Record<SkillId, number>> = {
+    'mult-tens': 3, 'est-product': 3, 'mult-area': 2, 'mult-partial': 2, 'mult-dist': 2, 'mult-standard': 2,
+    'mult-mental': 3, 'mult-expr': 4, 'mult-word': 4, 'compare': 2, 'forces': 5, 'motion-ideas': 3, 'speed-trip': 3,
+};
+export const DAILY_RIGHT = 30;
+
+export type GoalRow = { skill: SkillId; done: number; need: number };
+export type Goal = { done: number; total: number; rows: GoalRow[] };
+
+export const dailyGoal = (state: GameState, day: string): Goal => {
+    const got = state.dailySkills[day] ?? {};
+    if (day <= state.testDate) {
+        const rows = (Object.entries(TEST_PREP) as [SkillId, number][]).map(([skill, need]) => ({ skill, need, done: Math.min(got[skill] ?? 0, need) }));
+        return { rows, done: rows.reduce((s, r) => s + r.done, 0), total: rows.reduce((s, r) => s + r.need, 0) };
+    }
+    const all = Object.values(got).reduce((s, n) => s + (n ?? 0), 0);
+    return { rows: [], done: Math.min(all, DAILY_RIGHT), total: DAILY_RIGHT };
+};
+
+// test prep picks the task types she has not covered yet today; once all are done, any of them
+export const prepSkills = (state: GameState, day: string): SkillId[] => {
+    const open = dailyGoal(state, day).rows.filter(r => r.done < r.need).map(r => r.skill);
+    return open.length ? open : Object.keys(TEST_PREP) as SkillId[];
 };
 
 // Ladders: a skill opens after 2 correct answers in the one before it (motion ideas and forces are open from the start)
@@ -141,7 +181,7 @@ const remember = (state: GameState, id: string) => {
 export const starsFor = (firstTry: boolean, hint: boolean) => (firstTry ? (hint ? 2 : 3) : 1);
 
 // Pure update after an answer; returns how many stars were earned
-export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { firstTry: boolean; hint: boolean; sec: number }): { state: GameState; stars: number } => {
+export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { firstTry: boolean; hint: boolean; sec: number; day?: string }): { state: GameState; stars: number } => {
     const state: GameState = structuredClone(prev);
     const st = state.skills[p.skill];
     if (st.reviewPending && st.reviewIn === 0) st.reviewPending = false;
@@ -158,6 +198,7 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
         state.bestStreak = Math.max(state.bestStreak, state.streak);
         stars = starsFor(opts.firstTry, opts.hint);
         state.stars += stars;
+        if (opts.day) countRight(state, opts.day, p.skill, 1);
     } else {
         st.rightStreak = 0;
         st.needsTheory = true;
@@ -215,8 +256,9 @@ export const buildTest = (state: GameState, rng: Rng): Problem[] => {
     return out;
 };
 
-export const applyTest = (prev: GameState, problems: Problem[], results: boolean[], sec: number): GameState => {
+export const applyTest = (prev: GameState, problems: Problem[], results: boolean[], sec: number, day?: string): GameState => {
     const state = structuredClone(prev);
+    if (day) problems.forEach((p, i) => { if (results[i]) countRight(state, day, p.skill, 1); });
     const wrong = problems.filter((_, i) => !results[i]).map(p => p.skill);
     problems.forEach(p => remember(state, p.id));
     // a mistake in the test sends that skill to theory and quiz next time it shows up
