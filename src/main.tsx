@@ -14,7 +14,7 @@ import { VisualView } from './ui/Boards';
 import { Guide, Lina, Pip } from './ui/Buddy';
 import { PAINTINGS, PaintingView } from './ui/Paintings';
 import { Coach, type CoachStep } from './ui/Coach';
-import { Notepad, START_VIEW, type Stroke, type View } from './ui/Notepad';
+import { Notepad, START_VIEW, type PadTour, type Stroke, type View } from './ui/Notepad';
 import { askPersistent, exportFile, importFile, loadDb, loadLocal, newer, save } from './storage';
 
 // ========================================
@@ -57,6 +57,14 @@ const UI = {
             { target: 'hint', icon: '💡', title: 'Stuck?', body: 'A hint gives a little push. You still get 2 stars.' },
             { target: 'learn-first', icon: '📚', title: 'Theory first', body: 'Want to learn it before you try? Read the theory, pass the mini quiz, then come back to this task.' },
         ] as CoachStep[],
+        padTour: [
+            { target: 'notepad-pens', icon: '✏️', title: 'Three pens', body: 'Write and draw with your finger, like in a notebook. Pick a color: black, blue or red.' },
+            { target: 'notepad-eraser', icon: '🧽', title: 'Eraser', body: 'Rub out a little piece, then keep writing.' },
+            { target: 'notepad-hand', icon: '✋', title: 'Move the page', body: 'Tap the hand and drag the page in any direction. The page never ends, so there is room for any long division.' },
+            { target: 'notepad-zooms', icon: '🔍', title: 'Zoom', body: '− makes everything smaller, so you see the whole solution. + makes it bigger for small digits. The percent button goes back to 100% and the start of the page.' },
+            { target: 'notepad-edit', icon: '↩️', title: 'Undo and clear', body: 'Undo takes back the last line. The bin clears the whole page.' },
+            { target: 'notepad-close', icon: '✅', title: 'Done', body: 'Close the notepad and type your answer. Your notes stay here until you finish this task.' },
+        ] as CoachStep[],
         fillAll: 'Fill in every box first',
         nextQ: 'Next question', finishQuiz: 'Finish the quiz', youAnswered: 'You answered', testIn: (n: number) => n === 0 ? 'The test is today! You are ready!' : n === 1 ? 'The test is tomorrow!' : `The test is in ${n} days`, testDate: 'School test date', almost: '2 of 3, almost perfect! Great learning.', earned: 'stars earned',
     },
@@ -95,6 +103,14 @@ const UI = {
             { target: 'answer-form', icon: '⌨️', title: 'Твой ответ', body: 'Напиши ответ здесь и нажми «Проверить».' },
             { target: 'hint', icon: '💡', title: 'Застряла?', body: 'Подсказка немного подтолкнёт. Всё равно получишь 2 звезды.' },
             { target: 'learn-first', icon: '📚', title: 'Сначала теория', body: 'Хочешь сначала разобраться? Прочитай теорию, пройди мини-викторину и возвращайся к этому заданию.' },
+        ] as CoachStep[],
+        padTour: [
+            { target: 'notepad-pens', icon: '✏️', title: 'Три ручки', body: 'Пиши и рисуй пальцем, как в тетради. Выбери цвет: чёрный, синий или красный.' },
+            { target: 'notepad-eraser', icon: '🧽', title: 'Ластик', body: 'Сотри кусочек и пиши дальше.' },
+            { target: 'notepad-hand', icon: '✋', title: 'Двигай лист', body: 'Нажми на руку и тяни лист в любую сторону. Лист бесконечный, места хватит на любой столбик.' },
+            { target: 'notepad-zooms', icon: '🔍', title: 'Зум', body: '− делает всё меньше, чтобы видеть всё решение. + делает крупнее для мелких цифр. Кнопка с процентами возвращает 100% и начало листа.' },
+            { target: 'notepad-edit', icon: '↩️', title: 'Отменить и очистить', body: 'Стрелка убирает последнюю линию. Корзина очищает весь лист.' },
+            { target: 'notepad-close', icon: '✅', title: 'Готово', body: 'Закрой блокнот и впиши ответ. Записи останутся, пока ты решаешь это задание.' },
         ] as CoachStep[],
         fillAll: 'Сначала заполни все окошки',
         nextQ: 'Следующий вопрос', finishQuiz: 'Закончить викторину', youAnswered: 'Ты ответила', testIn: (n: number) => n === 0 ? 'Тест сегодня! Ты готова!' : n === 1 ? 'Тест завтра!' : `До теста ${n} ${n < 5 ? 'дня' : 'дней'}`, testDate: 'Дата теста в школе', almost: '2 из 3 - почти идеально! Отлично учишься.', earned: 'звёзд заработано',
@@ -302,6 +318,7 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     const [strokes, setStrokes] = useState<Stroke[]>([]);
     const [view, setView] = useState<View>(START_VIEW);
     const [pad, setPad] = useState(false);
+    const padTour = React.useContext(PadTourContext);
     const [v, setV] = useState('');
     const [r, setR] = useState('');
     const [c, setC] = useState<number | null>(null);
@@ -346,7 +363,7 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
             )}
             <button type="button" data-testid="notepad-open" onClick={() => setPad(true)} className={`${secondary} w-full py-3`}>✏️ {t.notepadOpen}{strokes.length ? ` · ${strokes.length} ${t.notepadHas}` : ''}</button>
             <button type="submit" data-testid="check" className={`${primary} w-full py-4 text-xl`}>{t.check}</button>
-            {pad && <Notepad strokes={strokes} setStrokes={setStrokes} view={view} setView={setView} prompt={tr(problem.prompt, lang)} onClose={() => setPad(false)} labels={{ done: t.notepadDone, clear: t.notepadClear, undo: t.notepadUndo, eraser: t.notepadEraser, title: t.notepad, move: t.notepadMove, zoomIn: t.notepadZoomIn, zoomOut: t.notepadZoomOut, zoomReset: t.notepadZoomReset }} />}
+            {pad && <Notepad strokes={strokes} setStrokes={setStrokes} view={view} setView={setView} prompt={tr(problem.prompt, lang)} onClose={() => setPad(false)} tour={padTour} labels={{ done: t.notepadDone, clear: t.notepadClear, undo: t.notepadUndo, eraser: t.notepadEraser, title: t.notepad, move: t.notepadMove, zoomIn: t.notepadZoomIn, zoomOut: t.notepadZoomOut, zoomReset: t.notepadZoomReset }} />}
         </form>
     );
 };
@@ -447,6 +464,9 @@ type Attempt = { hint: boolean; wrong: boolean; afterLearn: boolean; start: numb
 type TestRun = { problems: Problem[]; idx: number; given: Given[]; start: number; results?: boolean[] };
 
 const firstLocal = loadLocal();
+
+// the notepad lives deep inside every answer form; its first-opening tour comes from the game state
+const PadTourContext = React.createContext<PadTour | undefined>(undefined);
 
 export const App: React.FC = () => {
     const [g, setG] = useState<GameState>(() => firstLocal?.state ?? newState());
@@ -594,7 +614,11 @@ export const App: React.FC = () => {
     const setLang = (l: Lang) => setG(s => ({ ...s, lang: l }));
     const chaptersOpen = Math.min(CHAPTERS.length, 1 + Math.floor(g.stars / STARS_PER_CHAPTER));
 
+    const padTour: PadTour | undefined = g.padTourSeen ? undefined
+        : { steps: t.padTour, labels: { next: t.tourNext, back: t.tourBack, skip: t.tourSkip, start: t.tourGo }, onDone: () => setG(s => ({ ...s, padTourSeen: true })) };
+
     return (
+        <PadTourContext.Provider value={padTour}>
         <div className="min-h-screen w-full px-4 py-3 md:p-6 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors flex flex-col items-center overflow-x-hidden">
             <Confetti on={confetti} />
             {!g.introSeen && screen === 'home' && <Coach key={`intro-${lang}`} testId="intro" steps={t.intro} labels={{ next: t.tourNext, back: t.tourBack, skip: t.tourSkip, start: t.tourStart }} onDone={() => setG(s => ({ ...s, introSeen: true }))}
@@ -650,6 +674,7 @@ export const App: React.FC = () => {
                 </main>
             </div>
         </div>
+        </PadTourContext.Provider>
     );
 };
 
@@ -911,7 +936,7 @@ const SettingsView: React.FC<{ g: GameState; setG: React.Dispatch<React.SetState
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.language}</div><div className="grid grid-cols-2 gap-2">{(['en', 'ru'] as Lang[]).map(l => <button key={l} onClick={() => setG(s => ({ ...s, lang: l }))} className={opt(g.lang === l)}>{l === 'en' ? '🇺🇸 English' : '🇷🇺 Русский'}</button>)}</div></div>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.theme}</div><div className="grid grid-cols-3 gap-2">{(['light', 'dark', 'system'] as const).map(m => <button key={m} onClick={() => setG(s => ({ ...s, theme: m }))} className={opt(g.theme === m)}>{m === 'light' ? `☀️ ${t.light}` : m === 'dark' ? `🌙 ${t.dark}` : `🌓 ${t.system}`}</button>)}</div></div>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.sound}</div><button onClick={() => setG(s => ({ ...s, sound: !s.sound }))} className={`${opt(g.sound)} w-full`}>{g.sound ? `🔊 ${t.on}` : `🔇 ${t.off}`}</button></div>
-            <button data-testid="replay-intro" onClick={() => { setG(s => ({ ...s, introSeen: false, playTourSeen: false })); }} className={`${secondary} w-full py-3`}>👋 {t.howToPlay}</button>
+            <button data-testid="replay-intro" onClick={() => { setG(s => ({ ...s, introSeen: false, playTourSeen: false, padTourSeen: false })); }} className={`${secondary} w-full py-3`}>👋 {t.howToPlay}</button>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">📅 {t.testDate}</div><input type="date" value={g.testDate} onChange={e => setG(s => ({ ...s, testDate: e.target.value }))} className="w-full p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 font-bold" /></div>
             <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 p-4"><div className="font-black mb-1">👨‍👩‍👧‍👦 {t.parents}</div><p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed">{t.parentsText}</p></div>
             <div className="rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 p-4 space-y-2">

@@ -35,6 +35,7 @@ export type GameState = {
     testDate: string;                     // YYYY-MM-DD of the next school test, shown as a countdown
     introSeen: boolean;                   // the welcome tour on a new device
     playTourSeen: boolean;                // the short tour of the task screen
+    padTourSeen: boolean;                 // the tour of the notepad tools, on its first opening
 };
 
 export const ALL_SKILLS = Object.keys(TOPIC_OF) as SkillId[];
@@ -53,6 +54,7 @@ export const newState = (): GameState => ({
     testDate: '2026-10-23',
     introSeen: false,
     playTourSeen: false,
+    padTourSeen: false,
 });
 
 // fills in anything a stored state from an older build is missing

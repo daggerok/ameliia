@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { Coach, type CoachStep } from './Coach';
 
 // A scratch pad for solving with a finger: grid paper, three pens, an eraser, undo and clear.
 // The strokes belong to one task: the parent keeps them while the task lasts and drops them with the task.
@@ -8,6 +9,8 @@ import { useEffect, useRef, useState } from 'react';
 export type Stroke = { color: string; width: number; points: [number, number][] };
 export type View = { x: number; y: number; z: number };
 export const START_VIEW: View = { x: 0, y: 0, z: 1 };
+// the tour of the tools, shown over the open notepad the first time
+export type PadTour = { steps: CoachStep[]; labels: { next: string; back: string; skip: string; start: string }; onDone: () => void };
 
 const PENS = ['#1e293b', '#2563eb', '#dc2626'];
 const ERASER = 'eraser';
@@ -15,7 +18,7 @@ const HAND = 'hand';
 const GRID = 28;
 const ZMIN = 0.5, ZMAX = 3, ZSTEP = 1.25;
 
-export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) => void; view: View; setView: (v: View) => void; prompt: string; onClose: () => void; labels: { done: string; clear: string; undo: string; eraser: string; title: string; move: string; zoomIn: string; zoomOut: string; zoomReset: string } }> = ({ strokes, setStrokes, view, setView, prompt, onClose, labels }) => {
+export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) => void; view: View; setView: (v: View) => void; prompt: string; onClose: () => void; tour?: PadTour; labels: { done: string; clear: string; undo: string; eraser: string; title: string; move: string; zoomIn: string; zoomOut: string; zoomReset: string } }> = ({ strokes, setStrokes, view, setView, prompt, onClose, tour, labels }) => {
     const canvas = useRef<HTMLCanvasElement>(null);
     const box = useRef<HTMLDivElement>(null);
     const [pen, setPen] = useState(PENS[0]);
@@ -122,14 +125,18 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
         <div className="fixed inset-0 z-50 bg-slate-900/70 flex flex-col p-2 md:p-4 select-none" style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }} data-testid="notepad" data-view={`${Math.round(view.x)},${Math.round(view.y)},${view.z.toFixed(2)}`}>
             <div className="bg-white dark:bg-slate-800 rounded-t-3xl p-3 flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-700">
                 <span className="font-black text-indigo-600 dark:text-indigo-400 mr-1">✏️ {labels.title}</span>
-                {PENS.map(c => <button key={c} aria-label={c} onClick={() => setPen(c)} className={tool(pen === c)}><span className="w-6 h-6 rounded-full" style={{ background: c }} /></button>)}
-                <button aria-label={labels.eraser} onClick={() => setPen(ERASER)} className={tool(pen === ERASER)}>🧽</button>
+                <span className="flex gap-2" data-testid="notepad-pens">{PENS.map(c => <button key={c} aria-label={c} onClick={() => setPen(c)} className={tool(pen === c)}><span className="w-6 h-6 rounded-full" style={{ background: c }} /></button>)}</span>
+                <button data-testid="notepad-eraser" aria-label={labels.eraser} onClick={() => setPen(ERASER)} className={tool(pen === ERASER)}>🧽</button>
                 <button data-testid="notepad-hand" aria-label={labels.move} title={labels.move} onClick={() => setPen(HAND)} className={tool(pen === HAND)}>✋</button>
+                <span className="flex gap-2" data-testid="notepad-zooms">
                 <button data-testid="notepad-zoom-out" aria-label={labels.zoomOut} onClick={() => zoom(1 / ZSTEP)} disabled={view.z <= ZMIN} className={`${tool(false)} disabled:opacity-30`}>−</button>
                 <button data-testid="notepad-zoom-reset" aria-label={labels.zoomReset} onClick={() => setView(START_VIEW)} className={`${tool(false)} !w-auto px-2 text-sm`}>{Math.round(view.z * 100)}%</button>
                 <button data-testid="notepad-zoom-in" aria-label={labels.zoomIn} onClick={() => zoom(ZSTEP)} disabled={view.z >= ZMAX} className={`${tool(false)} disabled:opacity-30`}>+</button>
+                </span>
+                <span className="flex gap-2" data-testid="notepad-edit">
                 <button data-testid="notepad-undo" onClick={() => setStrokes(strokes.slice(0, -1))} disabled={!strokes.length} className={`${tool(false)} disabled:opacity-30`} aria-label={labels.undo}>↩️</button>
                 <button data-testid="notepad-clear" onClick={() => setStrokes([])} disabled={!strokes.length} className={`${tool(false)} disabled:opacity-30`} aria-label={labels.clear}>🗑️</button>
+                </span>
                 <button data-testid="notepad-close" onClick={onClose} className="ml-auto px-5 h-11 rounded-xl bg-indigo-600 text-white font-black active:scale-95">{labels.done} ✓</button>
             </div>
             <div className="bg-amber-50 dark:bg-slate-900 px-4 py-2 text-sm md:text-base font-bold text-slate-700 dark:text-slate-200 whitespace-pre-line max-h-28 overflow-y-auto border-b border-amber-200 dark:border-slate-700">{prompt}</div>
@@ -137,6 +144,7 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
                 <canvas ref={canvas} data-testid="notepad-canvas" data-strokes={strokes.length} className={`absolute inset-0 touch-none ${pen === HAND ? 'cursor-grab' : 'cursor-crosshair'}`} style={{ touchAction: 'none' }}
                     onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} />
             </div>
+            {tour && <Coach testId="padtour" steps={tour.steps} labels={tour.labels} onDone={tour.onDone} />}
         </div>
     );
 };
