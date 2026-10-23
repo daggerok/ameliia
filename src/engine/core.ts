@@ -221,7 +221,10 @@ export const multi = (rng: Rng, right: L10n[], wrong: L10n[]): Answer => {
     return { kind: 'multi', options, correct: r.map(x => options.indexOf(x)).sort((a, b) => a - b) };
 };
 
-export const sameAnswer = (answer: Answer, given: { value?: number; q?: number; r?: number; choice?: number; choices?: number[]; blanks?: number[] }) => {
+// what she answered: a number, a quotient with a remainder, one option, several options or the boxes of a worksheet
+export type Given = { value?: number; q?: number; r?: number; choice?: number; choices?: number[]; blanks?: number[] };
+
+export const sameAnswer = (answer: Answer, given: Given) => {
     if (answer.kind === 'fill') return fillMarks(answer, given.blanks ?? []).every(Boolean);
     if (answer.kind === 'multi') return sameSet(given.choices ?? [], answer.correct);
     if (answer.kind === 'number') return given.value === answer.value;

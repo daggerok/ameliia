@@ -1,4 +1,5 @@
-import { type L10n, type Problem, type SkillId, type Visual, L, SKILL_NAME, fmt } from './core';
+import { type Given, type L10n, type Problem, type SkillId, type Visual, L, SKILL_NAME, fmt } from './core';
+import { diagnose } from './diagnose';
 import { type Section, type Theory, answerLine } from './theory';
 
 // Ameliia's own mistakes in the Topic 3 homework (checked 2026-10-22): her problem, what she wrote,
@@ -192,18 +193,25 @@ export const mistakeTheory = (m: HomeworkMistake): Theory => ({
 
 // ---------- one queue to rework: the homework mistakes, then every mistake she made in the app ----------
 
-// a wrong answer in the app: the task itself, so the review shows exactly what she saw, and what she answered
-export type LoggedMistake = { t: number; problem: Problem; given: string };
+// a wrong answer in the app: the task itself, so the review shows exactly what she saw, what she answered
+// (raw: her answer itself, for the diagnosis) and how many times she got it wrong
+export type LoggedMistake = { t: number; problem: Problem; given: string; raw?: Given; times?: number };
 
 export type ReworkItem = { from: 'homework'; m: HomeworkMistake } | { from: 'app'; e: LoggedMistake };
 
+// homework first, then the app mistakes she got wrong most often, the oldest first
 export const reworkQueue = (fixed: string[], log: LoggedMistake[]): ReworkItem[] => [
     ...HOMEWORK_MISTAKES.filter(m => !fixed.includes(m.id)).map(m => ({ from: 'homework' as const, m })),
-    ...log.map(e => ({ from: 'app' as const, e })),
+    ...[...log].sort((a, b) => (b.times ?? 1) - (a.times ?? 1) || a.t - b.t).map(e => ({ from: 'app' as const, e })),
 ];
 
 export const reworkId = (r: ReworkItem) => (r.from === 'homework' ? `homework:${r.m.id}` : `app:${r.e.problem.id}`);
 export const reworkSkill = (r: ReworkItem): SkillId => (r.from === 'homework' ? r.m.skill : r.e.problem.skill);
+
+const whatWentWrong = (e: LoggedMistake): L10n[] => {
+    const d = e.raw ? diagnose(e.problem, e.raw) : null;
+    return d ? [L(`🔎 What went wrong: ${d.en}`, `🔎 Что пошло не так: ${d.ru}`)] : [];
+};
 
 export const reworkTheory = (r: ReworkItem): Theory => {
     if (r.from === 'homework') return mistakeTheory(r.m);
@@ -213,7 +221,7 @@ export const reworkTheory = (r: ReworkItem): Theory => {
         title: L(`Rework: ${SKILL_NAME[p.skill].en}`, `Работа над ошибкой: ${SKILL_NAME[p.skill].ru}`),
         sections: [
             { kind: 'story', body: L('This task did not work out last time. Let\'s look at it again.', 'В прошлый раз это задание не получилось. Посмотрим на него ещё раз.') },
-            { kind: 'warn', title: L('What you answered', 'Что ты ответила'), body: [L(r.e.given, r.e.given)] },
+            { kind: 'warn', title: L('What you answered', 'Что ты ответила'), body: [L(r.e.given, r.e.given), ...whatWentWrong(r.e)] },
             { kind: 'example', title: L('The right way', 'Как правильно'), prompt: p.prompt, body: [...p.steps, answerLine(p)], visual: p.visual },
             { kind: 'love', body: L('Now a new task of the same kind. You can do it!', 'Теперь новое задание того же вида. У тебя получится!') },
         ],

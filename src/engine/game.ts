@@ -1,4 +1,4 @@
-import { type Lang, type Problem, type Rng, type SkillId, type Topic, SKILLS_OF, TOPIC_OF, TOPIC_TARGET, pick, shuffle } from './core';
+import { type Given, type Lang, type Problem, type Rng, type SkillId, type Topic, SKILLS_OF, TOPIC_OF, TOPIC_TARGET, pick, shuffle } from './core';
 import { forceKind } from './forces';
 import { makeFreshProblem } from './index';
 import { type LoggedMistake, type ReworkItem, reworkId } from './mistakes';
@@ -29,7 +29,8 @@ export type GameState = {
     daily: Record<string, number>;        // seconds per day (YYYY-MM-DD)
     dailySkills: Record<string, Partial<Record<SkillId, number>>>; // right answers per day and skill (tasks and practice tests)
     dailyKinds: Record<string, Record<string, number>>;            // right answers per day and kind of task, "mult-expr:partials"
-    mistakeLog: LoggedMistake[];          // wrong answers in the app, waiting to be reworked (newest last)
+    mistakeLog: LoggedMistake[];          // wrong answers in the app, waiting to be reworked
+    sinceRework: number;                  // tasks since a mistake was last mixed into practice
     homeworkFixed: string[];              // ids of the homework mistakes she has already reworked
     sinceHint: number;                    // tasks answered since the last hint
     hintPause: number;                    // tasks without a hint before the next one (adapts to how she uses hints)
@@ -59,6 +60,7 @@ export const newState = (): GameState => ({
     dailySkills: {},
     dailyKinds: {},
     mistakeLog: [],
+    sinceRework: 0,
     homeworkFixed: [],
     sinceHint: HINT_PAUSE,
     hintPause: HINT_PAUSE,
@@ -232,9 +234,19 @@ const remember = (state: GameState, id: string) => {
     state.recent = [...state.recent.filter(x => x !== id), id].slice(-400);
 };
 
-// a wrong answer goes to the rework list once (the same task again only moves it to the end); the list keeps the last 60
-export const logMistake = (prev: GameState, problem: Problem, given: string, t: number): GameState =>
-    ({ ...prev, mistakeLog: [...prev.mistakeLog.filter(e => e.problem.id !== problem.id), { t, problem, given }].slice(-60) });
+// a wrong answer goes to the rework list once; the same task wrong again counts one more time and keeps its place;
+// the list keeps the 60 newest
+export const logMistake = (prev: GameState, problem: Problem, given: string, t: number, raw?: Given): GameState => {
+    const old = prev.mistakeLog.find(e => e.problem.id === problem.id);
+    const entry = { t: old?.t ?? t, problem, given, raw, times: (old?.times ?? 0) + 1 };
+    return { ...prev, mistakeLog: [...prev.mistakeLog.filter(e => e.problem.id !== problem.id), entry].sort((a, b) => a.t - b.t).slice(-60) };
+};
+
+// Mistakes come back by themselves inside normal practice: the longer the list, the more often
+// (1-3 waiting: every 5th task, 4-10: every 4th, more: every 3rd), so they never push out new topics
+export const reworkEvery = (waiting: number) => (waiting <= 0 ? Infinity : waiting <= 3 ? 5 : waiting <= 10 ? 4 : 3);
+export const reworkDue = (state: GameState, waiting: number) => state.sinceRework + 1 >= reworkEvery(waiting);
+export const startedRework = (prev: GameState): GameState => ({ ...prev, sinceRework: 0 });
 
 // a right answer in a rework task fixes that mistake
 export const fixRework = (prev: GameState, item: ReworkItem): GameState => {
@@ -262,6 +274,10 @@ const afterHintChoice = (state: GameState, used: boolean) => {
     if (state.sinceHint - state.hintPause >= 3) { state.hintPause = Math.max(HINT_PAUSE_MIN, state.hintPause - 1); state.sinceHint = state.hintPause; }
 };
 
+// a wrong answer while reworking: that mistake counts one more time, so it comes back sooner
+export const missedRework = (prev: GameState, item: ReworkItem): GameState => item.from === 'homework' ? prev
+    : { ...prev, mistakeLog: prev.mistakeLog.map(e => (e.problem.id === item.e.problem.id ? { ...e, times: (e.times ?? 1) + 1 } : e)) };
+
 export const starsFor = (firstTry: boolean, hint: boolean) => (firstTry ? (hint ? 2 : 3) : 1);
 
 // Pure update after an answer; returns how many stars were earned
@@ -272,6 +288,7 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
     st.seen++;
     state.answered++;
     afterHintChoice(state, opts.hint);
+    state.sinceRework++;
     for (const s of ALL_SKILLS) if (state.skills[s].reviewIn > 0) state.skills[s].reviewIn--;
     remember(state, p.id);
     let stars = 0;
