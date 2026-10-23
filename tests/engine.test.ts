@@ -3,8 +3,9 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, DAILY_RIGHT, PREP_PLAN, STRATEGIES, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, dailyGoal, dayOf, kindOf, newState, normalize, nextProblem, nextSkill, prepPicks, totalTime, uncovered } from '../src/engine/game';
+import { ALL_SKILLS, DAILY_RIGHT, PREP_PLAN, STRATEGIES, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, dailyGoal, dayOf, fixRework, kindOf, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, totalTime, uncovered } from '../src/engine/game';
 import { makeFreshProblem, makeProblem } from '../src/engine/index';
+import { HOMEWORK_MISTAKES, reworkQueue, reworkTheory } from '../src/engine/mistakes';
 import { buildQuiz } from '../src/engine/quiz';
 import { buildTheory, chainOf } from '../src/engine/theory';
 import { placeParts, standardRows } from '../src/engine/strategies';
@@ -377,6 +378,74 @@ describe('Topic 3 test prep and Science Chapter 2', () => {
         });
         // every idea of Part I shows up
         expect(keys.size).toBeGreaterThanOrEqual(14);
+    });
+});
+
+describe('rework: homework mistakes and the mistakes she makes in the app', () => {
+    test('every homework mistake has right math in its solution and a task kind to practice', () => {
+        const ids = new Set<string>();
+        for (const m of HOMEWORK_MISTAKES) {
+            ids.add(m.id);
+            [m.where, m.task, m.rule, ...m.wrote, ...m.right].forEach(x => {
+                if (!x.en.trim() || !x.ru.trim()) throw new Error(`${m.id}: empty text`);
+                if (/[А-Яа-яЁё]/.test(x.en)) throw new Error(`${m.id}: Cyrillic in English: ${x.en}`);
+            });
+            // what she wrote is wrong on purpose; the task, the right way and the rule are checked
+            checkMath([m.task, m.rule, ...m.right].map(x => x.en), `mistake ${m.id}`);
+            checkMath([m.task, m.rule, ...m.right].map(x => x.ru), `mistake ${m.id}`);
+            const plan = PREP_PLAN.find(([k]) => k === m.skill);
+            expect(plan?.[1]).toContain(m.kind);
+            expect(kindOf(makeProblem(m.skill, makeRng(7), m.kind))).toBe(m.kind);
+        }
+        expect(ids.size).toBe(HOMEWORK_MISTAKES.length);
+        expect(HOMEWORK_MISTAKES.length).toBe(18);
+        // the final answers of the right way, recomputed
+        const last = (id: string) => HOMEWORK_MISTAKES.find(m => m.id === id)!.right.at(-1)!.en;
+        expect(last('c4')).toContain(`= ${(1341 * 7).toLocaleString('en-US')}`);
+        expect(last('d3')).toContain(`= ${(720 * 6).toLocaleString('en-US')}`);
+        expect(last('d8')).toContain(`= ${(4 * 1865).toLocaleString('en-US')}`);
+        expect(last('d5')).toContain(`= ${(371 * 8).toLocaleString('en-US')}`);
+        expect(last('d2')).toContain(`= ${(326 * 9).toLocaleString('en-US')}`);
+        expect(last('f10')).toContain(`= ${(937 * 7).toLocaleString('en-US')}`);
+        expect(last('p65')).toContain(`= ${(120 + 231 + 90) / 7}`);
+    });
+    test('a wrong answer goes to the list once, a right rework answer takes it off', () => {
+        const rng = makeRng(3);
+        let s = newState();
+        expect(reworkQueue(s.homeworkFixed, s.mistakeLog).length).toBe(18);
+        const p = makeProblem('mult-expr', rng, 'product');
+        s = logMistake(s, p, '600', 1);
+        s = logMistake(s, p, '601', 2);
+        expect(s.mistakeLog.length).toBe(1);
+        expect(s.mistakeLog[0].given).toBe('601');
+        let q = reworkQueue(s.homeworkFixed, s.mistakeLog);
+        // homework first, then the app
+        expect(q.length).toBe(19);
+        expect(q[0].from).toBe('homework');
+        expect(q[18].from).toBe('app');
+        s = fixRework(s, q[0]);
+        s = fixRework(s, q[18]);
+        q = reworkQueue(s.homeworkFixed, s.mistakeLog);
+        expect(q.length).toBe(17);
+        expect(s.mistakeLog).toEqual([]);
+        // the list keeps the last 60
+        for (let i = 0; i < 70; i++) s = logMistake(s, makeProblem('round', makeRng(i + 100)), '1', i);
+        expect(s.mistakeLog.length).toBeLessThanOrEqual(60);
+        // an older save gets an empty list and every homework mistake to rework
+        const old = { ...newState() } as Record<string, unknown>;
+        delete old.mistakeLog; delete old.homeworkFixed;
+        expect(reworkQueue(normalize(old).homeworkFixed, normalize(old).mistakeLog).length).toBe(18);
+    });
+    test('the review page of an app mistake shows her answer and the right way with right math', () => {
+        for (const skill of ALL_SKILLS) for (let seed = 1; seed <= 20; seed++) {
+            const p = makeProblem(skill, makeRng(seed));
+            const th = reworkTheory({ from: 'app', e: { t: 1, problem: p, given: '42' } });
+            expect(th.sections.find(x => x.kind === 'warn' && 'body' in x && Array.isArray(x.body) && x.body[0].en === '42')).toBeTruthy();
+            const ex = th.sections.find(x => x.kind === 'example');
+            if (!ex || ex.kind !== 'example') throw new Error('example expected');
+            checkMath(ex.body.map(x => x.en), `rework ${p.id}`);
+            checkMath(ex.body.map(x => x.ru), `rework ${p.id}`);
+        }
     });
 });
 

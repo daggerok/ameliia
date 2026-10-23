@@ -1,6 +1,7 @@
 import { type Lang, type Problem, type Rng, type SkillId, type Topic, SKILLS_OF, TOPIC_OF, TOPIC_TARGET, pick, shuffle } from './core';
 import { forceKind } from './forces';
 import { makeFreshProblem } from './index';
+import { type LoggedMistake, type ReworkItem, reworkId } from './mistakes';
 import { IDEA_KIND } from './science';
 
 export type SkillStat = {
@@ -28,6 +29,8 @@ export type GameState = {
     daily: Record<string, number>;        // seconds per day (YYYY-MM-DD)
     dailySkills: Record<string, Partial<Record<SkillId, number>>>; // right answers per day and skill (tasks and practice tests)
     dailyKinds: Record<string, Record<string, number>>;            // right answers per day and kind of task, "mult-expr:partials"
+    mistakeLog: LoggedMistake[];          // wrong answers in the app, waiting to be reworked (newest last)
+    homeworkFixed: string[];              // ids of the homework mistakes she has already reworked
     skills: Record<SkillId, SkillStat>;
     recent: string[];                     // ids of recent tasks, never repeated
     history: HistoryItem[];
@@ -53,6 +56,8 @@ export const newState = (): GameState => ({
     daily: {},
     dailySkills: {},
     dailyKinds: {},
+    mistakeLog: [],
+    homeworkFixed: [],
     skills: Object.fromEntries(ALL_SKILLS.map(s => [s, emptyStat()])) as Record<SkillId, SkillStat>,
     recent: [], history: [], tests: [],
     painting: { index: 0, filled: 0, done: [], choosing: false },
@@ -221,6 +226,18 @@ export const nextProblem = (state: GameState, rng: Rng, skill?: SkillId, opts: {
 
 const remember = (state: GameState, id: string) => {
     state.recent = [...state.recent.filter(x => x !== id), id].slice(-400);
+};
+
+// a wrong answer goes to the rework list once (the same task again only moves it to the end); the list keeps the last 60
+export const logMistake = (prev: GameState, problem: Problem, given: string, t: number): GameState =>
+    ({ ...prev, mistakeLog: [...prev.mistakeLog.filter(e => e.problem.id !== problem.id), { t, problem, given }].slice(-60) });
+
+// a right answer in a rework task fixes that mistake
+export const fixRework = (prev: GameState, item: ReworkItem): GameState => {
+    const id = reworkId(item);
+    return item.from === 'homework'
+        ? { ...prev, homeworkFixed: [...prev.homeworkFixed.filter(x => x !== item.m.id), item.m.id] }
+        : { ...prev, mistakeLog: prev.mistakeLog.filter(e => `app:${e.problem.id}` !== id) };
 };
 
 export const starsFor = (firstTry: boolean, hint: boolean) => (firstTry ? (hint ? 2 : 3) : 1);
