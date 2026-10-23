@@ -1,15 +1,16 @@
 import * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { type FillAnswer, type FillPart, type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
+import { type FillAnswer, type FillPart, type Given, type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
 import {
-    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, dailyGoal, dayOf, fixRework, grade, hintOpen, kindOf, logMistake, newState, nextProblem, prepPicks, totalTime,
+    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, dailyGoal, dayOf, fixRework, grade, hintOpen, kindOf, logMistake, missedRework, reworkDue, startedRework, newState, nextProblem, prepPicks, totalTime,
 } from './engine/game';
 import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
 import { QUIZ_PASS, buildQuiz } from './engine/quiz';
 import { CHAPTERS, STARS_PER_CHAPTER } from './engine/story';
 import { type Section, type Theory, answerLine, buildTheory } from './engine/theory';
 import { type ReworkItem, reworkId, reworkQueue, reworkSkill, reworkTheory } from './engine/mistakes';
+import { diagnose } from './engine/diagnose';
 import { VisualView } from './ui/Boards';
 import { Guide, Lina, Pip } from './ui/Buddy';
 import { FIRST_SET, PAINTINGS, PaintingView, openPaintings } from './ui/Paintings';
@@ -37,7 +38,7 @@ const UI = {
         parentsText: 'Learning time follows 50% division, 25% motion and speed, 25% rounding and estimating. A wrong answer always leads to theory and a mini quiz, and that skill comes back a few tasks later. Content follows the NJ Student Learning Standards for grade 4 (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity and acceleration are bonus explorer words.',
         perfect: 'Perfect test!', stepsWord: 'Steps', yes: 'Yes', no: 'No', taskOf: 'Task',
         congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', nextRewards: 'Your next rewards', partIn: (n: number) => `${n} ${n === 1 ? 'star' : 'stars'} to a new color in your picture: what will it be?`, chapterIn: (n: number, ch: number) => `${n} more ${n === 1 ? 'star' : 'stars'} to open chapter ${ch} of the story`, newColor: 'Your picture got a new color! Solve more to see what comes next', surprise: 'The colors are a surprise!', magicLocked: (done: number, all: number, more: number) => `${more} magic pictures open when you have painted all the first ${all}: ${done} of ${all} done`, storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
-        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Test prep: Topic 3 and Science Chapter 2', hwSub: 'Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', pickAll: 'Select all that apply', rework: (n: number) => `Fix my mistakes: ${n} left`, reworkSub: 'Homework and app mistakes: first the right way, then a new task of the same kind', reworkDone: 'All mistakes are fixed! Great work!', reworkKicker: (n: number) => `Fix my mistakes · ${n} left`, reworkGo: 'Solve a new task of this kind', howToPlay: 'How to play (the welcome tour)',
+        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Test prep: Topic 3 and Science Chapter 2', hwSub: 'Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', pickAll: 'Select all that apply', rework: (n: number) => `Fix my mistakes: ${n} left`, reworkSub: 'Homework and app mistakes: first the right way, then a new task of the same kind', reworkDone: 'All mistakes are fixed! Great work!', reworkRemember: 'Remember this mistake? Let\'s fix it, then we go on!', reworkKicker: (n: number) => `Fix my mistakes · ${n} left`, reworkGo: 'Solve a new task of this kind', howToPlay: 'How to play (the welcome tour)',
         tourNext: 'Next', tourBack: 'Back', tourSkip: 'Skip', tourStart: 'Let\'s start!', tourGo: 'Got it!',
         notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadMove: 'Move the page', notepadZoomIn: 'Zoom in', notepadZoomOut: 'Zoom out', notepadZoomReset: 'Back to 100%', notepadHas: 'notes',
         intro: [
@@ -84,7 +85,7 @@ const UI = {
         parentsText: 'Время учёбы делится так: 50% деление, 25% движение и скорость, 25% округление и прикидка. После ошибки всегда идёт теория и мини-викторина, а навык возвращается через несколько заданий. Содержание по стандартам NJ для 4 класса (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity и ускорение - бонусные слова исследователя.',
         perfect: 'Идеальный тест!', stepsWord: 'Шаги', yes: 'Да', no: 'Нет', taskOf: 'Задание',
         congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', nextRewards: 'Твои следующие награды', partIn: (n: number) => `${n} ${n === 1 ? 'звезда' : 'звезды'} до нового цвета в картине: какой он будет?`, chapterIn: (n: number, ch: number) => `Ещё ${n} ${n % 10 === 1 && n % 100 !== 11 ? 'звезда' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'звезды' : 'звёзд'} до ${ch}-й главы истории`, newColor: 'В твоей картине появился новый цвет! Решай дальше, чтобы увидеть, что будет', surprise: 'Цвета - это сюрприз!', magicLocked: (done: number, all: number, more: number) => `${more} волшебных картин откроются, когда раскрасишь все первые ${all}: готово ${done} из ${all}`, storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
-        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'К тесту: Topic 3 и наука, глава 2', hwSub: 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания', pickAll: 'Выбери все подходящие ответы', rework: (n: number) => `Работа над ошибками: ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkSub: 'Ошибки из домашки и из приложения: сначала как правильно, потом новое задание того же вида', reworkDone: 'Все ошибки исправлены! Отличная работа!', reworkKicker: (n: number) => `Работа над ошибками · ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkGo: 'Решить новое задание такого вида', howToPlay: 'Как играть (знакомство с игрой)',
+        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'К тесту: Topic 3 и наука, глава 2', hwSub: 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания', pickAll: 'Выбери все подходящие ответы', rework: (n: number) => `Работа над ошибками: ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkSub: 'Ошибки из домашки и из приложения: сначала как правильно, потом новое задание того же вида', reworkDone: 'Все ошибки исправлены! Отличная работа!', reworkRemember: 'Помнишь эту ошибку? Исправим её и пойдём дальше!', reworkKicker: (n: number) => `Работа над ошибками · ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkGo: 'Решить новое задание такого вида', howToPlay: 'Как играть (знакомство с игрой)',
         tourNext: 'Дальше', tourBack: 'Назад', tourSkip: 'Пропустить', tourStart: 'Поехали!', tourGo: 'Понятно!',
         notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadMove: 'Двигать лист', notepadZoomIn: 'Увеличить', notepadZoomOut: 'Уменьшить', notepadZoomReset: 'Вернуть 100%', notepadHas: 'записей',
         intro: [
@@ -225,7 +226,6 @@ const Steps: React.FC<{ steps: L10n[]; lang: Lang }> = ({ steps, lang }) => (
 // ========================================
 // ANSWER INPUT
 // ========================================
-type Given = { value?: number; q?: number; r?: number; choice?: number; choices?: number[]; blanks?: number[] };
 const digitsOnly = (s: string) => s.replace(/[^\d]/g, '');
 
 // A strategy worksheet (Area Model, Distributive Property, Partial Products, Standard Algorithm).
@@ -504,7 +504,7 @@ const QuizView: React.FC<{ items: Problem[]; lang: Lang; t: UIText; sound: boole
 type Screen = 'home' | 'play' | 'theory' | 'review' | 'quiz' | 'quizResult' | 'test' | 'testResult' | 'stats' | 'story' | 'gallery' | 'settings';
 type Learn = { skill: SkillId; failed?: Problem; mode: 'failed' | 'first' | 'due'; theory: Theory; quiz: Problem[]; quizScore: number };
 // newPart: this right answer painted a new part of the picture: [picture, parts painted now]
-type Attempt = { hint: boolean; wrong: boolean; afterLearn: boolean; start: number; result: null | { ok: boolean; stars: number; praise: L10n; given: string; blanks?: number[]; newPart?: [number, number] } };
+type Attempt = { hint: boolean; wrong: boolean; afterLearn: boolean; start: number; result: null | { ok: boolean; stars: number; praise: L10n; given: string; blanks?: number[]; newPart?: [number, number]; why?: L10n } };
 type TestRun = { problems: Problem[]; idx: number; given: Given[]; start: number; results?: boolean[] };
 
 const firstLocal = loadLocal();
@@ -594,6 +594,8 @@ export const App: React.FC = () => {
     // rework: the mistakes of the homework and of the app, one by one: review, then new tasks of that kind until one is right
     type Mode = 'free' | 'prep' | 'rework';
     const [focus, setFocus] = useState<Mode>('free');
+    // a mistake mixed into Play or test prep: one round of it (review, task), then back to that mode
+    const [reworkBack, setReworkBack] = useState<Mode | null>(null);
     const reworkTask = (item: ReworkItem) => {
         const kind = item.from === 'homework' ? item.m.kind : kindOf(item.e.problem);
         startProblem(nextProblem(g, rng, reworkSkill(item), { kind, day: today() }));
@@ -605,6 +607,23 @@ export const App: React.FC = () => {
         setScreen('review');
     };
     const nextTask = (f: Mode) => {
+        if (f === 'rework' && reworkBack) {
+            const back = reworkBack;
+            setReworkBack(null); setRework(null); setFocus(back);
+            nextTask(back);
+            return;
+        }
+        if (f !== 'rework' && !FORCED_SKILL) {
+            // now and then an old mistake comes back by itself, more often when more of them are waiting
+            const queue = reworkQueue(g.homeworkFixed, g.mistakeLog);
+            if (queue.length && reworkDue(g, queue.length)) {
+                setReworkBack(f); setFocus('rework'); setRework(queue[0]);
+                setG(s => startedRework(s));
+                setBanner({ en: UI.en.reworkRemember, ru: UI.ru.reworkRemember });
+                setScreen('review');
+                return;
+            }
+        }
         if (f === 'rework') {
             // the same mistake until a right answer fixes it, then the next one
             const still = rework && reworkQueue(g.homeworkFixed, g.mistakeLog).some(r => reworkId(r) === reworkId(rework));
@@ -625,7 +644,7 @@ export const App: React.FC = () => {
         nextTask('free');
     };
     const playHomework = () => { setFocus('prep'); nextTask('prep'); };
-    const playRework = () => { setFocus('rework'); setRework(null); openRework(); };
+    const playRework = () => { setReworkBack(null); setFocus('rework'); setRework(null); openRework(); };
 
     const submit = (given: Given) => {
         if (!problem) return;
@@ -633,15 +652,15 @@ export const App: React.FC = () => {
         const { state, stars } = applyAnswer(g, problem, ok, { firstTry: !attempt.afterLearn, hint: attempt.hint, sec: (Date.now() - attempt.start) / 1000, day: today() });
         let next = paint(state, stars);
         // every wrong answer goes to the rework list; a right answer while reworking fixes that mistake
-        if (!ok && focus !== 'rework') next = logMistake(next, problem, givenText(problem, given, lang), Date.now());
-        if (ok && focus === 'rework' && rework && reworkSkill(rework) === problem.skill) next = fixRework(next, rework);
+        if (!ok && focus !== 'rework') next = logMistake(next, problem, givenText(problem, given, lang), Date.now(), given);
+        if (focus === 'rework' && rework && reworkSkill(rework) === problem.skill) next = ok ? fixRework(next, rework) : missedRework(next, rework);
         setG(next);
         // a part painted by this answer shows up right here, so every right answer feels like a brush stroke
         const before = Math.floor(g.painting.filled / STARS_PER_PART), after = Math.floor(next.painting.filled / STARS_PER_PART);
         const newPart: [number, number] | undefined = ok && !g.painting.choosing && next.painting.index === g.painting.index && after > before ? [g.painting.index, after] : undefined;
         if (g.sound) ok ? Sound.good() : Sound.bad();
         if (ok) { setPop(true); setTimeout(() => setPop(false), 500); if (state.streak > 0 && state.streak % 5 === 0) celebrate(); }
-        setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), blanks: given.blanks, newPart, praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
+        setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), blanks: given.blanks, newPart, why: ok ? undefined : diagnose(problem, given) ?? undefined, praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
     };
 
     const theoryDone = () => {
@@ -678,7 +697,7 @@ export const App: React.FC = () => {
         const results = test.problems.map((p, i) => sameAnswer(p.answer, all[i]));
         const sec = (Date.now() - test.start) / 1000;
         let next = paint(applyTest(g, test.problems, results, sec, today()), results.filter(Boolean).length);
-        test.problems.forEach((p, i) => { if (!results[i]) next = logMistake(next, p, givenText(p, all[i], lang), Date.now()); });
+        test.problems.forEach((p, i) => { if (!results[i]) next = logMistake(next, p, givenText(p, all[i], lang), Date.now(), all[i]); });
         setG(next);
         setTest({ ...test, given: all, results });
         if (results.every(Boolean)) celebrate();
@@ -733,7 +752,7 @@ export const App: React.FC = () => {
                             onLearn={() => { setBanner(null); openTheory(problem.skill, 'failed', problem); }}
                             onNext={() => { setBanner(null); nextTask(focus); }} />
                     )}
-                    {screen === 'review' && rework && <TheoryView theory={reworkTheory(rework)} lang={lang} t={t} labels={{ kicker: t.reworkKicker(reworkQueue(g.homeworkFixed, g.mistakeLog).length), done: t.reworkGo, skip: t.home }} onDone={() => { setBanner(null); reworkTask(rework); }} onSkip={() => { setFocus('free'); go('home'); }} />}
+                    {screen === 'review' && rework && <TheoryView theory={reworkTheory(rework)} lang={lang} t={t} labels={{ kicker: t.reworkKicker(reworkQueue(g.homeworkFixed, g.mistakeLog).length), done: t.reworkGo, skip: t.home }} onDone={() => { setBanner(null); reworkTask(rework); }} onSkip={() => { setReworkBack(null); setFocus('free'); go('home'); }} />}
                     {screen === 'theory' && learn && <TheoryView theory={learn.theory} lang={lang} t={t} onDone={() => { setBanner(null); theoryDone(); }} onSkip={learn.mode !== 'failed' && problem && !attempt.result ? () => setScreen('play') : undefined} />}
                     {screen === 'quiz' && learn && <QuizView key={learn.quiz.map(q => q.id).join()} items={learn.quiz} lang={lang} t={t} sound={g.sound} onDone={quizDone} />}
                     {screen === 'quizResult' && learn && (
@@ -873,6 +892,7 @@ const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UI
                     {problem.answer.kind === 'fill' && res.blanks
                         ? <div data-testid="your-answer"><div className="text-center font-black text-rose-600 dark:text-rose-400 mb-2">{t.youAnswered}:</div><FillSheet answer={problem.answer} lang={lang} review={res.blanks} /></div>
                         : <div className="text-center font-black text-rose-600 dark:text-rose-400" data-testid="your-answer">{t.youAnswered}: {res.given}</div>}
+                    {res.why && <div className="rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-3 font-bold text-amber-900 dark:text-amber-100" data-testid="why">🔎 {tr(res.why, lang)}</div>}
                     <Guide mood="care" pip>{tr(res.praise, lang)}</Guide>
                     <button data-testid="learn" onClick={onLearn} className={`${primary} w-full py-4 px-4 text-base sm:text-xl`}>📖 {t.learn}</button>
                 </div>
