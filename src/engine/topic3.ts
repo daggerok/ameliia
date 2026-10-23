@@ -1,4 +1,4 @@
-import { type Answer, type FillLine, type FillPart, type L10n, type Problem, type Rng, type SkillId, L, choice, fmt, int, multi, pick, ruPlural, shuffle } from './core';
+import { type Answer, type FillLine, type FillPart, type L10n, type Problem, type Rng, type SkillId, L, choice, fmt, int, multi, pick, pickStyle, ruPlural, shuffle } from './core';
 import { placeParts } from './strategies';
 import { roundTo } from './estimation';
 import { AMELIIA } from './words';
@@ -49,8 +49,8 @@ const PLACE: [number, string, [string, string, string]][] = [[10, 'tens', ['де
 // basic facts that already end in zero: the answer gets an extra zero (5 × 4,000 = 20,000)
 const ZERO_FACTS: [number, number][] = [[5, 2], [5, 4], [5, 6], [5, 8], [2, 5], [4, 5], [6, 5], [8, 5]];
 
-const makeTens = (rng: Rng): Problem => {
-    const style = pick(rng, ['plain', 'plain', 'plain', 'units', 'pattern', 'zero'] as const);
+const makeTens = (rng: Rng, want?: string): Problem => {
+    const style = pickStyle(rng, ['plain', 'plain', 'plain', 'units', 'pattern', 'zero'] as const, want);
     const [m, d] = style === 'zero' || rng() < 0.3 ? pick(rng, ZERO_FACTS) : [int(rng, 2, 9), int(rng, 2, 9)];
     const k = int(rng, 1, 3), [place, wordEn, wordRu] = PLACE[k - 1];
     const word = L(wordEn, wordRu[2]);
@@ -132,8 +132,8 @@ const COMP_STORIES: CompStory[] = [
         `Фермерский прилавок кладёт в каждый ящик ${fmt(a, 'ru')} ${ruPlural(a, 'яблоко', 'яблока', 'яблок')}. Класс ${AMELIIA.ruGen} покупает ${m} ${ruPlural(m, 'ящик', 'ящика', 'ящиков')} для осенней ярмарки. Посчитай в уме, сколько это яблок.`),
 ];
 
-const makeMental = (rng: Rng): Problem => {
-    const style = pick(rng, ['comp', 'comp', 'story', 'assoc', 'how'] as const);
+const makeMental = (rng: Rng, want?: string): Problem => {
+    const style = pickStyle(rng, ['comp', 'comp', 'story', 'assoc', 'how'] as const, want);
     const m = int(rng, 3, 9);
     if (style === 'assoc') {
         // 8 × 50 = (4 × 2) × 50 = 4 × (2 × 50) = 4 × 100: find the pair that makes 10, 100 or 1,000
@@ -200,8 +200,8 @@ const makeMental = (rng: Rng): Problem => {
 
 // ---------- Assessment practice: which expressions match ----------
 
-const makeExpr = (rng: Rng): Problem => {
-    const style = pick(rng, ['partials', 'expand', 'same', 'back', 'product', 'equiv', 'pick'] as const);
+const makeExpr = (rng: Rng, want?: string): Problem => {
+    const style = pickStyle(rng, ['partials', 'expand', 'same', 'back', 'product', 'equiv', 'pick'] as const, want);
     const m = int(rng, 3, 9);
     if (style === 'partials') {
         // 1,874 × 3: 3,000, 2,400, 210 and 12 are the partial products; 5,400 and 2,000 are traps
@@ -413,8 +413,8 @@ const BAGS: Bags[] = [
 // gifts for nieces and nephews: about $100 or $200 each
 const GIFTS: [L10n, [number, number]][] = [[L('a digital keyboard', 'электронное пианино'), [101, 109]], [L('a scooter', 'самокат'), [91, 99]], [L('a bike', 'велосипед'), [201, 209]], [L('an art set', 'набор для рисования'), [46, 54]]];
 
-const makeWord = (rng: Rng): Problem => {
-    const style = pick(rng, ['bar', 'story', 'story', 'rows', 'area', 'bags', 'bakery', 'weeks', 'iced', 'tickets', 'reason', 'gifts'] as const);
+const makeWord = (rng: Rng, want?: string): Problem => {
+    const style = pickStyle(rng, ['bar', 'story', 'story', 'rows', 'area', 'bags', 'bakery', 'weeks', 'iced', 'tickets', 'reason', 'gifts'] as const, want);
     if (style === 'bar') {
         // a bar diagram of equal boxes, the whole is the letter: 48 48 48 48 -> b = 4 × 48
         const n = int(rng, 2, 6), v = pick(rng, [int(rng, 12, 99), int(rng, 101, 499)]), letter = pick(rng, ['b', 'n', 't', 'p']);
@@ -611,9 +611,9 @@ const makeWord = (rng: Rng): Problem => {
     };
 };
 
-export const makeTopic3 = (rng: Rng, skill: SkillId): Problem => {
-    if (skill === 'mult-tens') return makeTens(rng);
-    if (skill === 'mult-mental') return makeMental(rng);
-    if (skill === 'mult-expr') return makeExpr(rng);
-    return makeWord(rng);
+export const makeTopic3 = (rng: Rng, skill: SkillId, want?: string): Problem => {
+    if (skill === 'mult-tens') return makeTens(rng, want);
+    if (skill === 'mult-mental') return makeMental(rng, want);
+    if (skill === 'mult-expr') return makeExpr(rng, want);
+    return makeWord(rng, want);
 };

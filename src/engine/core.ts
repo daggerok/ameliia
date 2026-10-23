@@ -102,6 +102,9 @@ export const makeRng = (seed: number): Rng => {
 
 export const int = (rng: Rng, min: number, max: number) => Math.floor(rng() * (max - min + 1)) + min;
 export const pick = <T>(rng: Rng, items: readonly T[]): T => items[Math.floor(rng() * items.length)];
+// a style picked at random, or the one asked for (the daily plan asks for the kinds of tasks not covered yet)
+export const pickStyle = <T extends string>(rng: Rng, styles: readonly T[], want?: string): T =>
+    (want && styles.includes(want as T) ? (want as T) : pick(rng, styles));
 export const shuffle = <T>(rng: Rng, items: readonly T[]): T[] => {
     const out = [...items];
     for (let i = out.length - 1; i > 0; i--) {

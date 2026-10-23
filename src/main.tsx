@@ -3,9 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type FillAnswer, type FillPart, type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
 import {
-    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, dailyGoal, dayOf, grade, newState, nextProblem, prepSkills, totalTime,
+    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, dailyGoal, dayOf, grade, newState, nextProblem, prepPicks, totalTime,
 } from './engine/game';
-import { makeFreshProblem } from './engine';
 import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
 import { QUIZ_PASS, buildQuiz } from './engine/quiz';
 import { CHAPTERS, STARS_PER_CHAPTER } from './engine/story';
@@ -29,7 +28,7 @@ const UI = {
         howSolve: 'How to solve it', correct: 'Correct!', wrong: 'Not quite', stars: 'Stars', streak: 'Streak', today: 'Today', accuracy: 'Correct', quotient: 'Answer',
         remainder: 'R', empty: 'Type your answer first', pick: 'Choose an answer', startTest: 'Start the test', finish: 'Finish the test', result: 'Your result', gradeL: 'Grade',
         time: 'Time', practiceMistakes: 'Practice my mistakes', back: 'Back', locked: 'Opens at', chapter: 'Chapter', read: 'Read', language: 'Language', theme: 'Theme',
-        sound: 'Sound', reset: 'Reset all progress', resetConfirm: 'Really delete all stars and progress?', parents: 'For Mom and Dad', minutes: 'min', goal: 'Daily goal', goalShort: 'Goal', goalPrep: 'Goal for the test: right answers', goalPrepSub: 'Every kind of task from the homework, a few right answers each', goalSub: (n: number) => `${n} right answers today`, goalDone: 'Goal done! Extra practice makes you even stronger',
+        sound: 'Sound', reset: 'Reset all progress', resetConfirm: 'Really delete all stars and progress?', parents: 'For Mom and Dad', minutes: 'min', goal: 'Daily goal', goalShort: 'Goal', goalPrep: 'Goal for the test: right answers', goalPrepSub: 'One right answer for every kind of task from the homework', goalSub: (n: number) => `${n} right answers today`, goalDone: 'Goal done! Extra practice makes you even stronger',
         balance: 'Learning time', target: 'goal', skill: 'Skill', solved: 'Solved', reads: 'Theory', quizzes: 'Quizzes', tests: 'Practice tests', noTests: 'No tests yet',
         painting: 'Magic painting', finished: 'Finished paintings', newPainting: 'Your painting is finished! A new one is waiting.', light: 'Light', dark: 'Dark', system: 'Auto',
         on: 'On', off: 'Off', yourAnswer: 'Your answer', rightAnswer: 'Right answer', starsWord: 'stars', reviewFirst: 'Let\'s look at the theory for this one first, then you will crush it!',
@@ -76,7 +75,7 @@ const UI = {
         howSolve: 'Как решать', correct: 'Верно!', wrong: 'Не совсем', stars: 'Звёзды', streak: 'Серия', today: 'Сегодня', accuracy: 'Верно', quotient: 'Ответ',
         remainder: 'Ост.', empty: 'Сначала напиши ответ', pick: 'Выбери ответ', startTest: 'Начать тест', finish: 'Закончить тест', result: 'Твой результат', gradeL: 'Оценка',
         time: 'Время', practiceMistakes: 'Потренировать ошибки', back: 'Назад', locked: 'Откроется при', chapter: 'Глава', read: 'Читать', language: 'Язык', theme: 'Тема',
-        sound: 'Звук', reset: 'Сбросить весь прогресс', resetConfirm: 'Точно удалить все звёзды и прогресс?', parents: 'Для мамы и папы', minutes: 'мин', goal: 'Цель на день', goalShort: 'Цель', goalPrep: 'Цель к тесту: верные ответы', goalPrepSub: 'Все виды заданий из домашки, по нескольку верных ответов', goalSub: (n: number) => `${n} верных ответов за день`, goalDone: 'Цель выполнена! Дополнительная практика сделает тебя ещё сильнее',
+        sound: 'Звук', reset: 'Сбросить весь прогресс', resetConfirm: 'Точно удалить все звёзды и прогресс?', parents: 'Для мамы и папы', minutes: 'мин', goal: 'Цель на день', goalShort: 'Цель', goalPrep: 'Цель к тесту: верные ответы', goalPrepSub: 'По одному верному ответу на каждый вид заданий из домашки', goalSub: (n: number) => `${n} верных ответов за день`, goalDone: 'Цель выполнена! Дополнительная практика сделает тебя ещё сильнее',
         balance: 'Время учёбы', target: 'цель', skill: 'Навык', solved: 'Решено', reads: 'Теория', quizzes: 'Викторины', tests: 'Пробные тесты', noTests: 'Тестов пока нет',
         painting: 'Волшебная картина', finished: 'Готовые картины', newPainting: 'Картина готова! Тебя ждёт новая.', light: 'Светлая', dark: 'Тёмная', system: 'Авто',
         on: 'Вкл', off: 'Выкл', yourAnswer: 'Твой ответ', rightAnswer: 'Правильный ответ', starsWord: 'звёзд', reviewFirst: 'Давай сначала заглянем в теорию к этому заданию, и всё получится!',
@@ -579,12 +578,13 @@ export const App: React.FC = () => {
         setScreen('play');
     };
 
-    // test prep: only the task types of the homework for the test, first the ones she has not covered today;
+    // test prep: only the kinds of tasks of the homework for the test, first the ones she has not covered today;
     // a topic she has never read starts with its theory, like a lesson
     const [focus, setFocus] = useState(false);
     const nextTask = (f: boolean) => {
-        const open = prepSkills(g, today());
-        const p = nextProblem(g, rng, FORCED_SKILL ?? (f ? open[Math.floor(rng() * open.length)] : undefined));
+        const open = prepPicks(g, today());
+        const [skill, kind] = f ? open[Math.floor(rng() * open.length)] : [undefined, undefined];
+        const p = nextProblem(g, rng, FORCED_SKILL ?? skill, { kind: FORCED_SKILL ? undefined : kind, day: today() });
         const st = g.skills[p.skill];
         if (st.needsTheory || (f && st.theoryReads === 0)) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); if (st.needsTheory) setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); return; }
         startProblem(p);
@@ -628,7 +628,7 @@ export const App: React.FC = () => {
         // read first: back to the same task; after a mistake: a brand-new task of the same skill
         if (learn.mode === 'first' && problem && !attempt.result) { setScreen('play'); return; }
         if (learn.mode === 'due' && problem && !attempt.result) { setScreen('play'); return; }
-        startProblem(makeFreshProblem(learn.skill, rng, new Set(g.recent)), true);
+        startProblem(nextProblem(g, rng, learn.skill, { day: today() }), true);
     };
 
     const startTest = () => { setTest({ problems: buildTest(g, rng), idx: 0, given: [], start: Date.now() }); go('test'); };
@@ -668,8 +668,9 @@ export const App: React.FC = () => {
                 <header className="flex justify-between items-center py-3 mb-1 gap-2">
                     <button onClick={() => go('home')} className="flex items-center gap-2 text-left min-w-0" data-testid="nav-home">
                         <Pip size={40} className="shrink-0" />
-                        <div>
-                            <h1 className="text-[15px] sm:text-xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-wide leading-none truncate">{t.title}</h1>
+                        {/* the Russian title is long: on a phone it wraps onto two lines instead of sliding under the buttons */}
+                        <div className="min-w-0">
+                            <h1 className="text-[15px] sm:text-xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-wide leading-tight sm:leading-none">{t.title}</h1>
                             <p className="text-[10px] md:text-xs text-slate-400 font-bold italic">{t.subtitle}</p>
                         </div>
                     </button>

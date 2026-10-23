@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, DAILY_RIGHT, STRATEGIES, TEST_PREP, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, dailyGoal, dayOf, newState, normalize, nextProblem, nextSkill, prepSkills, totalTime } from '../src/engine/game';
+import { ALL_SKILLS, DAILY_RIGHT, PREP_PLAN, STRATEGIES, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, dailyGoal, dayOf, kindOf, newState, normalize, nextProblem, nextSkill, prepPicks, totalTime, uncovered } from '../src/engine/game';
 import { makeFreshProblem, makeProblem } from '../src/engine/index';
 import { buildQuiz } from '../src/engine/quiz';
 import { buildTheory, chainOf } from '../src/engine/theory';
@@ -644,41 +644,79 @@ describe('game flow', () => {
         s = chooseNextPainting(r.state, 4, parts, 2);
         expect(s.painting).toEqual({ index: 4, filled: 6, done: [0], choosing: false });
     });
-    test('the daily goal is right answers: before the test every homework task type, later 30 a day', () => {
+    test('every kind of task of the plan is made on request and named the same way', () => {
+        const extra: Record<string, string[]> = { 'est-product': ['tens', 'reasonable'], 'motion-ideas': ['energy'], 'speed-trip': ['leg'] };
+        for (const [skill, kinds] of PREP_PLAN) {
+            for (const kind of kinds) for (let seed = 1; seed <= 60; seed++) {
+                const p = makeProblem(skill, makeRng(seed * 31 + kind.length), kind);
+                if (kindOf(p) !== kind) throw new Error(`${skill}:${kind} asked, got ${kindOf(p)} (${p.id})`);
+            }
+            // whatever the generator makes on its own is a kind of the plan or a known extra
+            const made = new Set<string>();
+            each(skill, p => made.add(kindOf(p)));
+            expect([...made].filter(k => !kinds.includes(k) && !(extra[skill] ?? []).includes(k))).toEqual([]);
+            expect(kinds.every(k => made.has(k))).toBe(true);
+        }
+    });
+    test('the daily goal is right answers: before the test one for every kind of homework task, later 30 a day', () => {
         const day = '2026-10-22', s0 = newState();
-        expect(Object.keys(TEST_PREP).every(k => ALL_SKILLS.includes(k as never))).toBe(true);
-        // every task type of the photos is in the plan
-        for (const k of ['mult-tens', 'est-product', 'mult-mental', 'mult-expr', 'mult-word', 'forces', 'motion-ideas', 'speed-trip', 'mult-partial', 'mult-dist'] as SkillId[]) expect(TEST_PREP[k]).toBeGreaterThan(0);
+        const total = PREP_PLAN.reduce((a, [, ks]) => a + ks.length, 0);
         const g0 = dailyGoal(s0, day);
-        expect(g0.total).toBe(Object.values(TEST_PREP).reduce((a, b) => a + (b ?? 0), 0));
-        expect(g0.total).toBeGreaterThanOrEqual(30);
-        expect(g0.total).toBeLessThanOrEqual(50);
+        expect(g0.total).toBe(total);
         expect(g0.done).toBe(0);
+        expect(uncovered(s0, day).length).toBe(total);
         const rng = makeRng(5);
+        const right = (s: typeof s0, p: Problem, d = day) => applyAnswer(s, p, true, { firstTry: true, hint: false, sec: 5, day: d }).state;
         let s = s0;
-        // wrong answers and right answers on another day do not count
-        s = applyAnswer(s, makeProblem('forces', rng), false, { firstTry: true, hint: false, sec: 5, day }).state;
-        s = applyAnswer(s, makeProblem('forces', rng), true, { firstTry: true, hint: false, sec: 5, day: '2026-10-21' }).state;
+        // wrong answers and right answers on another day do not count, the same kind twice counts once
+        s = applyAnswer(s, makeProblem('forces', rng, 'gravity'), false, { firstTry: true, hint: false, sec: 5, day }).state;
+        s = right(s, makeProblem('forces', rng, 'gravity'), '2026-10-21');
         expect(dailyGoal(s, day).done).toBe(0);
-        // extra right answers of one type cover only that type
-        for (let i = 0; i < 9; i++) s = applyAnswer(s, makeProblem('forces', rng), true, { firstTry: true, hint: false, sec: 5, day }).state;
-        expect(dailyGoal(s, day).done).toBe(TEST_PREP.forces);
-        expect(prepSkills(s, day)).not.toContain('forces');
-        expect(prepSkills(s, day).length).toBe(Object.keys(TEST_PREP).length - 1);
+        s = right(s, makeProblem('forces', rng, 'gravity'));
+        s = right(s, makeProblem('forces', rng, 'gravity'));
+        expect(dailyGoal(s, day).done).toBe(1);
+        expect(uncovered(s, day)).not.toContainEqual(['forces', 'gravity']);
         // practice test answers count too
-        const problems = [makeProblem('mult-expr', rng), makeProblem('mult-word', rng)];
-        s = applyTest(s, problems, [true, false], 60, day);
-        expect(s.dailySkills[day]['mult-expr']).toBe(1);
-        expect(s.dailySkills[day]['mult-word']).toBeUndefined();
-        // everything covered: test prep keeps going with all the types
-        for (const [k, n] of Object.entries(TEST_PREP)) for (let i = 0; i < (n ?? 0); i++) s = applyAnswer(s, makeProblem(k as SkillId, rng), true, { firstTry: true, hint: false, sec: 5, day }).state;
-        expect(dailyGoal(s, day).done).toBe(dailyGoal(s, day).total);
-        expect(prepSkills(s, day).length).toBe(Object.keys(TEST_PREP).length);
+        s = applyTest(s, [makeProblem('mult-expr', rng, 'pick'), makeProblem('mult-word', rng, 'bags')], [true, false], 60, day);
+        expect(s.dailyKinds[day]['mult-expr:pick']).toBe(1);
+        expect(s.dailyKinds[day]['mult-word:bags']).toBeUndefined();
+        // a skill of the plan in normal play gives a kind not covered yet
+        for (let i = 0; i < 30; i++) expect(kindOf(nextProblem(s, rng, 'forces', { day }))).not.toBe('gravity');
+        // following test prep covers the whole plan with one right answer per kind
+        let tasks = 0;
+        while (uncovered(s, day).length && tasks < 200) {
+            const open = prepPicks(s, day);
+            const [skill, kind] = open[Math.floor(rng() * open.length)];
+            s = right(s, nextProblem(s, rng, skill, { kind, day }));
+            tasks++;
+        }
+        expect(dailyGoal(s, day).done).toBe(total);
+        expect(tasks).toBe(total - 2);
+        // everything covered: test prep keeps going with the whole plan
+        expect(prepPicks(s, day).length).toBe(total);
         // after the test day: 30 right answers of any kind
         const after = '2026-10-24';
         expect(dailyGoal(s, after)).toEqual({ rows: [], done: 0, total: DAILY_RIGHT });
-        for (let i = 0; i < 40; i++) s = applyAnswer(s, makeProblem('round', rng), true, { firstTry: true, hint: false, sec: 5, day: after }).state;
+        expect(uncovered(s, after)).toEqual([]);
+        for (let i = 0; i < 40; i++) s = right(s, makeProblem('round', rng), after);
         expect(dailyGoal(s, after).done).toBe(DAILY_RIGHT);
+    });
+    test('test prep with mistakes never repeats a task, and still covers the plan', () => {
+        for (const seed of [1, 2, 3, 4, 5]) {
+            const day = '2026-10-22', rng = makeRng(seed);
+            let s = newState();
+            const ids = new Set<string>();
+            for (let i = 0; i < 120 && uncovered(s, day).length; i++) {
+                const open = prepPicks(s, day);
+                const [skill, kind] = open[Math.floor(rng() * open.length)];
+                const p = nextProblem(s, rng, skill, { kind, day });
+                if (ids.has(p.id)) throw new Error(`seed ${seed}: task ${i + 1} repeats ${p.id}`);
+                ids.add(p.id);
+                // every third answer is wrong: that kind stays open and comes back with a new question
+                s = applyAnswer(s, p, i % 3 !== 2, { firstTry: true, hint: false, sec: 5, day }).state;
+            }
+            expect(uncovered(s, day)).toEqual([]);
+        }
     });
     test('progress saved by an older build keeps today\'s right answers', () => {
         const t = new Date(2026, 9, 22, 21, 30).getTime();

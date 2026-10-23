@@ -1,6 +1,6 @@
 import {
     type Answer, type FillLine, type L10n, type Leg, type Problem, type Rng, type SkillId, type Unit,
-    L, choice, dist, fmt, hours, int, minutes, pick, ruPlural, speedShort, speedUnit,
+    L, choice, dist, fmt, hours, int, minutes, pick, pickStyle, ruPlural, speedShort, speedUnit,
 } from './core';
 import { AMELIIA, FLORIDA, HOUSEHOLD, type Person } from './words';
 
@@ -242,10 +242,10 @@ const tripCandidates = (unit: Unit, parts: number) => {
 
 const toLegs = (legs: LegPick[]): Leg[] => legs.map(l => ({ from: l.from.en, to: l.to.en, distance: l.d, time: l.t, speed: l.s, vehicle: l.v.icon }));
 
-const makeTrip = (rng: Rng): Problem => {
+const makeTrip = (rng: Rng, want?: string): Problem => {
     const unit = unitOf(rng);
     const parts = int(rng, 2, 3);
-    let ask = pick(rng, ['total', 'total', 'leg', 'trap', 'map', 'map'] as const);
+    let ask = pickStyle(rng, ['total', 'total', 'leg', 'trap', 'map', 'map'] as const, want);
     const sum = (legs: LegPick[], f: (l: LegPick) => number) => legs.reduce((s, l) => s + f(l), 0);
     // different times in the parts, otherwise averaging the speeds would accidentally give the right answer
     let pool = tripCandidates(unit, parts).filter(legs => sum(legs, l => l.d) % sum(legs, l => l.t) === 0 && new Set(legs.map(l => l.t)).size > 1);
@@ -529,14 +529,31 @@ const ideas = (rng: Rng): Idea[] => {
             wrong: [L('Average speed = total distance × total time', 'Средняя скорость = всё расстояние × всё время'), L('Average speed = total time ÷ total distance', 'Средняя скорость = всё время ÷ всё расстояние'), L('Average speed = total distance + total time', 'Средняя скорость = всё расстояние + всё время')],
             why: L(`Average speed = total distance ÷ total time: ${fmt(2 * s, 'en')} ÷ 2 = ${s}, so ${speedShort(s, unit).en}.`, `Средняя скорость = всё расстояние ÷ всё время: ${fmt(2 * s, 'ru')} ÷ 2 = ${s}, то есть ${speedShort(s, unit).ru}.`),
         },
+        {
+            q: L(`${who.en} drives ${dist(s, unit).en} every hour. Which science word means the rate at which an object changes position, like ${speedShort(s, unit).en}?`,
+                `${who.ru} проезжает ${dist(s, unit).ru} каждый час. Какое научное слово означает, как быстро предмет меняет положение, например ${speedShort(s, unit).ru}?`),
+            right: L('Speed', 'Скорость (speed)'),
+            wrong: [L('Acceleration', 'Ускорение'), L('Force', 'Сила'), L('Gravity', 'Гравитация')],
+            why: L('Speed is the rate at which an object changes position: how far it goes in one hour.', 'Скорость - это то, как быстро предмет меняет положение: сколько он проходит за один час.'),
+        },
+        {
+            q: L(`${who.en} slows the car down from ${speedShort(s, unit).en} to ${speedShort(s - 20, unit).en} before a red light. Is the car accelerating?`,
+                `${who.ru} перед красным светом сбавляет скорость машины с ${speedShort(s, unit).ru} до ${speedShort(s - 20, unit).ru}. Машина ускоряется (acceleration)?`),
+            right: L('Yes: acceleration is any change in speed or direction', 'Да: ускорение - это любое изменение скорости или направления'),
+            wrong: [L('No: the car is slowing down, not speeding up', 'Нет: машина тормозит, а не разгоняется'), L('No: only planes accelerate', 'Нет: ускоряются только самолёты'), L('Only if it turns', 'Только если она поворачивает')],
+            why: L(`The speed changes from ${s} to ${s - 20}, so the car is accelerating. Slowing down counts.`, `Скорость меняется с ${s} до ${s - 20}, значит машина ускоряется. Торможение тоже считается.`),
+        },
     ];
 };
 
-export const IDEA_COUNT = 13;
+export const IDEA_COUNT = 15;
+// what each idea above is about, in the words of the Chapter 2 study guide (energy is a bonus, not on the guide)
+export const IDEA_KIND = ['velocity', 'velocity', 'acceleration', 'velocity', 'acceleration', 'acceleration', 'energy', 'energy', 'average', 'acceleration', 'speed', 'velocity', 'average', 'speed', 'acceleration'];
 
-const makeIdeas = (rng: Rng): Problem => {
+const makeIdeas = (rng: Rng, want?: string): Problem => {
     const all = ideas(rng);
-    const k = int(rng, 0, all.length - 1);
+    const fits = IDEA_KIND.map((x, i) => (x === want ? i : -1)).filter(i => i >= 0);
+    const k = fits.length ? pick(rng, fits) : int(rng, 0, all.length - 1);
     const it = all[k];
     return {
         id: `motion-ideas:${k}:${it.q.en}`, skill: 'motion-ideas', topic: 'science',
@@ -548,10 +565,10 @@ const makeIdeas = (rng: Rng): Problem => {
     };
 };
 
-export const makeScience = (rng: Rng, skill: SkillId): Problem => {
+export const makeScience = (rng: Rng, skill: SkillId, want?: string): Problem => {
     if (skill === 'speed-find') return makeFind(rng);
-    if (skill === 'speed-trip') return makeTrip(rng);
+    if (skill === 'speed-trip') return makeTrip(rng, want);
     if (skill === 'speed-units') return makeUnits(rng);
-    if (skill === 'motion-ideas') return makeIdeas(rng);
+    if (skill === 'motion-ideas') return makeIdeas(rng, want);
     return makeBasic(rng);
 };

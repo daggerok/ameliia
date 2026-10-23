@@ -1,5 +1,7 @@
 import { type Lang, type Problem, type Rng, type SkillId, type Topic, SKILLS_OF, TOPIC_OF, TOPIC_TARGET, pick, shuffle } from './core';
+import { forceKind } from './forces';
 import { makeFreshProblem } from './index';
+import { IDEA_KIND } from './science';
 
 export type SkillStat = {
     seen: number; correct: number; rightStreak: number;
@@ -25,6 +27,7 @@ export type GameState = {
     time: Record<Topic, number>;          // seconds of real learning per topic
     daily: Record<string, number>;        // seconds per day (YYYY-MM-DD)
     dailySkills: Record<string, Partial<Record<SkillId, number>>>; // right answers per day and skill (tasks and practice tests)
+    dailyKinds: Record<string, Record<string, number>>;            // right answers per day and kind of task, "mult-expr:partials"
     skills: Record<SkillId, SkillStat>;
     recent: string[];                     // ids of recent tasks, never repeated
     history: HistoryItem[];
@@ -49,6 +52,7 @@ export const newState = (): GameState => ({
     time: { division: 0, science: 0, estimation: 0 },
     daily: {},
     dailySkills: {},
+    dailyKinds: {},
     skills: Object.fromEntries(ALL_SKILLS.map(s => [s, emptyStat()])) as Record<SkillId, SkillStat>,
     recent: [], history: [], tests: [],
     painting: { index: 0, filled: 0, done: [], choosing: false },
@@ -77,18 +81,41 @@ export const normalize = (raw: unknown): GameState => {
 // the day on the device clock (her iPad is on New York time), not in UTC
 export const dayOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-const countRight = (state: GameState, day: string, skill: SkillId, n: number) => {
+const countRight = (state: GameState, day: string, skill: SkillId, n: number, kind?: string) => {
     const d = { ...(state.dailySkills[day] ?? {}) };
     d[skill] = (d[skill] ?? 0) + n;
     state.dailySkills = { ...state.dailySkills, [day]: d };
+    if (!kind) return;
+    const key = `${skill}:${kind}`, k = { ...(state.dailyKinds[day] ?? {}) };
+    k[key] = (k[key] ?? 0) + n;
+    state.dailyKinds = { ...state.dailyKinds, [day]: k };
 };
 
-// The daily goal is a number of right answers. Up to the day of the school test it is a plan that covers every task type
-// of the homework sent for that test (2026-10-23: Topic 3 and Science Chapter 2), more answers for the topics with more kinds of tasks.
-export const TEST_PREP: Partial<Record<SkillId, number>> = {
-    'mult-tens': 3, 'est-product': 3, 'mult-area': 2, 'mult-partial': 2, 'mult-dist': 2, 'mult-standard': 2,
-    'mult-mental': 3, 'mult-expr': 4, 'mult-word': 4, 'compare': 2, 'forces': 5, 'motion-ideas': 3, 'speed-trip': 3,
+// the kind of a task inside its skill: the style of a worksheet, the study guide line of a science idea, or "all"
+export const kindOf = (p: Problem): string => {
+    if (p.skill === 'forces') return forceKind(p.id);
+    if (p.skill === 'motion-ideas') return IDEA_KIND[Number(p.data.idea)] ?? 'all';
+    if (p.skill === 'speed-trip') return p.id.split(':')[1];
+    if (p.skill === 'est-product') return ({ t: 'tens', b: 'big', r: 'reasonable' } as Record<string, string>)[p.id.split(':')[1]] ?? 'all';
+    if (['mult-tens', 'mult-mental', 'mult-expr', 'mult-word'].includes(p.skill)) return String(p.data.style);
+    return 'all';
 };
+
+// The daily goal is a number of right answers. Up to the day of the school test it is a plan with one right answer
+// for every kind of task on the homework photos for that test (2026-10-23: Topic 3 reteaching A-H and assessment 1-20,
+// Science Chapter 2 study guide parts I and II, textbook p. 64-65), so a day of practice covers all of it.
+export const PREP_PLAN: [SkillId, string[]][] = [
+    ['mult-tens', ['plain', 'units', 'pattern', 'zero']],
+    ['est-product', ['big']],
+    ['mult-area', ['all']], ['mult-partial', ['all']], ['mult-dist', ['all']], ['mult-standard', ['all']],
+    ['mult-mental', ['assoc', 'comp', 'story', 'how']],
+    ['mult-expr', ['partials', 'expand', 'same', 'back', 'product', 'equiv', 'pick']],
+    ['mult-word', ['bar', 'story', 'rows', 'area', 'bags', 'bakery', 'weeks', 'iced', 'tickets', 'reason', 'gifts']],
+    ['forces', ['motion', 'reference', 'force', 'gravity', 'relative', 'kinds', 'size-direction', 'effects', 'balanced']],
+    ['motion-ideas', ['speed', 'velocity', 'acceleration', 'average']],
+    ['speed-basic', ['all']],
+    ['speed-trip', ['map', 'total', 'trap']],
+];
 export const DAILY_RIGHT = 30;
 
 export type GoalRow = { skill: SkillId; done: number; need: number };
@@ -97,17 +124,25 @@ export type Goal = { done: number; total: number; rows: GoalRow[] };
 export const dailyGoal = (state: GameState, day: string): Goal => {
     const got = state.dailySkills[day] ?? {};
     if (day <= state.testDate) {
-        const rows = (Object.entries(TEST_PREP) as [SkillId, number][]).map(([skill, need]) => ({ skill, need, done: Math.min(got[skill] ?? 0, need) }));
+        const kinds = state.dailyKinds[day] ?? {};
+        const rows = PREP_PLAN.map(([skill, ks]) => ({ skill, need: ks.length, done: ks.filter(k => kinds[`${skill}:${k}`]).length }));
         return { rows, done: rows.reduce((s, r) => s + r.done, 0), total: rows.reduce((s, r) => s + r.need, 0) };
     }
     const all = Object.values(got).reduce((s, n) => s + (n ?? 0), 0);
     return { rows: [], done: Math.min(all, DAILY_RIGHT), total: DAILY_RIGHT };
 };
 
-// test prep picks the task types she has not covered yet today; once all are done, any of them
-export const prepSkills = (state: GameState, day: string): SkillId[] => {
-    const open = dailyGoal(state, day).rows.filter(r => r.done < r.need).map(r => r.skill);
-    return open.length ? open : Object.keys(TEST_PREP) as SkillId[];
+// the kinds of tasks of the plan she has not answered right yet today (none after the test day)
+export const uncovered = (state: GameState, day: string): [SkillId, string][] => {
+    if (day > state.testDate) return [];
+    const kinds = state.dailyKinds[day] ?? {};
+    return PREP_PLAN.flatMap(([skill, ks]) => ks.filter(k => !kinds[`${skill}:${k}`]).map(k => [skill, k] as [SkillId, string]));
+};
+
+// test prep picks a kind of task she has not covered yet today; once all are done, any kind of the plan
+export const prepPicks = (state: GameState, day: string): [SkillId, string][] => {
+    const open = uncovered(state, day);
+    return open.length ? open : PREP_PLAN.flatMap(([skill, ks]) => ks.map(k => [skill, k] as [SkillId, string]));
 };
 
 // Ladders: a skill opens after 2 correct answers in the one before it (motion ideas and forces are open from the start)
@@ -171,8 +206,18 @@ export const nextSkill = (state: GameState, rng: Rng): SkillId => {
     return open[open.length - 1];
 };
 
-export const nextProblem = (state: GameState, rng: Rng, skill?: SkillId): Problem =>
-    makeFreshProblem(skill ?? nextSkill(state, rng), rng, new Set(state.recent));
+// with a day: a skill of the plan gives a kind of task not covered yet today, so any practice fills the plan;
+// a kind with nothing new left (she has seen all its questions) gives way to another kind, never a repeat
+export const nextProblem = (state: GameState, rng: Rng, skill?: SkillId, opts: { kind?: string; day?: string } = {}): Problem => {
+    const s = skill ?? nextSkill(state, rng);
+    const seen = new Set(state.recent);
+    const open = opts.day ? shuffle(rng, uncovered(state, opts.day).filter(([k]) => k === s).map(([, k]) => k)) : [];
+    for (const kind of [...(opts.kind ? [opts.kind] : []), ...open.filter(k => k !== opts.kind)]) {
+        const p = makeFreshProblem(s, rng, seen, kind);
+        if (!seen.has(p.id)) return p;
+    }
+    return makeFreshProblem(s, rng, seen);
+};
 
 const remember = (state: GameState, id: string) => {
     state.recent = [...state.recent.filter(x => x !== id), id].slice(-400);
@@ -198,7 +243,7 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
         state.bestStreak = Math.max(state.bestStreak, state.streak);
         stars = starsFor(opts.firstTry, opts.hint);
         state.stars += stars;
-        if (opts.day) countRight(state, opts.day, p.skill, 1);
+        if (opts.day) countRight(state, opts.day, p.skill, 1, kindOf(p));
     } else {
         st.rightStreak = 0;
         st.needsTheory = true;
@@ -258,7 +303,7 @@ export const buildTest = (state: GameState, rng: Rng): Problem[] => {
 
 export const applyTest = (prev: GameState, problems: Problem[], results: boolean[], sec: number, day?: string): GameState => {
     const state = structuredClone(prev);
-    if (day) problems.forEach((p, i) => { if (results[i]) countRight(state, day, p.skill, 1); });
+    if (day) problems.forEach((p, i) => { if (results[i]) countRight(state, day, p.skill, 1, kindOf(p)); });
     const wrong = problems.filter((_, i) => !results[i]).map(p => p.skill);
     problems.forEach(p => remember(state, p.id));
     // a mistake in the test sends that skill to theory and quiz next time it shows up

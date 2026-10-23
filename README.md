@@ -4,7 +4,7 @@ Tp play Math for Ameliia [open this link](https://daggerok.github.io/ameliia/)
 
 ## Math Quest (current version, v20261021-quest)
 
-A game for a 4th grader in New Jersey with Lina (a girl in glasses) and Pip the capybara (a new hobby every time she shows up), in English and Russian. The daily goal is right answers, not time: up to a school test day it is a plan that covers every task type of the homework for that test (38 right answers for 2026-10-23, test prep serves the types not covered yet), later 30 right answers a day; a live clock shows today's study time:
+A game for a 4th grader in New Jersey with Lina (a girl in glasses) and Pip the capybara (a new hobby every time she shows up), in English and Russian. The daily goal is right answers, not time: up to a school test day it is a plan that covers every task type of the homework for that test (one right answer for each of the 48 kinds of tasks on the photos for 2026-10-23; test prep and normal play serve the kinds not covered yet, never a repeat), later 30 right answers a day; a live clock shows today's study time:
 
 - learning time is split 50% division, 25% motion and speed, 25% rounding and estimating
 - a wrong answer opens a theory page (with fresh examples and her own task step by step), then a mini quiz; after the quiz comes a new task of the same skill, and the skill returns a few tasks later
