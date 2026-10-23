@@ -3,12 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type FillAnswer, type FillPart, type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
 import {
-    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, dailyGoal, dayOf, grade, newState, nextProblem, prepPicks, totalTime,
+    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, dailyGoal, dayOf, fixRework, grade, kindOf, logMistake, newState, nextProblem, prepPicks, totalTime,
 } from './engine/game';
 import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
 import { QUIZ_PASS, buildQuiz } from './engine/quiz';
 import { CHAPTERS, STARS_PER_CHAPTER } from './engine/story';
 import { type Section, type Theory, answerLine, buildTheory } from './engine/theory';
+import { type ReworkItem, reworkId, reworkQueue, reworkSkill, reworkTheory } from './engine/mistakes';
 import { VisualView } from './ui/Boards';
 import { Guide, Lina, Pip } from './ui/Buddy';
 import { PAINTINGS, PaintingView } from './ui/Paintings';
@@ -36,7 +37,7 @@ const UI = {
         parentsText: 'Learning time follows 50% division, 25% motion and speed, 25% rounding and estimating. A wrong answer always leads to theory and a mini quiz, and that skill comes back a few tasks later. Content follows the NJ Student Learning Standards for grade 4 (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity and acceleration are bonus explorer words.',
         perfect: 'Perfect test!', stepsWord: 'Steps', yes: 'Yes', no: 'No', taskOf: 'Task',
         congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
-        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Test prep: Topic 3 and Science Chapter 2', hwSub: 'Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', pickAll: 'Select all that apply', howToPlay: 'How to play (the welcome tour)',
+        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Test prep: Topic 3 and Science Chapter 2', hwSub: 'Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', pickAll: 'Select all that apply', rework: (n: number) => `Fix my mistakes: ${n} left`, reworkSub: 'Homework and app mistakes: first the right way, then a new task of the same kind', reworkDone: 'All mistakes are fixed! Great work!', reworkKicker: (n: number) => `Fix my mistakes · ${n} left`, reworkGo: 'Solve a new task of this kind', howToPlay: 'How to play (the welcome tour)',
         tourNext: 'Next', tourBack: 'Back', tourSkip: 'Skip', tourStart: 'Let\'s start!', tourGo: 'Got it!',
         notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadMove: 'Move the page', notepadZoomIn: 'Zoom in', notepadZoomOut: 'Zoom out', notepadZoomReset: 'Back to 100%', notepadHas: 'notes',
         intro: [
@@ -83,7 +84,7 @@ const UI = {
         parentsText: 'Время учёбы делится так: 50% деление, 25% движение и скорость, 25% округление и прикидка. После ошибки всегда идёт теория и мини-викторина, а навык возвращается через несколько заданий. Содержание по стандартам NJ для 4 класса (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity и ускорение - бонусные слова исследователя.',
         perfect: 'Идеальный тест!', stepsWord: 'Шаги', yes: 'Да', no: 'Нет', taskOf: 'Задание',
         congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
-        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'К тесту: Topic 3 и наука, глава 2', hwSub: 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания', pickAll: 'Выбери все подходящие ответы', howToPlay: 'Как играть (знакомство с игрой)',
+        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'К тесту: Topic 3 и наука, глава 2', hwSub: 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания', pickAll: 'Выбери все подходящие ответы', rework: (n: number) => `Работа над ошибками: ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkSub: 'Ошибки из домашки и из приложения: сначала как правильно, потом новое задание того же вида', reworkDone: 'Все ошибки исправлены! Отличная работа!', reworkKicker: (n: number) => `Работа над ошибками · ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkGo: 'Решить новое задание такого вида', howToPlay: 'Как играть (знакомство с игрой)',
         tourNext: 'Дальше', tourBack: 'Назад', tourSkip: 'Пропустить', tourStart: 'Поехали!', tourGo: 'Понятно!',
         notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadMove: 'Двигать лист', notepadZoomIn: 'Увеличить', notepadZoomOut: 'Уменьшить', notepadZoomReset: 'Вернуть 100%', notepadHas: 'записей',
         intro: [
@@ -433,19 +434,20 @@ const SectionView: React.FC<{ s: Section; lang: Lang }> = ({ s, lang }) => {
     );
 };
 
-const TheoryView: React.FC<{ theory: Theory; lang: Lang; t: UIText; onDone: () => void; onSkip?: () => void }> = ({ theory, lang, t, onDone, onSkip }) => (
+// labels: the rework page leads to a new task (not a quiz) and back home
+const TheoryView: React.FC<{ theory: Theory; lang: Lang; t: UIText; onDone: () => void; onSkip?: () => void; labels?: { kicker: string; done: string; skip: string } }> = ({ theory, lang, t, onDone, onSkip, labels }) => (
     <div className={`${card} space-y-4 animate-slide-up`} data-testid="theory">
         <div className="flex items-center gap-3">
             <Lina mood="happy" size={64} />
             <div>
-                <div className="text-xs font-black uppercase tracking-wider text-indigo-500">{TOPIC_ICON[TOPIC_OF[theory.skill]]} {t.theoryFor}</div>
+                <div className="text-xs font-black uppercase tracking-wider text-indigo-500">{labels ? '🩹' : TOPIC_ICON[TOPIC_OF[theory.skill]]} {labels?.kicker ?? t.theoryFor}</div>
                 <h2 className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400">{tr(theory.title, lang)}</h2>
             </div>
         </div>
-        {onSkip && <button data-testid="theory-back-top" onClick={onSkip} className={`${secondary} w-full py-3`}>↩ {t.skipTheory}</button>}
+        {onSkip && <button data-testid="theory-back-top" onClick={onSkip} className={`${secondary} w-full py-3`}>↩ {labels?.skip ?? t.skipTheory}</button>}
         {theory.sections.map((s, i) => <SectionView key={i} s={s} lang={lang} />)}
-        <button data-testid="theory-done" onClick={onDone} className={`${primary} w-full py-4 text-xl`}>📝 {t.readDone}</button>
-        {onSkip && <button onClick={onSkip} className={`${secondary} w-full py-3`}>{t.skipTheory}</button>}
+        <button data-testid="theory-done" onClick={onDone} className={`${primary} w-full py-4 text-xl`}>{labels ? `✏️ ${labels.done}` : `📝 ${t.readDone}`}</button>
+        {onSkip && <button onClick={onSkip} className={`${secondary} w-full py-3`}>{labels?.skip ?? t.skipTheory}</button>}
     </div>
 );
 
@@ -494,7 +496,7 @@ const QuizView: React.FC<{ items: Problem[]; lang: Lang; t: UIText; sound: boole
 // ========================================
 // APP
 // ========================================
-type Screen = 'home' | 'play' | 'theory' | 'quiz' | 'quizResult' | 'test' | 'testResult' | 'stats' | 'story' | 'gallery' | 'settings';
+type Screen = 'home' | 'play' | 'theory' | 'review' | 'quiz' | 'quizResult' | 'test' | 'testResult' | 'stats' | 'story' | 'gallery' | 'settings';
 type Learn = { skill: SkillId; failed?: Problem; mode: 'failed' | 'first' | 'due'; theory: Theory; quiz: Problem[]; quizScore: number };
 type Attempt = { hint: boolean; wrong: boolean; afterLearn: boolean; start: number; result: null | { ok: boolean; stars: number; praise: L10n; given: string; blanks?: number[] } };
 type TestRun = { problems: Problem[]; idx: number; given: Given[]; start: number; results?: boolean[] };
@@ -511,6 +513,8 @@ export const App: React.FC = () => {
     const [problem, setProblem] = useState<Problem | null>(null);
     const [attempt, setAttempt] = useState<Attempt>({ hint: false, wrong: false, afterLearn: false, start: Date.now(), result: null });
     const [learn, setLearn] = useState<Learn | null>(null);
+    // the mistake being reworked: its review page first, then new tasks of its kind until one is right
+    const [rework, setRework] = useState<ReworkItem | null>(null);
     const [test, setTest] = useState<TestRun | null>(null);
     const [chapter, setChapter] = useState<number | null>(null);
     const [confetti, setConfetti] = useState(false);
@@ -540,6 +544,7 @@ export const App: React.FC = () => {
 
     // learning time: counts only while the page is visible, she is active and on a learning screen
     const currentTopic: Topic | null = screen === 'play' && problem ? problem.topic
+        : screen === 'review' && rework ? TOPIC_OF[reworkSkill(rework)]
         : (screen === 'theory' || screen === 'quiz') && learn ? TOPIC_OF[learn.skill]
             : screen === 'test' && test ? test.problems[test.idx]?.topic ?? null : null;
     useEffect(() => {
@@ -580,27 +585,51 @@ export const App: React.FC = () => {
 
     // test prep: only the kinds of tasks of the homework for the test, first the ones she has not covered today;
     // a topic she has never read starts with its theory, like a lesson
-    const [focus, setFocus] = useState(false);
-    const nextTask = (f: boolean) => {
+    // rework: the mistakes of the homework and of the app, one by one: review, then new tasks of that kind until one is right
+    type Mode = 'free' | 'prep' | 'rework';
+    const [focus, setFocus] = useState<Mode>('free');
+    const reworkTask = (item: ReworkItem) => {
+        const kind = item.from === 'homework' ? item.m.kind : kindOf(item.e.problem);
+        startProblem(nextProblem(g, rng, reworkSkill(item), { kind, day: today() }));
+    };
+    const openRework = () => {
+        const queue = reworkQueue(g.homeworkFixed, g.mistakeLog);
+        if (!queue.length) { setRework(null); setFocus('free'); setBanner({ en: UI.en.reworkDone, ru: UI.ru.reworkDone }); go('home'); return; }
+        setRework(queue[0]);
+        setScreen('review');
+    };
+    const nextTask = (f: Mode) => {
+        if (f === 'rework') {
+            // the same mistake until a right answer fixes it, then the next one
+            const still = rework && reworkQueue(g.homeworkFixed, g.mistakeLog).some(r => reworkId(r) === reworkId(rework));
+            if (rework && still) { reworkTask(rework); return; }
+            openRework();
+            return;
+        }
         const open = prepPicks(g, today());
-        const [skill, kind] = f ? open[Math.floor(rng() * open.length)] : [undefined, undefined];
+        const [skill, kind] = f === 'prep' ? open[Math.floor(rng() * open.length)] : [undefined, undefined];
         const p = nextProblem(g, rng, FORCED_SKILL ?? skill, { kind: FORCED_SKILL ? undefined : kind, day: today() });
         const st = g.skills[p.skill];
-        if (st.needsTheory || (f && st.theoryReads === 0)) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); if (st.needsTheory) setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); return; }
+        if (st.needsTheory || (f === 'prep' && st.theoryReads === 0)) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); if (st.needsTheory) setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); return; }
         startProblem(p);
     };
     const play = () => {
-        if (problem && !attempt.result && !focus) { setScreen('play'); return; }
-        setFocus(false);
-        nextTask(false);
+        if (problem && !attempt.result && focus === 'free') { setScreen('play'); return; }
+        setFocus('free');
+        nextTask('free');
     };
-    const playHomework = () => { setFocus(true); nextTask(true); };
+    const playHomework = () => { setFocus('prep'); nextTask('prep'); };
+    const playRework = () => { setFocus('rework'); setRework(null); openRework(); };
 
     const submit = (given: Given) => {
         if (!problem) return;
         const ok = sameAnswer(problem.answer, given);
         const { state, stars } = applyAnswer(g, problem, ok, { firstTry: !attempt.afterLearn, hint: attempt.hint, sec: (Date.now() - attempt.start) / 1000, day: today() });
-        setG(paint(state, stars));
+        let next = paint(state, stars);
+        // every wrong answer goes to the rework list; a right answer while reworking fixes that mistake
+        if (!ok && focus !== 'rework') next = logMistake(next, problem, givenText(problem, given, lang), Date.now());
+        if (ok && focus === 'rework' && rework && reworkSkill(rework) === problem.skill) next = fixRework(next, rework);
+        setG(next);
         if (g.sound) ok ? Sound.good() : Sound.bad();
         if (ok) { setPop(true); setTimeout(() => setPop(false), 500); if (state.streak > 0 && state.streak % 5 === 0) celebrate(); }
         setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), blanks: given.blanks, praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
@@ -628,6 +657,7 @@ export const App: React.FC = () => {
         // read first: back to the same task; after a mistake: a brand-new task of the same skill
         if (learn.mode === 'first' && problem && !attempt.result) { setScreen('play'); return; }
         if (learn.mode === 'due' && problem && !attempt.result) { setScreen('play'); return; }
+        if (focus === 'rework' && rework) { reworkTask(rework); return; }
         startProblem(nextProblem(g, rng, learn.skill, { day: today() }), true);
     };
 
@@ -638,7 +668,9 @@ export const App: React.FC = () => {
         if (test.idx + 1 < test.problems.length) { setTest({ ...test, given: all, idx: test.idx + 1 }); return; }
         const results = test.problems.map((p, i) => sameAnswer(p.answer, all[i]));
         const sec = (Date.now() - test.start) / 1000;
-        setG(paint(applyTest(g, test.problems, results, sec, today()), results.filter(Boolean).length));
+        let next = paint(applyTest(g, test.problems, results, sec, today()), results.filter(Boolean).length);
+        test.problems.forEach((p, i) => { if (!results[i]) next = logMistake(next, p, givenText(p, all[i], lang), Date.now()); });
+        setG(next);
         setTest({ ...test, given: all, results });
         if (results.every(Boolean)) celebrate();
         setScreen('testResult');
@@ -683,7 +715,7 @@ export const App: React.FC = () => {
                 <StatsBar g={g} t={t} pop={pop} running={!!currentTopic} />
                 {banner && <div className="mb-3 animate-bounce-in" onClick={() => setBanner(null)}><Guide mood="cheer">{tr(banner, lang)}</Guide></div>}
                 <main className="w-full pb-8">
-                    {screen === 'home' && <Home g={g} t={t} lang={lang} greeting={greeting[0]} chaptersOpen={chaptersOpen} onPlay={play} onHomework={playHomework} onTest={startTest} onStory={() => { setChapter(null); go('story'); }} onGallery={() => go('gallery')} onStats={() => go('stats')} />}
+                    {screen === 'home' && <Home g={g} t={t} lang={lang} greeting={greeting[0]} chaptersOpen={chaptersOpen} onPlay={play} onHomework={playHomework} onRework={playRework} onTest={startTest} onStory={() => { setChapter(null); go('story'); }} onGallery={() => go('gallery')} onStats={() => go('stats')} />}
                     {screen === 'play' && problem && (
                         <PlayView problem={problem} attempt={attempt} lang={lang} t={t}
                             onSubmit={submit}
@@ -692,6 +724,7 @@ export const App: React.FC = () => {
                             onLearn={() => { setBanner(null); openTheory(problem.skill, 'failed', problem); }}
                             onNext={() => { setBanner(null); nextTask(focus); }} />
                     )}
+                    {screen === 'review' && rework && <TheoryView theory={reworkTheory(rework)} lang={lang} t={t} labels={{ kicker: t.reworkKicker(reworkQueue(g.homeworkFixed, g.mistakeLog).length), done: t.reworkGo, skip: t.home }} onDone={() => { setBanner(null); reworkTask(rework); }} onSkip={() => { setFocus('free'); go('home'); }} />}
                     {screen === 'theory' && learn && <TheoryView theory={learn.theory} lang={lang} t={t} onDone={() => { setBanner(null); theoryDone(); }} onSkip={learn.mode !== 'failed' && problem && !attempt.result ? () => setScreen('play') : undefined} />}
                     {screen === 'quiz' && learn && <QuizView key={learn.quiz.map(q => q.id).join()} items={learn.quiz} lang={lang} t={t} sound={g.sound} onDone={quizDone} />}
                     {screen === 'quizResult' && learn && (
@@ -721,7 +754,8 @@ export const App: React.FC = () => {
 // ========================================
 // SCREENS
 // ========================================
-const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chaptersOpen: number; onPlay: () => void; onHomework: () => void; onTest: () => void; onStory: () => void; onGallery: () => void; onStats: () => void }> = ({ g, t, lang, greeting, chaptersOpen, onPlay, onHomework, onTest, onStory, onGallery, onStats }) => {
+const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chaptersOpen: number; onPlay: () => void; onHomework: () => void; onRework: () => void; onTest: () => void; onStory: () => void; onGallery: () => void; onStats: () => void }> = ({ g, t, lang, greeting, chaptersOpen, onPlay, onHomework, onRework, onTest, onStory, onGallery, onStats }) => {
+    const toRework = reworkQueue(g.homeworkFixed, g.mistakeLog).length;
     const mins = Math.floor((g.daily[today()] ?? 0) / 60);
     // the daily goal is right answers: before the test, every task type of the homework for it
     const goal = dailyGoal(g, today());
@@ -736,6 +770,7 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
                 <span><span className="block text-3xl font-black">{t.play}</span><span className="block font-bold opacity-80">{t.playSub}</span></span>
             </button>
             <button data-testid="homework" onClick={onHomework} className="w-full rounded-3xl p-4 text-left flex items-center gap-3 bg-sky-100 dark:bg-sky-950/40 border-2 border-sky-300 dark:border-sky-700 active:scale-[0.98]"><span className="text-3xl">📚</span><span><span className="block font-black text-sky-800 dark:text-sky-200">{t.hw}</span><span className="block text-xs font-bold text-sky-700/70 dark:text-sky-300/70">{t.hwSub}</span></span></button>
+            {toRework > 0 && <button data-testid="rework" data-count={toRework} onClick={onRework} className="w-full rounded-3xl p-4 text-left flex items-center gap-3 bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-700 active:scale-[0.98]"><span className="text-3xl">🩹</span><span><span className="block font-black text-rose-800 dark:text-rose-200">{t.rework(toRework)}</span><span className="block text-xs font-bold text-rose-700/70 dark:text-rose-300/70">{t.reworkSub}</span></span></button>}
             {(() => {
                 const mine = g.tests.filter(x => dayOf(new Date(x.t)) === today());
                 const lastToday = mine[mine.length - 1];
