@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, DAILY_RIGHT, PREP_PLAN, STRATEGIES, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, dailyGoal, dayOf, fixRework, kindOf, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, totalTime, uncovered } from '../src/engine/game';
+import { ALL_SKILLS, DAILY_RIGHT, PREP_PLAN, STRATEGIES, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, totalTime, uncovered } from '../src/engine/game';
 import { makeFreshProblem, makeProblem } from '../src/engine/index';
 import { HOMEWORK_MISTAKES, reworkQueue, reworkTheory } from '../src/engine/mistakes';
 import { buildQuiz } from '../src/engine/quiz';
@@ -795,6 +795,31 @@ describe('game flow', () => {
         // 9:30 pm in New York is still the 22nd on the device clock
         expect(dayOf(new Date(t))).toBe('2026-10-22');
         expect(s.dailySkills['2026-10-22']).toEqual({ forces: 1, 'mult-expr': 1 });
+    });
+    test('hints are rare and adapt: one in three tasks at first, longer pause when she grabs every hint, shorter when she manages alone', () => {
+        const rng = makeRng(2);
+        let s = newState();
+        const answer = (hint: boolean) => { s = applyAnswer(s, makeProblem('round', rng), true, { firstTry: true, hint, sec: 3 }).state; };
+        expect(hintOpen(s)).toBe(true);
+        expect(s.hintPause).toBe(HINT_PAUSE);
+        // taking every hint the moment it is back: the pause grows up to the max, never more than one hint per pause + 1 tasks
+        const used: boolean[] = [];
+        for (let i = 0; i < 60; i++) { const h = hintOpen(s); used.push(h); answer(h); }
+        expect(s.hintPause).toBe(HINT_PAUSE_MAX);
+        for (let i = 0; i + 3 <= used.length; i++) expect(used.slice(i, i + 3).filter(Boolean).length).toBeLessThanOrEqual(1);
+        expect(used.slice(-30).filter(Boolean).length).toBeLessThanOrEqual(30 / (HINT_PAUSE_MAX + 1));
+        // no hints at all: the pause shrinks back to the min
+        for (let i = 0; i < 40; i++) answer(false);
+        expect(s.hintPause).toBe(HINT_PAUSE_MIN);
+        expect(hintOpen(s)).toBe(true);
+        // a hint right after it was used is never there
+        answer(true);
+        expect(hintOpen(s)).toBe(false);
+        // an older save gets the hint right away with the starting pause
+        const old = { ...newState() } as Record<string, unknown>;
+        delete old.sinceHint; delete old.hintPause;
+        expect(hintOpen(normalize(old))).toBe(true);
+        expect(normalize(old).hintPause).toBe(HINT_PAUSE);
     });
     test('stars: 3 on the first try, 2 with a hint, 1 after learning', () => {
         const p = makeProblem('round', makeRng(1));

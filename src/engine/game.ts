@@ -31,6 +31,8 @@ export type GameState = {
     dailyKinds: Record<string, Record<string, number>>;            // right answers per day and kind of task, "mult-expr:partials"
     mistakeLog: LoggedMistake[];          // wrong answers in the app, waiting to be reworked (newest last)
     homeworkFixed: string[];              // ids of the homework mistakes she has already reworked
+    sinceHint: number;                    // tasks answered since the last hint
+    hintPause: number;                    // tasks without a hint before the next one (adapts to how she uses hints)
     skills: Record<SkillId, SkillStat>;
     recent: string[];                     // ids of recent tasks, never repeated
     history: HistoryItem[];
@@ -58,6 +60,8 @@ export const newState = (): GameState => ({
     dailyKinds: {},
     mistakeLog: [],
     homeworkFixed: [],
+    sinceHint: HINT_PAUSE,
+    hintPause: HINT_PAUSE,
     skills: Object.fromEntries(ALL_SKILLS.map(s => [s, emptyStat()])) as Record<SkillId, SkillStat>,
     recent: [], history: [], tests: [],
     painting: { index: 0, filled: 0, done: [], choosing: false },
@@ -240,6 +244,24 @@ export const fixRework = (prev: GameState, item: ReworkItem): GameState => {
         : { ...prev, mistakeLog: prev.mistakeLog.filter(e => `app:${e.problem.id}` !== id) };
 };
 
+// Hints are rare so she learns from the theory: after a hint the next hintPause tasks have none (2 at first: one hint in three tasks).
+// Taking the hint the moment it is back makes the pause longer (up to 5); doing 3 tasks on her own while it is there makes it shorter (down to 1).
+export const HINT_PAUSE = 2;
+export const HINT_PAUSE_MIN = 1;
+export const HINT_PAUSE_MAX = 5;
+export const hintOpen = (state: GameState) => state.sinceHint >= state.hintPause;
+
+const afterHintChoice = (state: GameState, used: boolean) => {
+    if (used) {
+        if (state.sinceHint === state.hintPause) state.hintPause = Math.min(HINT_PAUSE_MAX, state.hintPause + 1);
+        state.sinceHint = 0;
+        return;
+    }
+    state.sinceHint++;
+    // every 3 tasks she solves on her own while the hint is there shorten the pause by one; the hint stays there
+    if (state.sinceHint - state.hintPause >= 3) { state.hintPause = Math.max(HINT_PAUSE_MIN, state.hintPause - 1); state.sinceHint = state.hintPause; }
+};
+
 export const starsFor = (firstTry: boolean, hint: boolean) => (firstTry ? (hint ? 2 : 3) : 1);
 
 // Pure update after an answer; returns how many stars were earned
@@ -249,6 +271,7 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
     if (st.reviewPending && st.reviewIn === 0) st.reviewPending = false;
     st.seen++;
     state.answered++;
+    afterHintChoice(state, opts.hint);
     for (const s of ALL_SKILLS) if (state.skills[s].reviewIn > 0) state.skills[s].reviewIn--;
     remember(state, p.id);
     let stars = 0;

@@ -9,6 +9,8 @@ export const LOVE: L10n[] = [
     L('Grandma Olga and Grandpa Valeriy in Italy send you a big hug!', 'Бабушка Оля и дедушка Валерий из Италии крепко тебя обнимают!'),
     L('Martin thinks his big sister is the smartest. And he is right!', 'Мартин думает, что его старшая сестра самая умная. И он прав!'),
     L('You are kind, smart and brave. Mom and Dad love you!', 'Ты добрая, умная и смелая. Мама и папа тебя любят!'),
+    L('Brave like Harry, clever like Hermione, kind like Ameliia. Mom and Dad love you! ⚡', 'Смелая, как Гарри, умная, как Гермиона, добрая, как Амелия. Мама и папа тебя любят! ⚡'),
+    L('After math, maybe a chapter of Harry Potter with Mom? She loves those books as much as you do! 📚', 'После математики, может, глава «Гарри Поттера» с мамой? Она любит эти книги так же, как ты! 📚'),
 ];
 
 export const WHY_MATH: L10n[] = [
@@ -26,6 +28,10 @@ export const WHY_MATH: L10n[] = [
         'Художники используют математику, чтобы смешивать краски, мерить холст и рисовать в пропорциях. Математика делает картины ещё лучше!'),
     L('Math is a muscle, like gymnastics: it gets stronger every time you practice, even when it feels hard.',
         'Математика - как мышца в гимнастике: становится сильнее с каждой тренировкой, даже когда трудно.'),
+    L('Even at a school of magic you measure potions, count stairs and time a quidditch match. Wizards need math too!',
+        'Даже в школе волшебства отмеряют зелья, считают ступеньки и засекают время матча по квиддичу. Волшебникам тоже нужна математика!'),
+    L('Hermione always did her homework and read the extra chapter. That is why she knew every answer. You are doing the same!',
+        'Гермиона всегда делала домашку и читала лишнюю главу. Поэтому она знала все ответы. Ты делаешь так же!'),
 ];
 
 export const PRAISE: L10n[] = [
@@ -37,6 +43,9 @@ export const PRAISE: L10n[] = [
     L('Correct! Your brain is getting stronger!', 'Верно! Твой мозг становится сильнее!'),
     L('Super! One more color for your painting!', 'Супер! Ещё один цвет для твоей картины!'),
     L('Great job! That was a tricky one.', 'Отлично! Задачка была с подвохом.'),
+    L('Ten points to Gryffindor! ⚡', 'Десять очков Гриффиндору! ⚡'),
+    L('Brilliant, just like Hermione!', 'Блестяще, прямо как Гермиона!'),
+    L('That was pure magic! 🪄', 'Это было настоящее волшебство! 🪄'),
 ];
 
 export const ENCOURAGE: L10n[] = [
@@ -44,6 +53,7 @@ export const ENCOURAGE: L10n[] = [
     L('Not yet! Every math star made this mistake once. Let\'s read the secret.', 'Пока не получилось! Каждая звезда математики когда-то так ошибалась. Давай узнаем секрет.'),
     L('That\'s OK! Let\'s look at it step by step, I will help you.', 'Ничего страшного! Давай посмотрим по шагам, я помогу.'),
     L('Almost! A quick look at the theory and you will nail it.', 'Почти! Немного теории, и всё получится.'),
+    L('Even Harry fell off his broom at first. Read the spell book, I mean the theory, and try again!', 'Даже Гарри сначала падал с метлы. Прочитай книгу заклинаний, то есть теорию, и попробуй снова!'),
 ];
 
 export const KIND: L10n[] = [

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type FillAnswer, type FillPart, type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
 import {
-    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, dailyGoal, dayOf, fixRework, grade, kindOf, logMistake, newState, nextProblem, prepPicks, totalTime,
+    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, dailyGoal, dayOf, fixRework, grade, hintOpen, kindOf, logMistake, newState, nextProblem, prepPicks, totalTime,
 } from './engine/game';
 import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
 import { QUIZ_PASS, buildQuiz } from './engine/quiz';
@@ -12,7 +12,7 @@ import { type Section, type Theory, answerLine, buildTheory } from './engine/the
 import { type ReworkItem, reworkId, reworkQueue, reworkSkill, reworkTheory } from './engine/mistakes';
 import { VisualView } from './ui/Boards';
 import { Guide, Lina, Pip } from './ui/Buddy';
-import { PAINTINGS, PaintingView } from './ui/Paintings';
+import { FIRST_SET, PAINTINGS, PaintingView, openPaintings } from './ui/Paintings';
 import { Coach, type CoachStep } from './ui/Coach';
 import { Notepad, START_VIEW, type PadTour, type Stroke, type View } from './ui/Notepad';
 import { askPersistent, exportFile, importFile, loadDb, loadLocal, newer, save } from './storage';
@@ -23,7 +23,7 @@ import { askPersistent, exportFile, importFile, loadDb, loadLocal, newer, save }
 const UI = {
     en: {
         title: 'Math Quest', subtitle: 'with Lina and Pip', play: 'Play', playSub: 'Learn by playing', test: 'Practice test', testSub: '17 tasks, like at school on Friday',
-        story: 'Story book', gallery: 'My paintings', progress: 'Progress', settings: 'Settings', home: 'Home', check: 'Check', hint: 'Hint', next: 'Next task',
+        story: 'Story book', gallery: 'My paintings', progress: 'Progress', settings: 'Settings', home: 'Home', check: 'Check', hint: 'Hint', hintRest: 'You cannot use a hint right now. Tap "Read the theory first": the answer to your question is there!', next: 'Next task',
         learn: 'Let\'s learn it with Lina', learnFirst: 'Read the theory first', readDone: 'I read it! Quiz time', quiz: 'Mini quiz', question: 'Question', of: 'of',
         quizPassed: 'Quiz passed!', quizFailed: 'Not yet, let\'s read it once more', tryNew: 'Try a new task', backToTask: 'Back to my task', readAgain: 'Read again with new examples',
         howSolve: 'How to solve it', correct: 'Correct!', wrong: 'Not quite', stars: 'Stars', streak: 'Streak', today: 'Today', accuracy: 'Correct', quotient: 'Answer',
@@ -36,7 +36,7 @@ const UI = {
         testIntro: 'Like a real test: no hints, answer every task, the results come at the end. Ready?', theoryFor: 'Theory', skipTheory: 'Back to the task', paintingHelp: 'Every 2 stars paint one more part of the picture. When it is finished, you choose the next one.',
         parentsText: 'Learning time follows 50% division, 25% motion and speed, 25% rounding and estimating. A wrong answer always leads to theory and a mini quiz, and that skill comes back a few tasks later. Content follows the NJ Student Learning Standards for grade 4 (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity and acceleration are bonus explorer words.',
         perfect: 'Perfect test!', stepsWord: 'Steps', yes: 'Yes', no: 'No', taskOf: 'Task',
-        congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
+        congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', nextRewards: 'Your next rewards', partIn: (n: number) => `${n} ${n === 1 ? 'star' : 'stars'} to a new color in your picture: what will it be?`, chapterIn: (n: number, ch: number) => `${n} more ${n === 1 ? 'star' : 'stars'} to open chapter ${ch} of the story`, newColor: 'Your picture got a new color! Solve more to see what comes next', surprise: 'The colors are a surprise!', magicLocked: (done: number, all: number, more: number) => `${more} magic pictures open when you have painted all the first ${all}: ${done} of ${all} done`, storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
         dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Test prep: Topic 3 and Science Chapter 2', hwSub: 'Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', pickAll: 'Select all that apply', rework: (n: number) => `Fix my mistakes: ${n} left`, reworkSub: 'Homework and app mistakes: first the right way, then a new task of the same kind', reworkDone: 'All mistakes are fixed! Great work!', reworkKicker: (n: number) => `Fix my mistakes · ${n} left`, reworkGo: 'Solve a new task of this kind', howToPlay: 'How to play (the welcome tour)',
         tourNext: 'Next', tourBack: 'Back', tourSkip: 'Skip', tourStart: 'Let\'s start!', tourGo: 'Got it!',
         notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadMove: 'Move the page', notepadZoomIn: 'Zoom in', notepadZoomOut: 'Zoom out', notepadZoomReset: 'Back to 100%', notepadHas: 'notes',
@@ -70,7 +70,7 @@ const UI = {
     },
     ru: {
         title: 'Математический квест', subtitle: 'с Линой и Пип', play: 'Играть', playSub: 'Учимся, играя', test: 'Пробный тест', testSub: '17 заданий, как в школе в пятницу',
-        story: 'Книжка-история', gallery: 'Мои картины', progress: 'Прогресс', settings: 'Настройки', home: 'Домой', check: 'Проверить', hint: 'Подсказка', next: 'Следующее задание',
+        story: 'Книжка-история', gallery: 'Мои картины', progress: 'Прогресс', settings: 'Настройки', home: 'Домой', check: 'Проверить', hint: 'Подсказка', hintRest: 'Подсказку пока нельзя взять. Нажми «Сначала прочитать теорию»: там есть ответ на твой вопрос!', next: 'Следующее задание',
         learn: 'Разберёмся вместе с Линой', learnFirst: 'Сначала прочитать теорию', readDone: 'Прочитала! К викторине', quiz: 'Мини-викторина', question: 'Вопрос', of: 'из',
         quizPassed: 'Викторина пройдена!', quizFailed: 'Пока не получилось, прочитаем ещё раз', tryNew: 'Новое задание', backToTask: 'Вернуться к заданию', readAgain: 'Прочитать ещё раз с новыми примерами',
         howSolve: 'Как решать', correct: 'Верно!', wrong: 'Не совсем', stars: 'Звёзды', streak: 'Серия', today: 'Сегодня', accuracy: 'Верно', quotient: 'Ответ',
@@ -83,7 +83,7 @@ const UI = {
         testIntro: 'Как настоящий тест: без подсказок, ответь на все задания, результаты в конце. Готова?', theoryFor: 'Теория', skipTheory: 'Вернуться к заданию', paintingHelp: 'Каждые 2 звезды раскрашивают ещё кусочек картины. Когда картина готова, ты выбираешь следующую.',
         parentsText: 'Время учёбы делится так: 50% деление, 25% движение и скорость, 25% округление и прикидка. После ошибки всегда идёт теория и мини-викторина, а навык возвращается через несколько заданий. Содержание по стандартам NJ для 4 класса (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity и ускорение - бонусные слова исследователя.',
         perfect: 'Идеальный тест!', stepsWord: 'Шаги', yes: 'Да', no: 'Нет', taskOf: 'Задание',
-        congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
+        congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', nextRewards: 'Твои следующие награды', partIn: (n: number) => `${n} ${n === 1 ? 'звезда' : 'звезды'} до нового цвета в картине: какой он будет?`, chapterIn: (n: number, ch: number) => `Ещё ${n} ${n % 10 === 1 && n % 100 !== 11 ? 'звезда' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'звезды' : 'звёзд'} до ${ch}-й главы истории`, newColor: 'В твоей картине появился новый цвет! Решай дальше, чтобы увидеть, что будет', surprise: 'Цвета - это сюрприз!', magicLocked: (done: number, all: number, more: number) => `${more} волшебных картин откроются, когда раскрасишь все первые ${all}: готово ${done} из ${all}`, storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
         dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'К тесту: Topic 3 и наука, глава 2', hwSub: 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания', pickAll: 'Выбери все подходящие ответы', rework: (n: number) => `Работа над ошибками: ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkSub: 'Ошибки из домашки и из приложения: сначала как правильно, потом новое задание того же вида', reworkDone: 'Все ошибки исправлены! Отличная работа!', reworkKicker: (n: number) => `Работа над ошибками · ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkGo: 'Решить новое задание такого вида', howToPlay: 'Как играть (знакомство с игрой)',
         tourNext: 'Дальше', tourBack: 'Назад', tourSkip: 'Пропустить', tourStart: 'Поехали!', tourGo: 'Понятно!',
         notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadMove: 'Двигать лист', notepadZoomIn: 'Увеличить', notepadZoomOut: 'Уменьшить', notepadZoomReset: 'Вернуть 100%', notepadHas: 'записей',
@@ -120,6 +120,11 @@ type UIText = typeof UI.en;
 
 // two stars paint one part of the magic picture
 const STARS_PER_PART = 2;
+// stars until the next locked story chapter opens (chapter i opens at i × STARS_PER_CHAPTER stars), null when all are open
+const nextChapter = (stars: number): { n: number; in: number } | null => {
+    const open = Math.min(CHAPTERS.length, 1 + Math.floor(stars / STARS_PER_CHAPTER));
+    return open < CHAPTERS.length ? { n: open + 1, in: open * STARS_PER_CHAPTER - stars } : null;
+};
 const params = new URLSearchParams(location.search);
 const SELFTEST = params.has('selftest');
 // self checks only: ?skill=mult-area makes every practice task that skill
@@ -498,7 +503,8 @@ const QuizView: React.FC<{ items: Problem[]; lang: Lang; t: UIText; sound: boole
 // ========================================
 type Screen = 'home' | 'play' | 'theory' | 'review' | 'quiz' | 'quizResult' | 'test' | 'testResult' | 'stats' | 'story' | 'gallery' | 'settings';
 type Learn = { skill: SkillId; failed?: Problem; mode: 'failed' | 'first' | 'due'; theory: Theory; quiz: Problem[]; quizScore: number };
-type Attempt = { hint: boolean; wrong: boolean; afterLearn: boolean; start: number; result: null | { ok: boolean; stars: number; praise: L10n; given: string; blanks?: number[] } };
+// newPart: this right answer painted a new part of the picture: [picture, parts painted now]
+type Attempt = { hint: boolean; wrong: boolean; afterLearn: boolean; start: number; result: null | { ok: boolean; stars: number; praise: L10n; given: string; blanks?: number[]; newPart?: [number, number] } };
 type TestRun = { problems: Problem[]; idx: number; given: Given[]; start: number; results?: boolean[] };
 
 const firstLocal = loadLocal();
@@ -630,9 +636,12 @@ export const App: React.FC = () => {
         if (!ok && focus !== 'rework') next = logMistake(next, problem, givenText(problem, given, lang), Date.now());
         if (ok && focus === 'rework' && rework && reworkSkill(rework) === problem.skill) next = fixRework(next, rework);
         setG(next);
+        // a part painted by this answer shows up right here, so every right answer feels like a brush stroke
+        const before = Math.floor(g.painting.filled / STARS_PER_PART), after = Math.floor(next.painting.filled / STARS_PER_PART);
+        const newPart: [number, number] | undefined = ok && !g.painting.choosing && next.painting.index === g.painting.index && after > before ? [g.painting.index, after] : undefined;
         if (g.sound) ok ? Sound.good() : Sound.bad();
         if (ok) { setPop(true); setTimeout(() => setPop(false), 500); if (state.streak > 0 && state.streak % 5 === 0) celebrate(); }
-        setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), blanks: given.blanks, praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
+        setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), blanks: given.blanks, newPart, praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
     };
 
     const theoryDone = () => {
@@ -717,9 +726,9 @@ export const App: React.FC = () => {
                 <main className="w-full pb-8">
                     {screen === 'home' && <Home g={g} t={t} lang={lang} greeting={greeting[0]} chaptersOpen={chaptersOpen} onPlay={play} onHomework={playHomework} onRework={playRework} onTest={startTest} onStory={() => { setChapter(null); go('story'); }} onGallery={() => go('gallery')} onStats={() => go('stats')} />}
                     {screen === 'play' && problem && (
-                        <PlayView problem={problem} attempt={attempt} lang={lang} t={t}
+                        <PlayView problem={problem} attempt={attempt} lang={lang} t={t} nextChapter={nextChapter(g.stars)}
                             onSubmit={submit}
-                            onHint={() => setAttempt(a => ({ ...a, hint: true }))}
+                            hintOpen={hintOpen(g)} onHint={() => { if (hintOpen(g)) setAttempt(a => ({ ...a, hint: true })); }}
                             onLearnFirst={() => openTheory(problem.skill, 'first')}
                             onLearn={() => { setBanner(null); openTheory(problem.skill, 'failed', problem); }}
                             onNext={() => { setBanner(null); nextTask(focus); }} />
@@ -798,6 +807,18 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
                     </div>
                 )}
             </div>
+            {(() => {
+                // what the next stars bring: a new part of the picture, the next story chapter
+                const partIn = g.painting.choosing ? 0 : STARS_PER_PART - (g.painting.filled % STARS_PER_PART);
+                const ch = nextChapter(g.stars);
+                return (
+                    <div className={`${card} !p-4 space-y-1`} data-testid="next-rewards">
+                        <div className="font-black">🎁 {t.nextRewards}</div>
+                        {partIn > 0 && <div className="text-sm font-bold text-violet-700 dark:text-violet-300">🎨 {t.partIn(partIn)}</div>}
+                        {ch && <div className="text-sm font-bold text-amber-700 dark:text-amber-300">📖 {t.chapterIn(ch.in, ch.n)}</div>}
+                    </div>
+                );
+            })()}
             <div className={`${card} !p-4`} data-testid="home-painting">
                 <div className="flex justify-between items-center font-black mb-2"><span>🎨 {t.painting}</span><span className="text-sm text-slate-400">{Math.floor(g.painting.filled / STARS_PER_PART)} / {p.regions.length}</span></div>
                 <PaintingView painting={p} filled={Math.floor(g.painting.filled / STARS_PER_PART)} />
@@ -807,7 +828,10 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
     );
 };
 
-const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UIText; onSubmit: (g: Given) => void; onHint: () => void; onLearnFirst: () => void; onLearn: () => void; onNext: () => void }> = ({ problem, attempt, lang, t, onSubmit, onHint, onLearnFirst, onLearn, onNext }) => {
+// hintOpen: hints are rare; when it is not there, a tap says so and sends her to the theory (she never sees how often)
+const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UIText; nextChapter: { n: number; in: number } | null; hintOpen: boolean; onSubmit: (g: Given) => void; onHint: () => void; onLearnFirst: () => void; onLearn: () => void; onNext: () => void }> = ({ problem, attempt, lang, t, nextChapter: chapterNext, hintOpen, onSubmit, onHint, onLearnFirst, onLearn, onNext }) => {
+    const [noHint, setNoHint] = useState(false);
+    useEffect(() => { setNoHint(false); }, [problem.id]);
     const res = attempt.result;
     return (
         <div className={`${card} space-y-4 ${res && !res.ok ? 'animate-shake' : 'animate-slide-up'}`} data-testid="play-card" data-skill={problem.skill} data-selftest-answer={SELFTEST ? JSON.stringify(problem.answer) : undefined}>
@@ -818,9 +842,10 @@ const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UI
             <p className="text-lg md:text-2xl text-slate-800 dark:text-slate-100 font-bold leading-relaxed whitespace-pre-line" data-testid="prompt">{tr(problem.prompt, lang)}</p>
             {!res && (<>
                 {attempt.hint ? <Guide mood="think" testId="hint-text">{tr(problem.hint, lang)}</Guide> : null}
+                {noHint && !attempt.hint ? <Guide mood="think" testId="hint-rest">{t.hintRest}</Guide> : null}
                 <AnswerInput key={problem.id} problem={problem} lang={lang} t={t} onSubmit={onSubmit} />
                 <div className="grid grid-cols-2 gap-2">
-                    <button data-testid="hint" disabled={attempt.hint} onClick={onHint} className={`${secondary} py-3 disabled:opacity-40`}>💡 {t.hint}</button>
+                    <button data-testid="hint" data-open={String(hintOpen)} disabled={attempt.hint} onClick={() => (hintOpen ? onHint() : setNoHint(true))} className={`${secondary} py-3 disabled:opacity-40`}>💡 {t.hint}</button>
                     <button data-testid="learn-first" onClick={onLearnFirst} className={`${secondary} py-3`}>📖 {t.learnFirst}</button>
                 </div>
             </>)}
@@ -829,6 +854,13 @@ const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UI
                     <div className="p-4 rounded-2xl border-[3px] bg-emerald-50 border-emerald-400 text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200 dark:border-emerald-500 animate-correct-flash">
                         <div className="flex items-center gap-3"><Lina mood="cheer" size={56} /><div><div className="font-black text-xl">✅ {t.correct} +{res.stars} ⭐</div><div className="font-bold">{tr(res.praise, lang)}</div></div></div>
                     </div>
+                    {res.newPart && (
+                        <div className="flex items-center gap-3 rounded-2xl border-2 border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 p-3" data-testid="new-color">
+                            <PaintingView painting={PAINTINGS[res.newPart[0]]} filled={res.newPart[1]} className="!w-32 shrink-0" />
+                            <div className="font-black text-violet-800 dark:text-violet-200">🎨 {t.newColor}<div className="text-xs font-bold opacity-70">{res.newPart[1]} / {PAINTINGS[res.newPart[0]].regions.length}</div></div>
+                        </div>
+                    )}
+                    {chapterNext && <div className="text-center font-bold text-amber-700 dark:text-amber-300" data-testid="next-chapter">📖 {t.chapterIn(chapterNext.in, chapterNext.n)}</div>}
                     <details className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 p-4">
                         <summary className="font-black cursor-pointer">🪜 {t.howSolve}</summary>
                         <div className="mt-2"><Steps steps={problem.steps} lang={lang} /><VisualView visual={problem.visual} lang={lang} stepByStep={false} /></div>
@@ -997,19 +1029,25 @@ const PaintingChoice: React.FC<{ g: GameState; t: UIText; lang: Lang; justDone: 
                     <p className="font-black text-rose-500 text-center">{tr(LOVE[g.painting.done.length % LOVE.length], lang)}</p>
                     <button data-testid="painting-next" onClick={() => setStep('choose')} className={`${primary} w-full py-4 text-xl`}>🎨 {t.chooseNext}</button>
                 </>) : (<>
-                    <Guide mood="happy" pip>{t.whichNext}</Guide>
+                    <Guide mood="happy" pip>{t.whichNext} {t.surprise}</Guide>
+                    {/* only the outlines: the colors are a surprise she paints with her stars */}
                     <div className="grid grid-cols-2 gap-3">
-                        {PAINTINGS.map((p, i) => {
+                        {PAINTINGS.slice(0, openPaintings(g.painting.done)).map((p, i) => {
                             const times = g.painting.done.filter(x => x === i).length;
                             return (
                                 <button key={i} data-testid={`paint-choose-${i}`} onClick={() => onChoose(i)} className="text-left rounded-2xl border-2 border-slate-200 dark:border-slate-600 hover:border-indigo-500 p-2 active:scale-[0.98] transition-all bg-white dark:bg-slate-800">
-                                    <PaintingView painting={p} filled={p.regions.length} />
-                                    <div className="text-xs font-black mt-1">{tr(p.name, lang)}</div>
+                                    <PaintingView painting={p} filled={0} />
+                                    <div className="text-xs font-black mt-1">{i >= FIRST_SET ? '✨ ' : ''}{tr(p.name, lang)}</div>
                                     {times > 0 && <div className="text-[10px] font-bold text-emerald-600">✓ {t.paintedTimes} {times}×</div>}
                                 </button>
                             );
                         })}
                     </div>
+                    {openPaintings(g.painting.done) === FIRST_SET && (
+                        <div className="rounded-2xl border-2 border-dashed border-violet-300 dark:border-violet-700 bg-violet-50 dark:bg-violet-950/30 p-3 text-center font-bold text-violet-800 dark:text-violet-200" data-testid="paint-locked">
+                            🔒 {t.magicLocked(new Set(g.painting.done.filter(i => i < FIRST_SET)).size, FIRST_SET, PAINTINGS.length - FIRST_SET)}
+                        </div>
+                    )}
                 </>)}
             </div>
         </div>

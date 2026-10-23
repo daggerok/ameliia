@@ -291,6 +291,7 @@ const topic3Builders: Record<'mult-tens' | 'mult-mental' | 'mult-expr' | 'mult-w
             hook: [
                 L(`Grandma Sveta buys ${m} boxes of beads with ${d * 100} beads in each box. ${m} × ${d * 100} looks big, but you already know ${m} × ${d}. The zeros just ride along!`, `Бабушка Света покупает ${m} ${ruPlural(m, 'коробку', 'коробки', 'коробок')} бусин, в каждой по ${d * 100}. ${m} × ${d * 100} выглядит большим, но ты уже знаешь ${m} × ${d}. Нули просто едут следом!`),
                 L(`${m} × ${d} = ${f}. That one fact gives you ${m} × ${d * 10}, ${m} × ${fmt(d * 100, 'en')} and ${m} × ${fmt(d * 1000, 'en')} for free.`, `${m} × ${d} = ${f}. Этот один пример бесплатно даёт ${m} × ${d * 10}, ${m} × ${fmt(d * 100, 'ru')} и ${m} × ${fmt(d * 1000, 'ru')}.`),
+                L(`The library of a magic castle has ${m} rooms with ${d * 100} spell books in each. A wizard does not count them one by one: ${m} × ${d} = ${f}, so ${m} × ${d * 100} = ${fmt(f * 100, 'en')}.`, `В библиотеке волшебного замка ${m} ${ruPlural(m, 'зал', 'зала', 'залов')}, в каждом ${d * 100} книг заклинаний. Волшебник не считает их по одной: ${m} × ${d} = ${f}, значит ${m} × ${d * 100} = ${fmt(f * 100, 'ru')}.`),
             ],
             sections: [
                 { kind: 'idea', title: L('The big idea', 'Главная идея'), body: [
@@ -387,6 +388,7 @@ const topic3Builders: Record<'mult-tens' | 'mult-mental' | 'mult-expr' | 'mult-w
             hook: [
                 L(`Mia has ${b} dolls. A toy store's warehouse has ${k} times as many. A bar diagram turns those words into a picture, and the picture tells you to multiply.`, `У Мии ${b} ${ruPlural(b, 'кукла', 'куклы', 'кукол')}. На складе магазина в ${k} ${ruPlural(k, 'раз', 'раза', 'раз')} больше. Схема из полосок превращает слова в картинку, а картинка подсказывает: умножай.`),
                 L('Test word problems often have two steps and a table with extra numbers. A good plan beats fast guessing.', 'В тестовых задачах часто два шага и таблица с лишними числами. Хороший план лучше быстрой догадки.'),
+                L(`Ameliia read ${b} pages of Harry Potter this week, and Mom read ${k} times as many. A bar diagram shows it: one bar of ${b} for Ameliia, ${k} bars of ${b} for Mom.`, `Амелия прочитала за неделю ${b} ${ruPlural(b, 'страницу', 'страницы', 'страниц')} «Гарри Поттера», а мама в ${k} ${ruPlural(k, 'раз', 'раза', 'раз')} больше. Схема это показывает: одна полоска ${b} для Амелии и ${k} полосок по ${b} для мамы.`),
             ],
             sections: [
                 { kind: 'steps', title: L('A plan for every word problem', 'План для любой задачи'), body: [

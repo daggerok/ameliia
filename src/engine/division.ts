@@ -159,6 +159,11 @@ type Story = { max: number; min?: number; maxDivisor?: number; minDivisor?: numb
 // Stories from Ameliia's life: piano and flute, gymnastics, painting, books, cafes, playgrounds, the iPad.
 // Each story only takes numbers that make sense for it (no 7,056 kids on a playground).
 const STORIES: Story[] = [
+    // she and Mom love the Harry Potter books and movies
+    { max: 800, min: 100, make: (n, nr, x, d) => L(`Ameliia reads a Harry Potter book with ${n} pages in ${d} weeks, the same number of pages every week. How many pages does she read each week?`,
+        `Амелия читает книгу о Гарри Поттере: ${nr} ${ruPlural(x, 'страница', 'страницы', 'страниц')} за ${d} ${ruPlural(d, 'неделю', 'недели', 'недель')}, каждую неделю одинаково. Сколько страниц она читает в неделю?`) },
+    { max: 90, make: (n, nr, x, d) => L(`Mom bought ${n} chocolate frogs for a Harry Potter movie night with ${d} kids. Everyone gets the same number. How many frogs does each kid get?`,
+        `Мама купила ${nr} ${ruPlural(x, 'шоколадную лягушку', 'шоколадные лягушки', 'шоколадных лягушек')} для вечера с фильмом о Гарри Поттере на ${d} ${ruPlural(d, 'ребёнка', 'детей', 'детей')}. Всем поровну. Сколько лягушек получит каждый?`) },
     { max: 450, make: (n, nr, _x, d) => L(`Ameliia practices piano for ${n} minutes in ${d} days, the same amount every day. How many minutes does she practice each day?`,
         `Амелия занимается на пианино ${nr} ${ruPlural(Number(nr.replace(/\s/g, '')), 'минуту', 'минуты', 'минут')} за ${d} ${ruPlural(d, 'день', 'дня', 'дней')}, каждый день одинаково. Сколько минут она занимается в день?`) },
     { max: 400, minDivisor: 2, maxDivisor: 4, make: (n, nr, x, d) => L(`A flute song has ${n} beats. Each measure has ${d} beats. How many measures does the song have?`,
