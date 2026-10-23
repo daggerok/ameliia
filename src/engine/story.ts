@@ -87,6 +87,19 @@ export const CHAPTERS: Chapter[] = [
         ],
     },
     {
+        title: L('An Owl at the Window', 'Сова за окном'), icon: '🦉',
+        text: [
+            L('Every evening in Italy Ameliia and Mom read Harry Potter together, one chapter before bed. Mom did the voices, and Ameliia always guessed what happened next.',
+                'Каждый вечер в Италии Амелия и мама читали вместе «Гарри Поттера», по главе перед сном. Мама говорила разными голосами, а Амелия всегда угадывала, что будет дальше.'),
+            L('One night something tapped on the window. It was Pip, wearing round glasses and a red and gold scarf, holding a letter. "Owl post!" she squeaked. "Well, capybara post."',
+                'Однажды ночью кто-то постучал в окно. Это была Пип в круглых очках и красно-золотом шарфе, с письмом в лапах. «Совиная почта! - пискнула она. - Ну, капибарья почта».'),
+            L('The letter said: "The castle library has 4 shelves with 125 books on each. How many books?" Ameliia smiled: "4 × 25 is 100, so 4 × 125 is 500."',
+                'В письме было: «В библиотеке замка 4 полки, на каждой 125 книг. Сколько всего книг?» Амелия улыбнулась: «4 × 25 - это 100, значит 4 × 125 - это 500».'),
+            L('"Ten points to Ameliia!" said Mom, and turned the page. Pip curled up at the foot of the bed and fell asleep in the middle of the next chapter.',
+                '«Десять очков Амелии!» - сказала мама и перевернула страницу. Пип свернулась клубочком в ногах кровати и заснула на середине следующей главы.'),
+        ],
+    },
+    {
         title: L('The Biggest Hug', 'Самые крепкие объятия'), icon: '❤️',
         text: [
             L('Grandma Olga hugged Ameliia so tight and so long that Pip had to walk around them twice to find a free spot for her own hug. Grandpa Valeriy lifted Martin high up to the sky.',

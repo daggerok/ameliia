@@ -50,8 +50,8 @@ export const Lina: React.FC<{ mood?: Mood; size?: number; className?: string }> 
 };
 
 // Pip: a calm capybara who loves math and makes funny mistakes. Every time she shows up she has a new hobby.
-export type PipRole = 'orange' | 'piano' | 'flute' | 'artist' | 'scientist' | 'math' | 'gymnast' | 'reader';
-export const PIP_ROLES: PipRole[] = ['orange', 'piano', 'flute', 'artist', 'scientist', 'math', 'gymnast', 'reader'];
+export type PipRole = 'orange' | 'piano' | 'flute' | 'artist' | 'scientist' | 'math' | 'gymnast' | 'reader' | 'wizard';
+export const PIP_ROLES: PipRole[] = ['orange', 'piano', 'flute', 'artist', 'scientist', 'math', 'gymnast', 'reader', 'wizard'];
 let nextRole = Math.floor(Math.random() * PIP_ROLES.length);
 const takeRole = () => PIP_ROLES[nextRole++ % PIP_ROLES.length];
 
@@ -113,6 +113,17 @@ export const Pip: React.FC<{ size?: number; className?: string; wink?: boolean; 
                 <path d="M20 27 Q40 18 60 27 L60 31 Q40 22 20 31 Z" fill="#ec4899" />
                 <path d="M62 58 Q78 50 70 40 Q62 32 72 24 Q80 18 76 10" stroke="#f472b6" strokeWidth="2.6" fill="none" strokeLinecap="round" />
                 <path d="M58 62 L64 56" stroke="#92400e" strokeWidth="2.4" strokeLinecap="round" />
+            </g>)}
+            {/* a young wizard, like in the books she and Mom love: round glasses, a red and gold scarf, a wand with a spark */}
+            {r === 'wizard' && (<g>
+                <circle cx="30" cy="35" r="6" fill="none" stroke="#1f2937" strokeWidth="1.8" />
+                <circle cx="50" cy="35" r="6" fill="none" stroke="#1f2937" strokeWidth="1.8" />
+                <path d="M36 35 L44 35" stroke="#1f2937" strokeWidth="1.8" />
+                <path d="M20 56 Q40 64 60 56 L60 62 Q40 70 20 62 Z" fill="#b91c1c" />
+                <path d="M28 60 L28 66 M40 62 L40 68 M52 60 L52 66" stroke="#facc15" strokeWidth="3" />
+                <path d="M56 62 L52 80 L58 80 L60 64 Z" fill="#b91c1c" /><path d="M54 70 L59 70" stroke="#facc15" strokeWidth="2.4" />
+                <path d="M62 70 L76 52" stroke="#78350f" strokeWidth="2.6" strokeLinecap="round" />
+                <path d="M77 46 L78.5 50 L82 50.5 L79 52.5 L80 56 L77 54 L74 56 L75 52.5 L72 50.5 L75.5 50 Z" fill="#fde047" />
             </g>)}
             {r === 'reader' && (<g>
                 <path d="M14 66 L40 70 L66 66 L66 82 L40 84 L14 82 Z" fill="#fef3c7" stroke="#b45309" strokeWidth="1" />

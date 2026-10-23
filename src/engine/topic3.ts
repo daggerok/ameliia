@@ -124,6 +124,8 @@ const nearRound = (rng: Rng, sub: boolean) => {
 
 type CompStory = (m: number, a: number) => L10n;
 const COMP_STORIES: CompStory[] = [
+    (m, a) => L(`The train to the school of magic leaves from platform 9¾. One trip is ${fmt(a, 'en')} miles. Use mental math to find how many miles the train goes in ${m} trips.`,
+        `Поезд в школу волшебства отходит с платформы 9¾. Одна поездка - ${fmt(a, 'ru')} ${ruPlural(a, 'миля', 'мили', 'миль')}. Посчитай в уме, сколько миль поезд проедет за ${m} ${ruPlural(m, 'поездку', 'поездки', 'поездок')}.`),
     (m, a) => L(`Alberto rode the train ${fmt(a, 'en')} miles round trip ${m} times last month. Use mental math to find the total distance he traveled.`,
         `Альберто ${m} ${ruPlural(m, 'раз', 'раза', 'раз')} за месяц съездил на поезде туда и обратно, каждая поездка - ${fmt(a, 'ru')} ${ruPlural(a, 'миля', 'мили', 'миль')}. Посчитай в уме, сколько всего миль он проехал.`),
     (m, a) => L(`A bookstore sold ${m} boxes of books. Each box holds ${fmt(a, 'en')} books. Use mental math to find how many books were sold.`,
@@ -379,6 +381,13 @@ const BAR_STORIES: BarStory[] = [
     { thing: T(['seashell', 'seashells'], ['ракушка', 'ракушки', 'ракушек']), letter: 's', small: L('Martin', 'Мартин'), big: L('Ameliia', 'Амелия'),
         setup: (b, k) => L(`Little Martin found ${b} seashells at the Jersey Shore. Ameliia found ${k} times as many.`, `Маленький Мартин нашёл на побережье Джерси ${b} ${ruPlural(b, 'ракушку', 'ракушки', 'ракушек')}. Амелия нашла в ${k} ${ruPlural(k, 'раз', 'раза', 'раз')} больше.`),
         ask: L('How many seashells did Ameliia find?', 'Сколько ракушек нашла Амелия?') },
+    // she and Mom both love Harry Potter
+    { thing: T(['page', 'pages'], ['страница', 'страницы', 'страниц']), letter: 'p', small: L('Ameliia', 'Амелия'), big: L('Mom', 'мама'),
+        setup: (b, k) => L(`This week Ameliia read ${b} pages of Harry Potter. Mom loves the books too and read ${k} times as many pages.`, `На этой неделе Амелия прочитала ${b} ${ruPlural(b, 'страницу', 'страницы', 'страниц')} «Гарри Поттера». Мама тоже обожает эти книги и прочитала в ${k} ${ruPlural(k, 'раз', 'раза', 'раз')} больше страниц.`),
+        ask: L('How many pages did Mom read?', 'Сколько страниц прочитала мама?') },
+    { thing: T(['owl', 'owls'], ['сова', 'совы', 'сов']), letter: 'w', small: L('the shop', 'магазин'), big: L('the castle', 'замок'),
+        setup: (b, k) => L(`An owl shop in a wizard village has ${b} owls. The owlery of the magic castle has ${k} times as many owls.`, `В совином магазине волшебной деревни ${b} ${ruPlural(b, 'сова', 'совы', 'сов')}. В совятне волшебного замка в ${k} ${ruPlural(k, 'раз', 'раза', 'раз')} больше сов.`),
+        ask: L('How many owls live in the owlery?', 'Сколько сов живёт в совятне?') },
     { thing: T(['sticker', 'stickers'], ['наклейка', 'наклейки', 'наклеек']), letter: 's', small: L('Emma', 'Эмма'), big: L('the store', 'магазин'),
         setup: (b, k) => L(`Emma has ${b} stickers. The craft store has ${k} times as many stickers on one shelf.`, `У Эммы ${b} ${ruPlural(b, 'наклейка', 'наклейки', 'наклеек')}. На одной полке магазина для творчества в ${k} ${ruPlural(k, 'раз', 'раза', 'раз')} больше наклеек.`),
         ask: L('How many stickers are on the shelf?', 'Сколько наклеек на полке?') },
