@@ -1,4 +1,4 @@
-import { type L10n, type Problem, type Rng, type SkillId, L, choice, fmt, int, pick, ruPlural } from './core';
+import { type L10n, type Problem, type Rng, type SkillId, L, choice, fmt, int, pick, pickStyle, ruPlural } from './core';
 import { AMELIIA, FAMILY } from './words';
 
 export const PLACE_NAME: Record<number, L10n> = {
@@ -142,8 +142,8 @@ export const zerosSteps = (a: number, b: number): L10n[] => {
     ];
 };
 
-const makeEstProduct = (rng: Rng): Problem => {
-    const style = pick(rng, ['tens', 'tens', 'big', 'reasonable'] as const);
+const makeEstProduct = (rng: Rng, want?: string): Problem => {
+    const style = pickStyle(rng, ['tens', 'tens', 'big', 'reasonable'] as const, want);
     if (style === 'tens') {
         let a = int(rng, 21, 98), b = int(rng, 21, 98);
         while (a % 10 === 0) a++;
@@ -239,9 +239,9 @@ const makeMultiply = (rng: Rng): Problem => {
     };
 };
 
-export const makeEstimation = (rng: Rng, skill: SkillId): Problem => {
+export const makeEstimation = (rng: Rng, skill: SkillId, want?: string): Problem => {
     if (skill === 'est-sum') return makeEstSum(rng);
-    if (skill === 'est-product') return makeEstProduct(rng);
+    if (skill === 'est-product') return makeEstProduct(rng, want);
     if (skill === 'multiply') return makeMultiply(rng);
     return makeRound(rng);
 };

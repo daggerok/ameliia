@@ -13,6 +13,11 @@ const KIDS: Person[] = [
     ...FRIENDS,
 ];
 
+const PALS = [
+    { en: 'Emma', ru: 'Эмма', ruDat: 'Эмме' }, { en: 'Sofia', ru: 'София', ruDat: 'Софии' }, { en: 'Mia', ru: 'Мия', ruDat: 'Мии' },
+    { en: 'Noah', ru: 'Ноа', ruDat: 'Ноа' }, { en: 'Leo', ru: 'Лео', ruDat: 'Лео' }, { en: 'Martin', ru: 'Мартин', ruDat: 'Мартину' },
+];
+
 const DEF_HINT = L('Remember the study guide words: motion, reference point, force, gravity, relative motion.', 'Вспомни слова из памятки: движение, точка отсчёта, сила, гравитация, относительное движение.');
 const FORCE_HINT = L('A force is a push or a pull. Bigger force, bigger change. Equal forces in opposite directions cancel out.', 'Сила - это толчок или тяга. Больше сила - больше изменение. Равные силы в разные стороны уравновешивают друг друга.');
 
@@ -37,6 +42,14 @@ const MOVERS: [L10n, number][] = [
     [L('A spinning top on the floor.', 'Юла крутится на полу.'), 3],
     [L('The blades of a ceiling fan.', 'Лопасти потолочного вентилятора.'), 3],
     [L('The wheels of Dad\'s car.', 'Колёса папиной машины.'), 3],
+    [L('A train rolls along a straight track.', 'Поезд едет по прямым рельсам.'), 0],
+    [L('A sled slides straight down a hill.', 'Санки съезжают прямо вниз с горки.'), 0],
+    [L('A soccer ball kicked high up to a friend far away.', 'Футбольный мяч, высоко подброшенный ударом к другу вдалеке.'), 1],
+    [L('A paper airplane gliding around in a big arc.', 'Бумажный самолётик, летящий по большой дуге.'), 1],
+    [L('A drum skin right after you hit it.', 'Кожа барабана сразу после удара.'), 2],
+    [L('A rubber band you pluck like a string.', 'Резинка, которую дёрнули, как струну.'), 2],
+    [L('A merry-go-round at the playground.', 'Карусель на детской площадке.'), 3],
+    [L('The Earth turning around once every day.', 'Земля, которая поворачивается вокруг себя раз в сутки.'), 3],
 ];
 
 // a thing that moves past a still place: Russian needs the verb and the place after "мимо"
@@ -58,6 +71,8 @@ const cap = (x: string) => x[0].toUpperCase() + x.slice(1);
 
 const ideas = (rng: Rng): Idea[] => {
     const kid = pick(rng, KIDS);
+    // a friend to push against, never the same person; ruDat: "к Эмме"
+    const pal = pick(rng, PALS.filter(x => x.en !== kid.en));
     const [act, push] = pick(rng, PUSH_PULL);
     const [mover, kind] = pick(rng, MOVERS);
     const dropped = pick(rng, [L('an apple', 'яблоко'), L('a pencil', 'карандаш'), L('a ball', 'мяч'), L('a leaf', 'лист')]);
@@ -65,6 +80,7 @@ const ideas = (rng: Rng): Idea[] => {
     // [where she sits, where the person outside stands]
     const ride = pick(rng, [[L('on a train', 'в поезде'), L('on the platform', 'на платформе')], [L('on a bus', 'в автобусе'), L('at the bus stop', 'на остановке')], [L('in a car', 'в машине'), L('on the sidewalk', 'на тротуаре')]]);
     const thing = pick(rng, SLIDERS);
+    const dir = pick(rng, [L('left', 'влево'), L('right', 'вправо'), L('east', 'на восток'), L('north', 'на север')]);
     return [
         { key: 'motion', q: L('In science, what is motion?', 'Что такое движение в науке?'),
             right: L('A change in position of an object', 'Изменение положения предмета'),
@@ -94,6 +110,14 @@ const ideas = (rng: Rng): Idea[] => {
             right: KINDS[kind], wrong: KINDS.filter((_, i) => i !== kind),
             why: L('Objects move in a straight line, in a curved path, back and forth as a vibration, or as a rotation.', 'Предметы движутся по прямой, по кривой, туда-сюда (вибрация) или вращаются.'),
             hint: L('Picture it: does it go straight, along a curve, shake back and forth, or spin around?', 'Представь: едет прямо, по дуге, дрожит туда-сюда или крутится?') },
+        { key: `size-dir-${kid.en}-${dir.en}`, q: L(`${kid.en} gives a toy box a gentle push to the ${dir.en}. Which two things describe this force?`, `${kid.ru} слегка толкает коробку с игрушками ${dir.ru}. Какие две вещи описывают эту силу?`),
+            right: L(`How strong it is (its size) and which way it goes (its direction: ${dir.en})`, `Насколько она сильная (величина) и куда направлена (направление: ${dir.ru})`),
+            wrong: [L('Its color and its name', 'Цвет и название'), L('Only how fast the box is', 'Только скорость коробки'), L('Only the size of the box', 'Только размер коробки')],
+            why: L('All forces have size and direction: a gentle push is a small force, and it points the way the box is pushed.', 'У всех сил есть величина и направление: лёгкий толчок - это маленькая сила, и она направлена туда, куда толкают коробку.'), hint: FORCE_HINT },
+        { key: `walk-${kid.en}`, q: L(`${kid.en} walks from the door to the window. In science words, what happened?`, `${kid.ru} идёт от двери к окну. Как это назвать по-научному?`),
+            right: L('Motion: a change in position', 'Движение: изменение положения'),
+            wrong: [L('Gravity: a pull toward the Earth', 'Гравитация: притяжение к Земле'), L('Balanced forces', 'Уравновешенные силы'), L('A vibration', 'Вибрация')],
+            why: L('Motion is a change in position of an object. The door and the window are reference points that stay still.', 'Движение - это изменение положения предмета. Дверь и окно - точки отсчёта, они стоят на месте.'), hint: DEF_HINT },
         { key: 'size-dir', q: L('Every force has two things. Which two?', 'У каждой силы есть две вещи. Какие?'),
             right: L('A size and a direction', 'Величина и направление'),
             wrong: [L('A color and a size', 'Цвет и величина'), L('A speed and a name', 'Скорость и название'), L('Only a direction', 'Только направление')],
@@ -122,6 +146,10 @@ const ideas = (rng: Rng): Idea[] => {
             right: L('It keeps moving at the same speed in the same direction', 'Продолжает двигаться с той же скоростью в том же направлении'),
             wrong: [L('It stops right away', 'Сразу останавливается'), L('It speeds up', 'Разгоняется'), L('It turns around', 'Разворачивается')],
             why: L('With balanced forces a moving object continues to move at the same speed and in the same direction.', 'При уравновешенных силах движущийся предмет продолжает двигаться с той же скоростью и в том же направлении.'), hint: FORCE_HINT },
+        { key: `push-box-${kid.en}-${pal.en}`, q: L(`${kid.en} and ${pal.en} push a big box from opposite sides, both just as hard. What happens to the box?`, `${kid.ru} и ${pal.ru} толкают большую коробку с двух сторон, одинаково сильно. Что происходит с коробкой?`),
+            right: L('It does not move: the forces are balanced', 'Не двигается: силы уравновешены'),
+            wrong: [L(`It moves toward ${pal.en}`, `Движется к ${pal.ruDat}`), L('It flies up', 'Взлетает вверх'), L('It speeds up', 'Разгоняется')],
+            why: L('Equal pushes in opposite directions are balanced forces: a still box stays still.', 'Равные толчки в противоположные стороны - уравновешенные силы: неподвижная коробка остаётся на месте.'), hint: FORCE_HINT },
         { key: 'book', q: L('A book lies on a table. Gravity pulls it down and the table pushes it up just as hard. What are these forces?', 'Книга лежит на столе. Гравитация тянет её вниз, а стол так же сильно толкает вверх. Какие это силы?'),
             right: L('Balanced forces, so the book stays still', 'Уравновешенные силы, поэтому книга лежит на месте'),
             wrong: [L('Unbalanced forces, so the book moves', 'Неуравновешенные силы, поэтому книга движется'), L('There are no forces on a book', 'На книгу не действуют силы'), L('Relative motion', 'Относительное движение')],
@@ -133,9 +161,17 @@ const ideas = (rng: Rng): Idea[] => {
     ];
 };
 
-export const makeForces = (rng: Rng): Problem => {
+// the study guide line each idea belongs to: forces:tug-equal:... -> balanced
+const KIND_OF_KEY: [RegExp, string][] = [
+    [/^(motion|parked|walk-)/, 'motion'], [/^ref-/, 'reference'], [/^(force|pp-)/, 'force'], [/^grav-/, 'gravity'], [/^rel-/, 'relative'],
+    [/^kind-/, 'kinds'], [/^size-dir/, 'size-direction'], [/^(start-|can-do|amount-)/, 'effects'], [/^(tug-|moving-balanced|book|push-box-)/, 'balanced'],
+];
+export const forceKind = (id: string) => KIND_OF_KEY.find(([re]) => re.test(id.replace(/^forces:/, '')))?.[1] ?? 'other';
+
+export const makeForces = (rng: Rng, want?: string): Problem => {
     const all = ideas(rng);
-    const k = int(rng, 0, all.length - 1), it = all[k];
+    const fits = all.map((x, i) => (forceKind(x.key) === want ? i : -1)).filter(i => i >= 0);
+    const k = fits.length ? pick(rng, fits) : int(rng, 0, all.length - 1), it = all[k];
     return {
         id: `forces:${it.key}:${it.q.en}`, skill: 'forces', topic: 'science',
         prompt: it.q,
