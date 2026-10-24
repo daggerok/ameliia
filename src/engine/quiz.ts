@@ -228,7 +228,7 @@ const concepts: Partial<Record<SkillId, (rng: Rng) => Problem[]>> = {
 };
 
 const conceptFor = (skill: SkillId, rng: Rng): Problem => {
-    if (skill === 'motion-ideas' || skill === 'forces') return makeProblem(skill, rng);
+    if (skill === 'motion-ideas' || skill === 'forces' || skill === 'sci-words') return makeProblem(skill, rng);
     const list = (concepts[skill] ?? (r => longDivisionConcepts(skill, r)))(rng);
     return pick(rng, list);
 };

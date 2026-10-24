@@ -1,4 +1,5 @@
-import { type Given, type L10n, type Problem, L, fillMarks, fmt } from './core';
+import { type Given, type L10n, type Problem, L, fillMarks, fmt, normWord } from './core';
+import { BLANKS, meaningOf } from './scienceWords';
 import { roundTo } from './estimation';
 
 // What most likely went wrong, from her answer and the right one, like a teacher who looks at the work:
@@ -99,8 +100,28 @@ export const diagnoseNumber = (p: Problem, want: number, got: number): L10n | nu
 // a plain number option like "9,515" or "350 tortillas"
 const numberIn = (o: L10n) => { const m = o.en.match(/^\$?(\d[\d,]*)(\s+[a-z ]+)?$/); return m ? Number(m[1].replace(/,/g, '')) : null; };
 
+// letters to change, add or remove to turn one word into the other
+const editDistance = (x: string, y: string) => {
+    const d = Array.from({ length: x.length + 1 }, (_, i) => [i, ...Array(y.length).fill(0)]);
+    for (let j = 1; j <= y.length; j++) d[0][j] = j;
+    for (let i = 1; i <= x.length; i++) for (let j = 1; j <= y.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+    return d[x.length][y.length];
+};
+
 export const diagnose = (p: Problem, given: Given): L10n | null => {
     const a = p.answer;
+    if (a.kind === 'word') {
+        const got = normWord(given.text ?? ''), want = normWord(a.word);
+        if (!got || [want, ...a.accept.map(normWord)].includes(got)) return null;
+        // a spelling slip: gravaty, accelaration, velosity
+        if (want.length >= 4 && editDistance(got, want) <= 2) return L(`Almost! Check the spelling: ${a.word}.`, `Почти! Проверь, как пишется слово: ${a.word}.`);
+        // another science word: say what it means, so she sees the difference
+        const other = BLANKS.find(b => normWord(b.word) === got);
+        const m = other ? meaningOf(other.word) : null;
+        if (other && m) return L(`"${other.word}" is a science word too, but it means something else: ${m.en} This sentence needs another word.`,
+            `«${other.word}» - тоже научное слово, но оно значит другое: ${m.ru} Здесь нужно другое слово.`);
+        return null;
+    }
     if (a.kind === 'number') return given.value === undefined ? null : diagnoseNumber(p, a.value, given.value);
     if (a.kind === 'remainder') {
         const d = Number(p.data.divisor), n = Number(p.data.dividend), q = given.q ?? NaN, r = given.r ?? NaN;

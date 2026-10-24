@@ -83,13 +83,14 @@ describe('what went wrong: every task type, every kind of wrong answer', () => {
             const p = makeProblem(skill, makeRng(seed * 13 + 1));
             const a = p.answer;
             // the right answer is never diagnosed
-            const right: Given = a.kind === 'number' ? { value: a.value } : a.kind === 'remainder' ? { q: a.q, r: a.r } : a.kind === 'choice' ? { choice: a.correct } : a.kind === 'multi' ? { choices: a.correct } : { blanks: a.values };
+            const right: Given = a.kind === 'number' ? { value: a.value } : a.kind === 'remainder' ? { q: a.q, r: a.r } : a.kind === 'choice' ? { choice: a.correct } : a.kind === 'multi' ? { choices: a.correct } : a.kind === 'word' ? { text: a.word } : { blanks: a.values };
             expect(sameAnswer(a, right)).toBe(true);
             expect(diagnose(p, right)).toBeNull();
             const wrongs: Given[] = a.kind === 'number' ? mutations(a.value).map(value => ({ value }))
                 : a.kind === 'remainder' ? [{ q: a.q, r: Number(p.data.divisor) }, { q: a.q + 1, r: a.r }, { q: a.q, r: a.r + 1 }, ...mutations(a.q).map(q => ({ q, r: a.r }))]
                     : a.kind === 'choice' ? a.options.map((_, i) => ({ choice: i })).filter(g => g.choice !== a.correct)
                         : a.kind === 'multi' ? [{ choices: a.correct.slice(1) }, { choices: [...a.correct, a.options.findIndex((_, i) => !a.correct.includes(i))] }]
+                        : a.kind === 'word' ? [{ text: a.word.slice(0, -1) }, { text: 'gravity' }, { text: 'rotation' }, { text: 'xyz' }]
                             : a.values.flatMap((v, i) => mutations(v).slice(0, 3).map(x => ({ blanks: a.values.map((y, k) => (k === i ? x : y)) })));
             for (const g of wrongs) {
                 if (sameAnswer(a, g)) continue;
@@ -106,7 +107,7 @@ describe('what went wrong: every task type, every kind of wrong answer', () => {
         }
         // numeric task types get explanations for most of these mistakes
         // (text-only answers have no numbers to compare: science ideas, comparison, word-problem plans, division checks)
-        if (!['motion-ideas', 'forces', 'compare', 'word-steps', 'div-check'].includes(skill)) expect(named).toBeGreaterThan(50);
+        if (!['motion-ideas', 'forces', 'compare', 'word-steps', 'div-check', 'sci-words'].includes(skill)) expect(named).toBeGreaterThan(50);
     });
 });
 

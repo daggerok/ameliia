@@ -78,6 +78,8 @@ const checkText = (l: L10n, where: string) => {
         if (/undefined|NaN|\[object|null/.test(s)) throw new Error(`${where}: broken ${lang} text: ${s}`);
     }
     if (/[А-Яа-яЁё]/.test(l.en)) throw new Error(`${where}: Cyrillic in English: ${l.en}`);
+    // the science words task writes the word in English on purpose (the test is in English)
+    if (/sci-words/.test(where)) return;
     // Russian may keep a few English science words on purpose (velocity, acceleration, speed, iPad, R)
     const latin = (l.ru.match(/[A-Za-z]{3,}/g) ?? []).filter(w => !['velocity', 'acceleration', 'speed', 'ipad'].includes(w.toLowerCase()));
     if (latin.length) throw new Error(`${where}: English words in Russian (${latin.join(', ')}): ${l.ru}`);
@@ -490,6 +492,15 @@ describe('every generated task is correct', () => {
                 } else if (p.answer.kind === 'fill') {
                     // 6 × 0 = 0 in the standard algorithm is a real blank
                     expect(p.answer.values.every(v => Number.isInteger(v) && v >= 0)).toBe(true);
+                } else if (p.answer.kind === 'word') {
+                    // a typed word: case, an article and a full stop do not matter, a wrong word does
+                    const w = p.answer.word;
+                    expect(w.trim().length).toBeGreaterThan(2);
+                    expect(sameAnswer(p.answer, { text: w })).toBe(true);
+                    expect(sameAnswer(p.answer, { text: ` The ${w.toUpperCase()}. ` })).toBe(true);
+                    expect(sameAnswer(p.answer, { text: `${w}x` })).toBe(false);
+                    expect(sameAnswer(p.answer, { text: '' })).toBe(false);
+                    expect(p.prompt.en).toContain('___');
                 } else if (p.answer.kind === 'multi') {
                     // select all: at least one right and one wrong option, every index on the list
                     const en = p.answer.options.map(o => o.en);
@@ -517,7 +528,8 @@ describe('every generated task is correct', () => {
                 if (skill === 'div-zero') expect(String(p.data.quotient).slice(1)).toContain('0');
             });
             // lots of different tasks, not the same few again and again
-            expect(ids.size).toBeGreaterThan(skill === 'motion-ideas' ? 8 : 60);
+            // the study guide sentences are a fixed list: 30 sentences, typed or from a word bank
+            expect(ids.size).toBeGreaterThan(skill === 'motion-ideas' ? 8 : skill === 'sci-words' ? 50 : 60);
         });
     }
     test('the trip trap really differs from averaging the speeds', () => {
@@ -686,11 +698,12 @@ describe('game flow', () => {
         s = applyAnswer(s, makeProblem('div-3d', rng), true, { firstTry: true, hint: false, sec: 5 }).state;
         expect(s.skills['div-3d'].reviewPending).toBe(false);
     });
-    test('the practice test: 6 division, 4 science, 5 of Topic 3 and 2 different multiplication strategies', () => {
+    test('the practice test: 6 division, 5 science, 5 of Topic 3 and 2 different multiplication strategies', () => {
         const test1 = buildTest(newState(), makeRng(9));
-        expect(test1.length).toBe(17);
+        expect(test1.length).toBe(18);
         expect(test1.filter(p => p.topic === 'division').length).toBe(6);
-        expect(test1.filter(p => p.topic === 'science').length).toBe(4);
+        expect(test1.filter(p => p.topic === 'science').length).toBe(5);
+        expect(test1.some(p => p.skill === 'sci-words')).toBe(true);
         expect(test1.filter(p => p.topic === 'estimation').length).toBe(7);
         expect(test1.some(p => p.skill === 'forces')).toBe(true);
         const strategies = test1.filter(p => STRATEGIES.includes(p.skill)).map(p => p.skill);
