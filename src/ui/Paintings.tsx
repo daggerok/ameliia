@@ -163,12 +163,16 @@ export const PAINTINGS: Painting[] = [
 export const FIRST_SET = 6;
 export const openPaintings = (done: number[]) => (Array.from({ length: FIRST_SET }, (_, i) => i).every(i => done.includes(i)) ? PAINTINGS.length : FIRST_SET);
 
-export const PaintingView: React.FC<{ painting: Painting; filled: number; className?: string }> = ({ painting, filled, className = '' }) => (
+// half: the next part already has a star and waits for one more: a pulsing dashed outline, the color stays a surprise
+export const PaintingView: React.FC<{ painting: Painting; filled: number; half?: boolean; className?: string }> = ({ painting, filled, half = false, className = '' }) => (
     <svg viewBox="0 0 200 140" className={`w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white ${className}`} role="img" aria-label={painting.name.en}>
         {painting.regions.map((r, i) => (
             <g key={i} className={i === filled - 1 ? 'animate-pop' : ''} style={{ transformOrigin: 'center' }}>
                 {r.el(i < filled ? r.color : '#ffffff', i < filled ? 'rgba(0,0,0,0.15)' : '#cbd5e1')}
             </g>
         ))}
+        {half && filled < painting.regions.length && (
+            <g data-testid="half-part" className="animate-pulse" style={{ strokeDasharray: '3 2' }}>{painting.regions[filled].el('rgba(129,140,248,0.18)', '#6366f1')}</g>
+        )}
     </svg>
 );
