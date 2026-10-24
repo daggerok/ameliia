@@ -7,7 +7,7 @@ export type Topic = 'division' | 'science' | 'estimation';
 
 export type SkillId =
     | 'div-facts' | 'div-2d' | 'div-3d' | 'div-zero' | 'div-4d' | 'div-rem' | 'div-word' | 'div-check'
-    | 'speed-basic' | 'speed-find' | 'speed-trip' | 'speed-units' | 'motion-ideas' | 'forces'
+    | 'speed-basic' | 'speed-find' | 'speed-trip' | 'speed-units' | 'motion-ideas' | 'forces' | 'sci-words'
     | 'round' | 'est-sum' | 'est-product' | 'multiply'
     | 'mult-area' | 'mult-dist' | 'mult-partial' | 'mult-standard'
     | 'compare' | 'word-steps'
@@ -19,6 +19,8 @@ export type Answer =
     | { kind: 'choice'; options: L10n[]; correct: number }
     // "select all that apply" of the school tests: every right option and no wrong one
     | { kind: 'multi'; options: L10n[]; correct: number[] }
+    // a typed word, like the blanks of a study guide: the English word and other spellings that count (plural, two words)
+    | { kind: 'word'; word: string; accept: string[] }
     | FillAnswer;
 
 // A worksheet to fill in, like the strategy sheets at school: every blank is one number.
@@ -146,7 +148,7 @@ export const speedShort = (n: number, unit: Unit): L10n => unit === 'mi'
 export const TOPIC_OF: Record<SkillId, Topic> = {
     'div-facts': 'division', 'div-2d': 'division', 'div-3d': 'division', 'div-zero': 'division', 'div-4d': 'division',
     'div-rem': 'division', 'div-word': 'division', 'div-check': 'division',
-    'speed-basic': 'science', 'speed-find': 'science', 'speed-trip': 'science', 'speed-units': 'science', 'motion-ideas': 'science', 'forces': 'science',
+    'speed-basic': 'science', 'speed-find': 'science', 'speed-trip': 'science', 'speed-units': 'science', 'motion-ideas': 'science', 'forces': 'science', 'sci-words': 'science',
     'round': 'estimation', 'est-sum': 'estimation', 'est-product': 'estimation', 'multiply': 'estimation',
     'mult-area': 'estimation', 'mult-dist': 'estimation', 'mult-partial': 'estimation', 'mult-standard': 'estimation',
     'compare': 'estimation', 'word-steps': 'estimation',
@@ -155,7 +157,7 @@ export const TOPIC_OF: Record<SkillId, Topic> = {
 
 export const SKILLS_OF: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
-    science: ['speed-basic', 'speed-find', 'speed-trip', 'speed-units', 'motion-ideas', 'forces'],
+    science: ['speed-basic', 'speed-find', 'speed-trip', 'speed-units', 'motion-ideas', 'forces', 'sci-words'],
     estimation: ['round', 'est-sum', 'est-product', 'multiply', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard', 'compare', 'word-steps',
         'mult-tens', 'mult-mental', 'mult-expr', 'mult-word'],
 };
@@ -178,6 +180,7 @@ export const SKILL_NAME: Record<SkillId, L10n> = {
     'speed-units': L('Hours and minutes', 'Часы и минуты'),
     'motion-ideas': L('Speed, velocity, acceleration', 'Скорость, направление, ускорение'),
     'forces': L('Motion and forces', 'Движение и силы'),
+    'sci-words': L('Science words: fill in the blank', 'Научные слова: впиши пропущенное'),
     'round': L('Rounding', 'Округление'),
     'est-sum': L('Estimating sums and differences', 'Прикидка суммы и разности'),
     'est-product': L('Estimating products', 'Прикидка произведения'),
@@ -222,11 +225,15 @@ export const multi = (rng: Rng, right: L10n[], wrong: L10n[]): Answer => {
 };
 
 // what she answered: a number, a quotient with a remainder, one option, several options or the boxes of a worksheet
-export type Given = { value?: number; q?: number; r?: number; choice?: number; choices?: number[]; blanks?: number[] };
+export type Given = { value?: number; q?: number; r?: number; choice?: number; choices?: number[]; blanks?: number[]; text?: string };
+
+// a typed word: case, spaces, a full stop and an article in front do not matter, the spelling does
+export const normWord = (s: string) => s.toLowerCase().replace(/[.!?,;:"«»]/g, ' ').replace(/^\s*(the|a|an)\s+/, '').replace(/\s+/g, ' ').trim();
 
 export const sameAnswer = (answer: Answer, given: Given) => {
     if (answer.kind === 'fill') return fillMarks(answer, given.blanks ?? []).every(Boolean);
     if (answer.kind === 'multi') return sameSet(given.choices ?? [], answer.correct);
+    if (answer.kind === 'word') return [answer.word, ...answer.accept].map(normWord).includes(normWord(given.text ?? ''));
     if (answer.kind === 'number') return given.value === answer.value;
     if (answer.kind === 'remainder') return given.q === answer.q && given.r === answer.r;
     return given.choice === answer.correct;

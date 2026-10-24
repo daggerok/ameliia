@@ -4,6 +4,7 @@ import { makeProblem } from './index';
 import { roundTo } from './estimation';
 import { placeParts, standardRows } from './strategies';
 import { LOVE, WHY_MATH } from './messages';
+import { DEFINITIONS } from './scienceWords';
 
 export type Section =
     | { kind: 'story'; body: L10n }
@@ -284,7 +285,29 @@ const wordBuilders: Record<'compare' | 'word-steps', (rng: Rng) => { hook: L10n[
 
 // ---------- Topic 3 test: multiples of 10, mental math, matching expressions, word problems; Science Chapter 2: forces ----------
 
-const topic3Builders: Record<'mult-tens' | 'mult-mental' | 'mult-expr' | 'mult-word' | 'forces', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+const topic3Builders: Record<'mult-tens' | 'mult-mental' | 'mult-expr' | 'mult-word' | 'forces' | 'sci-words', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    // the study guide words, written in English like on the test
+    'sci-words': () => ({
+        hook: [
+            L('On the test a question can be "What is gravity?" or a sentence with a blank. You need the exact science word, spelled right.', 'На тесте может быть вопрос «What is gravity?» или предложение с пропуском. Нужно точное научное слово, написанное без ошибок.'),
+            L('Hermione knew every definition by heart. Let\'s learn the study guide sentences the same way: the sentence and its word together.', 'Гермиона знала все определения наизусть. Выучим предложения из памятки так же: предложение вместе с его словом.'),
+        ],
+        sections: [
+            { kind: 'idea', title: L('The study guide words', 'Слова из памятки'), body: DEFINITIONS },
+            { kind: 'steps', title: L('How to find the missing word', 'Как найти пропущенное слово'), body: [
+                L('1. Read the whole sentence, not only the part before the blank.', '1. Прочитай всё предложение, а не только начало до пропуска.'),
+                L('2. Find the clue words: "pulls objects together" means gravity, "push or pull" means force, "spins around" means rotation, "back and forth" means vibration.', '2. Найди слова-подсказки: «притягивает предметы» - gravity, «толчок или тяга» - force, «крутится» - rotation, «туда-сюда» - vibration.'),
+                L('3. Speed, velocity, acceleration: only a number means speed, a number with a direction means velocity, a change means acceleration.', '3. Speed, velocity, acceleration: только число - speed, число с направлением - velocity, изменение - acceleration.'),
+                L('4. Write the word and check every letter.', '4. Напиши слово и проверь каждую букву.'),
+            ] },
+            { kind: 'warn', title: L('Tricky spellings', 'Трудные слова'), body: [
+                L('gravity, velocity, acceleration (two c, one l), vibration, rotation, reference point, relative motion, balanced', 'gravity, velocity, acceleration (две c, одна l), vibration, rotation, reference point, relative motion, balanced'),
+            ] },
+            { kind: 'trick', title: L('Memory trick', 'Запоминалка'), body: [
+                L('Velocity has a Very important direction. Acceleration is a Change.', 'Velocity - Важно направление. Acceleration - это изменение.'),
+            ] },
+        ],
+    }),
     'mult-tens': rng => {
         const m = int(rng, 2, 9), d = int(rng, 2, 9), f = m * d;
         return {
@@ -845,7 +868,7 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'est-sum': ['round'], 'est-product': ['round', 'mult-tens'], 'multiply': ['mult-area'],
     'mult-dist': ['mult-area'], 'mult-partial': ['mult-area'], 'mult-standard': ['mult-partial'],
     'compare': ['div-facts'], 'word-steps': ['mult-standard', 'round'],
-    'mult-mental': ['mult-tens', 'mult-dist'], 'mult-expr': ['mult-dist', 'mult-partial'], 'mult-word': ['compare', 'mult-standard'],
+    'sci-words': [], 'mult-mental': ['mult-tens', 'mult-dist'], 'mult-expr': ['mult-dist', 'mult-partial'], 'mult-word': ['compare', 'mult-standard'],
 };
 
 // every building block in learning order: a skill comes after everything it needs
@@ -870,6 +893,7 @@ export const answerLine = (p: Problem): L10n => {
     // a worksheet: the last blank is the final product
     if (a.kind === 'fill') return L(`Answer: ${fmt(a.values[a.values.length - 1], 'en')}`, `Ответ: ${fmt(a.values[a.values.length - 1], 'ru')}`);
     if (a.kind === 'multi') return L(`Answer: ${a.correct.map(i => a.options[i].en).join('; ')}`, `Ответ: ${a.correct.map(i => a.options[i].ru).join('; ')}`);
+    if (a.kind === 'word') return L(`Answer: ${a.word}`, `Ответ: ${a.word}`);
     const o = a.options[a.correct];
     return L(`Answer: ${o.en}`, `Ответ: ${o.ru}`);
 };

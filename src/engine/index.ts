@@ -3,6 +3,7 @@ import { makeDivision } from './division';
 import { makeEstimation } from './estimation';
 import { makeForces } from './forces';
 import { makeScience } from './science';
+import { makeScienceWords } from './scienceWords';
 import { makeStrategy } from './strategies';
 import { makeTopic3 } from './topic3';
 import { makeWordProblem } from './wordproblems';
@@ -12,6 +13,7 @@ export const makeProblem = (skill: SkillId, rng: Rng, kind?: string): Problem =>
     const topic = TOPIC_OF[skill];
     if (topic === 'division') return makeDivision(rng, skill);
     if (skill === 'forces') return makeForces(rng, kind);
+    if (skill === 'sci-words') return makeScienceWords(rng, kind);
     if (topic === 'science') return makeScience(rng, skill, kind);
     if (skill === 'mult-tens' || skill === 'mult-mental' || skill === 'mult-expr' || skill === 'mult-word') return makeTopic3(rng, skill, kind);
     if (skill.startsWith('mult-')) return makeStrategy(rng, skill);

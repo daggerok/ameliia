@@ -107,6 +107,7 @@ export const kindOf = (p: Problem): string => {
     if (p.skill === 'forces') return forceKind(p.id);
     if (p.skill === 'motion-ideas') return IDEA_KIND[Number(p.data.idea)] ?? 'all';
     if (p.skill === 'speed-trip') return p.id.split(':')[1];
+    if (p.skill === 'sci-words') return String(p.data.style);
     if (p.skill === 'est-product') return ({ t: 'tens', b: 'big', r: 'reasonable' } as Record<string, string>)[p.id.split(':')[1]] ?? 'all';
     if (['mult-tens', 'mult-mental', 'mult-expr', 'mult-word'].includes(p.skill)) return String(p.data.style);
     return 'all';
@@ -126,6 +127,7 @@ export const PREP_PLAN: [SkillId, string[]][] = [
     ['motion-ideas', ['speed', 'velocity', 'acceleration', 'average']],
     ['speed-basic', ['all']],
     ['speed-trip', ['map', 'total', 'trap']],
+    ['sci-words', ['type', 'bank']],
 ];
 export const DAILY_RIGHT = 30;
 
@@ -157,7 +159,7 @@ export const prepPicks = (state: GameState, day: string): [SkillId, string][] =>
 };
 
 // Ladders: a skill opens after 2 correct answers in the one before it (motion ideas and forces are open from the start)
-export const OPEN_SCIENCE: SkillId[] = ['motion-ideas', 'forces'];
+export const OPEN_SCIENCE: SkillId[] = ['motion-ideas', 'forces', 'sci-words'];
 export const LADDER: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
     science: ['speed-basic', 'speed-find', 'speed-units', 'speed-trip'],
@@ -341,7 +343,7 @@ export const addTime = (prev: GameState, topic: Topic, sec: number, day: string)
 // 5 of the Topic 3 assessment (multiples of 10, estimating, mental math, expressions, word problems), plus 2 different multiplication strategies
 export const TEST_PLAN: SkillId[] = [
     'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word',
-    'speed-basic', 'speed-trip', 'motion-ideas', 'forces',
+    'speed-basic', 'speed-trip', 'motion-ideas', 'forces', 'sci-words',
     'mult-tens', 'est-product', 'mult-mental', 'mult-expr', 'mult-word',
 ];
 
