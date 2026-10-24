@@ -16,7 +16,8 @@ import { Guide, Lina, Pip } from './ui/Buddy';
 import { FIRST_SET, PAINTINGS, PaintingView, openPaintings } from './ui/Paintings';
 import { Coach, type CoachStep } from './ui/Coach';
 import { Notepad, START_VIEW, type PadTour, type Stroke, type View } from './ui/Notepad';
-import { askPersistent, exportFile, importFile, loadDb, loadLocal, newer, save } from './storage';
+import { KEY as STORAGE_KEY, askPersistent, exportFile, importFile, loadDb, loadLocal, newer, save, saveNow } from './storage';
+import { type Attention, type Step, IDLE_MS, TICK_MS, attention, shuffleWith } from './engine/attention';
 
 // ========================================
 // UI TEXTS
@@ -38,7 +39,9 @@ const UI = {
         parentsText: 'Learning time follows 50% division, 25% motion and speed, 25% rounding and estimating. A wrong answer always leads to theory and a mini quiz, and that skill comes back a few tasks later. Content follows the NJ Student Learning Standards for grade 4 (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity and acceleration are bonus explorer words.',
         perfect: 'Perfect test!', stepsWord: 'Steps', yes: 'Yes', no: 'No', taskOf: 'Task',
         congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', nextRewards: 'Your next rewards', partIn: (n: number) => `${n} ${n === 1 ? 'star' : 'stars'} to a new color in your picture: what will it be?`, chapterIn: (n: number, ch: number) => `${n} more ${n === 1 ? 'star' : 'stars'} to open chapter ${ch} of the story`, newColor: 'Your picture got a new color! Solve more to see what comes next', surprise: 'The colors are a surprise!', magicLocked: (done: number, all: number, more: number) => `${more} magic pictures open when you have painted all the first ${all}: ${done} of ${all} done`, storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
-        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Test prep: Topic 3 and Science Chapter 2', hwSub: 'Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', pickAll: 'Select all that apply', rework: (n: number) => `Fix my mistakes: ${n} left`, reworkSub: 'Homework and app mistakes: first the right way, then a new task of the same kind', reworkDone: 'All mistakes are fixed! Great work!', reworkRemember: 'Remember this mistake? Let\'s fix it, then we go on!', reworkKicker: (n: number) => `Fix my mistakes · ${n} left`, reworkGo: 'Solve a new task of this kind', howToPlay: 'How to play (the welcome tour)',
+        dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', hw: 'Test prep: Topic 3 and Science Chapter 2', hwSub: 'Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', pickAll: 'Select all that apply', attHere: 'Ameliia, are you here?', attHereSub: 'The study clock is waiting for you.', attYes: 'Yes', attNo: 'No', attDunno: 'I don\'t know',
+        attBack: 'Welcome back!', attBackSub: 'The study clock stopped while you were away.', attContinue: 'Continue', attStop: 'Stop', attPaused: 'The study clock is paused',
+        byeTitle: 'Your progress is saved', byeBody: 'Everything is saved on this iPad. You can close the app now. See you soon!', byeBack: 'I am here, let\'s go on', rework: (n: number) => `Fix my mistakes: ${n} left`, reworkSub: 'Homework and app mistakes: first the right way, then a new task of the same kind', reworkDone: 'All mistakes are fixed! Great work!', reworkRemember: 'Remember this mistake? Let\'s fix it, then we go on!', reworkKicker: (n: number) => `Fix my mistakes · ${n} left`, reworkGo: 'Solve a new task of this kind', howToPlay: 'How to play (the welcome tour)',
         tourNext: 'Next', tourBack: 'Back', tourSkip: 'Skip', tourStart: 'Let\'s start!', tourGo: 'Got it!',
         notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadMove: 'Move the page', notepadZoomIn: 'Zoom in', notepadZoomOut: 'Zoom out', notepadZoomReset: 'Back to 100%', notepadHas: 'notes',
         intro: [
@@ -85,7 +88,9 @@ const UI = {
         parentsText: 'Время учёбы делится так: 50% деление, 25% движение и скорость, 25% округление и прикидка. После ошибки всегда идёт теория и мини-викторина, а навык возвращается через несколько заданий. Содержание по стандартам NJ для 4 класса (4.NBT.A.3, 4.NBT.B.5, 4.NBT.B.6, 4.OA.A.3, 4.M.A.1-2, 4-PS3-1, 4-PS3-3); velocity и ускорение - бонусные слова исследователя.',
         perfect: 'Идеальный тест!', stepsWord: 'Шаги', yes: 'Да', no: 'Нет', taskOf: 'Задание',
         congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', nextRewards: 'Твои следующие награды', partIn: (n: number) => `${n} ${n === 1 ? 'звезда' : 'звезды'} до нового цвета в картине: какой он будет?`, chapterIn: (n: number, ch: number) => `Ещё ${n} ${n % 10 === 1 && n % 100 !== 11 ? 'звезда' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'звезды' : 'звёзд'} до ${ch}-й главы истории`, newColor: 'В твоей картине появился новый цвет! Решай дальше, чтобы увидеть, что будет', surprise: 'Цвета - это сюрприз!', magicLocked: (done: number, all: number, more: number) => `${more} волшебных картин откроются, когда раскрасишь все первые ${all}: готово ${done} из ${all}`, storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
-        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'К тесту: Topic 3 и наука, глава 2', hwSub: 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания', pickAll: 'Выбери все подходящие ответы', rework: (n: number) => `Работа над ошибками: ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkSub: 'Ошибки из домашки и из приложения: сначала как правильно, потом новое задание того же вида', reworkDone: 'Все ошибки исправлены! Отличная работа!', reworkRemember: 'Помнишь эту ошибку? Исправим её и пойдём дальше!', reworkKicker: (n: number) => `Работа над ошибками · ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkGo: 'Решить новое задание такого вида', howToPlay: 'Как играть (знакомство с игрой)',
+        dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', hw: 'К тесту: Topic 3 и наука, глава 2', hwSub: 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания', pickAll: 'Выбери все подходящие ответы', attHere: 'Амелия, ты здесь?', attHereSub: 'Часы учёбы ждут тебя.', attYes: 'Да', attNo: 'Нет', attDunno: 'Не знаю',
+        attBack: 'С возвращением!', attBackSub: 'Пока тебя не было, часы учёбы стояли.', attContinue: 'Продолжить', attStop: 'Прекратить', attPaused: 'Часы учёбы на паузе',
+        byeTitle: 'Прогресс сохранён', byeBody: 'Всё сохранено на этом iPad. Теперь можно закрыть приложение. До скорой встречи!', byeBack: 'Я здесь, продолжим', rework: (n: number) => `Работа над ошибками: ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkSub: 'Ошибки из домашки и из приложения: сначала как правильно, потом новое задание того же вида', reworkDone: 'Все ошибки исправлены! Отличная работа!', reworkRemember: 'Помнишь эту ошибку? Исправим её и пойдём дальше!', reworkKicker: (n: number) => `Работа над ошибками · ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkGo: 'Решить новое задание такого вида', howToPlay: 'Как играть (знакомство с игрой)',
         tourNext: 'Дальше', tourBack: 'Назад', tourSkip: 'Пропустить', tourStart: 'Поехали!', tourGo: 'Понятно!',
         notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadMove: 'Двигать лист', notepadZoomIn: 'Увеличить', notepadZoomOut: 'Уменьшить', notepadZoomReset: 'Вернуть 100%', notepadHas: 'записей',
         intro: [
@@ -127,6 +132,9 @@ const nextChapter = (stars: number): { n: number; in: number } | null => {
     return open < CHAPTERS.length ? { n: open + 1, in: open * STARS_PER_CHAPTER - stars } : null;
 };
 const params = new URLSearchParams(location.search);
+// checks only: ?idleMs=5000&tickMs=1000 make "are you here?" come after 5 s instead of 60 s
+const IDLE_LIMIT = Number(params.get('idleMs')) || IDLE_MS;
+const TICK_EVERY = Number(params.get('tickMs')) || TICK_MS;
 const SELFTEST = params.has('selftest');
 // self checks only: ?skill=mult-area makes every practice task that skill
 const FORCED_SKILL = SELFTEST && params.get('skill') && ALL_SKILLS.includes(params.get('skill') as SkillId) ? (params.get('skill') as SkillId) : undefined;
@@ -188,20 +196,55 @@ const clockText = (sec: number) => {
     return h ? `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}` : `${m}:${String(x).padStart(2, '0')}`;
 };
 
-// today's learning time, ticking every second while she studies; the game stores it every 5 seconds,
-// so the clock adds the seconds since the last stored tick and never runs ahead of it by more than that
-const LiveTimer: React.FC<{ base: number; running: boolean }> = ({ base, running }) => {
-    const [extra, setExtra] = useState(0);
-    useEffect(() => { setExtra(0); }, [base]);
+// today's study time: the counted seconds plus the running part, ticking every second only while the clock runs;
+// any pause shows ⏸ and the counted value, which never jumps forward
+const LiveTimer: React.FC<{ base: number; att: Attention; learning: boolean }> = ({ base, att, learning }) => {
+    const running = att.state === 'running';
+    const [now, setNow] = useState(Date.now());
     useEffect(() => {
-        if (!running) { setExtra(0); return; }
-        const id = setInterval(() => setExtra(e => Math.min(e + 1, 4)), 1000);
+        if (!running) return;
+        setNow(Date.now());
+        const id = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(id);
-    }, [running, base]);
-    return <span data-testid="timer" data-running={String(running)}>{clockText(base + extra)}</span>;
+    }, [running, att.from]);
+    return <span data-testid="timer" data-running={String(running)} className={learning && !running ? 'opacity-60' : ''}>{learning && !running ? '⏸ ' : ''}{clockText(base + attention.liveSec(att, running ? now : att.from))}</span>;
 };
 
-const StatsBar: React.FC<{ g: GameState; t: UIText; pop: boolean; running: boolean }> = ({ g, t, pop, running }) => {
+// "Ameliia, are you here?" and "Welcome back": nothing else on the page can be touched while it is open,
+// the buttons come in a new random order for every window and wait half a second, so a finger already on the screen
+// does not answer by accident
+const AttentionModal: React.FC<{ kind: 'idle' | 'resume'; order: string[]; t: UIText; onAnswer: (v: string) => void }> = ({ kind, order, t, onAnswer }) => {
+    const [armed, setArmed] = useState(false);
+    const box = useRef<HTMLDivElement>(null);
+    useEffect(() => { box.current?.focus(); const id = setTimeout(() => setArmed(true), 500); return () => clearTimeout(id); }, []);
+    const label: Record<string, string> = { yes: t.attYes, no: t.attNo, dunno: t.attDunno, continue: t.attContinue, stop: t.attStop };
+    // Tab stays inside the window
+    const keys = (e: React.KeyboardEvent) => {
+        if (e.key !== 'Tab') return;
+        const buttons = [...(box.current?.querySelectorAll('button') ?? [])];
+        const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        e.preventDefault();
+        buttons[(i + (e.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus();
+    };
+    return (
+        <div className="fixed inset-0 z-[60] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4" data-testid="attention-overlay">
+            <div ref={box} tabIndex={-1} onKeyDown={keys} role="dialog" aria-modal="true" aria-labelledby="attention-title" data-testid="attention-modal" data-kind={kind}
+                className={`${card} max-w-md w-full text-center space-y-4 outline-none animate-bounce-in`}>
+                <div className="flex justify-center"><Lina mood={kind === 'idle' ? 'think' : 'happy'} size={72} /></div>
+                <h2 id="attention-title" className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400">{kind === 'idle' ? t.attHere : t.attBack}</h2>
+                <p className="font-bold text-slate-600 dark:text-slate-300">{kind === 'idle' ? t.attHereSub : t.attBackSub}</p>
+                <div className={`grid gap-3 ${order.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                    {order.map(v => (
+                        <button key={v} data-testid="attention-btn" data-value={v} disabled={!armed} onClick={() => onAnswer(v)}
+                            className="py-4 rounded-2xl font-black text-lg bg-indigo-600 text-white disabled:opacity-60 active:scale-[0.97]">{label[v]}</button>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const StatsBar: React.FC<{ g: GameState; t: UIText; pop: boolean; att: Attention; learning: boolean }> = ({ g, t, pop, att, learning }) => {
     const acc = g.answered ? Math.round((g.correct / g.answered) * 100) : 0;
     const goal = dailyGoal(g, today());
     const label = 'opacity-70 text-[9px] sm:text-[10px] md:text-xs uppercase font-extrabold tracking-wider';
@@ -211,7 +254,7 @@ const StatsBar: React.FC<{ g: GameState; t: UIText; pop: boolean; running: boole
             <div><div className={`${value} ${pop ? 'animate-counter-up' : ''}`} data-testid="stars">⭐ {g.stars}</div><div className={label}>{t.stars}</div></div>
             <div><div className={value}>🔥 {g.streak}</div><div className={label}>{t.streak}</div></div>
             <div><div className={value} data-testid="goal-bar">{goal.done >= goal.total ? '🏆' : '🎯'} {goal.done}/{goal.total}</div><div className={label}>{t.goalShort}</div></div>
-            <div><div className={`${value} tabular-nums`}>⏱ <LiveTimer base={g.daily[today()] ?? 0} running={running} /></div><div className={label}>{t.today}</div></div>
+            <div><div className={`${value} tabular-nums`}>⏱ <LiveTimer base={g.daily[today()] ?? 0} att={att} learning={learning} /></div><div className={label}>{t.today}</div></div>
             <div><div className={value}>✓ {acc}%</div><div className={label}>{t.accuracy}</div></div>
         </div>
     );
@@ -527,13 +570,31 @@ export const App: React.FC = () => {
     const [pop, setPop] = useState(false);
     const [banner, setBanner] = useState<L10n | null>(null);
     const rng = useRef(makeRng(seed)).current;
-    const lastActive = useRef(Date.now());
     const lang = g.lang;
     const t = UI[lang];
     const greeting = useMemo(() => [rng() < 0.5 ? LOVE[Math.floor(rng() * LOVE.length)] : WHY_MATH[Math.floor(rng() * WHY_MATH.length)]], [screen === 'home']);
 
     // persist and theme
-    useEffect(() => { save(g); }, [g]);
+    // two open copies of the game (two tabs, an old tab and a new link) share one progress: a copy that comes back
+    // or sees another copy save takes the newer progress and never writes its older one over it (the "19 of 20" bug)
+    const savedAt = useRef(0);
+    const fromOther = useRef(false);
+    useEffect(() => {
+        if (fromOther.current) { fromOther.current = false; return; }
+        savedAt.current = save(g);
+    }, [g]);
+    useEffect(() => {
+        const pull = () => {
+            const other = loadLocal();
+            if (other && other.savedAt > savedAt.current) { fromOther.current = true; savedAt.current = other.savedAt; setG(other.state); }
+        };
+        const onStorage = (e: StorageEvent) => { if (e.key === STORAGE_KEY) pull(); };
+        const onVisible = () => { if (document.visibilityState === 'visible') pull(); };
+        window.addEventListener('storage', onStorage);
+        document.addEventListener('visibilitychange', onVisible);
+        window.addEventListener('pageshow', pull);
+        return () => { window.removeEventListener('storage', onStorage); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('pageshow', pull); };
+    }, []);
     // the IndexedDB copy wins when it is newer, for example after Safari cleared localStorage
     useEffect(() => {
         void askPersistent();
@@ -553,19 +614,71 @@ export const App: React.FC = () => {
         : screen === 'review' && rework ? TOPIC_OF[reworkSkill(rework)]
         : (screen === 'theory' || screen === 'quiz') && learn ? TOPIC_OF[learn.skill]
             : screen === 'test' && test ? test.problems[test.idx]?.topic ?? null : null;
+    // the study clock (engine/attention.ts): the ref is the truth for event handlers, the state re-renders the screen
+    const attRef = useRef<Attention>(attention.stopped(Date.now()));
+    const [att, setAtt] = useState<Attention>(attRef.current);
+    const topicRef = useRef<Topic | null>(null);
+    const [attOrder, setAttOrder] = useState<string[]>([]);
+    const [goodbye, setGoodbye] = useState(false);
+    const applyAtt = (r: Step | Attention, topic = topicRef.current) => {
+        const s: Step = 'addSec' in r ? r : { a: r, addSec: 0 };
+        const was = attRef.current.state;
+        attRef.current = s.a;
+        setAtt(s.a);
+        if (s.addSec > 0 && topic) setG(x => addTime(x, topic, s.addSec, today()));
+        // every new window gets its own random order of buttons (Q3)
+        if (s.a.state !== was && s.a.state === 'idle-check') setAttOrder(shuffleWith(['yes', 'no', 'dunno'], rng));
+        if (s.a.state !== was && s.a.state === 'resume-check') setAttOrder(shuffleWith(['continue', 'stop'], rng));
+    };
+    // a learning screen starts the clock, leaving it stops the clock, a topic change counts the time for the old topic first
     useEffect(() => {
-        const mark = () => { lastActive.current = Date.now(); };
-        window.addEventListener('pointerdown', mark); window.addEventListener('keydown', mark); window.addEventListener('scroll', mark, { passive: true });
-        return () => { window.removeEventListener('pointerdown', mark); window.removeEventListener('keydown', mark); window.removeEventListener('scroll', mark); };
-    }, []);
-    useEffect(() => {
-        if (!currentTopic) return;
-        const id = setInterval(() => {
-            if (document.visibilityState !== 'visible' || Date.now() - lastActive.current > 90_000) return;
-            setG(s => addTime(s, currentTopic, 5, today()));
-        }, 5000);
-        return () => clearInterval(id);
+        const prev = topicRef.current, now = Date.now();
+        if (prev && currentTopic && prev !== currentTopic) applyAtt(attention.flush(attRef.current), prev);
+        if (prev && !currentTopic) applyAtt(attention.leaveLearning(attRef.current, now), prev);
+        if (!prev && currentTopic) applyAtt(attention.enterLearning(attRef.current, now));
+        topicRef.current = currentTopic;
     }, [currentTopic]);
+    useEffect(() => {
+        const tick = setInterval(() => applyAtt(attention.tick(attRef.current, Date.now(), IDLE_LIMIT)), TICK_EVERY);
+        // what counts as studying: touches, keys, the mouse wheel, finger moves, scrolling anywhere (capture: inner blocks too)
+        const mark = () => { attRef.current = attention.activity(attRef.current, Date.now()); };
+        let lastMove = 0;
+        const move = () => { const now = Date.now(); if (now - lastMove >= 1000) { lastMove = now; mark(); } };
+        const opts: AddEventListenerOptions = { capture: true, passive: true };
+        const marks = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'], moves = ['pointermove', 'touchmove'];
+        marks.forEach(e => document.addEventListener(e, mark, opts));
+        moves.forEach(e => document.addEventListener(e, move, opts));
+        // hidden: another tab, another app, a locked screen; blur and focus are not used (they fire on dialogs and the address bar)
+        const hide = () => applyAtt(attention.hide(attRef.current));
+        const show = () => { if (document.visibilityState === 'visible') applyAtt(attention.show(attRef.current, Date.now())); };
+        const vis = () => (document.visibilityState === 'hidden' ? hide() : show());
+        document.addEventListener('visibilitychange', vis);
+        window.addEventListener('pagehide', hide);
+        window.addEventListener('pageshow', show);
+        document.addEventListener('freeze', hide);
+        document.addEventListener('resume', show);
+        return () => {
+            clearInterval(tick);
+            marks.forEach(e => document.removeEventListener(e, mark, opts));
+            moves.forEach(e => document.removeEventListener(e, move, opts));
+            document.removeEventListener('visibilitychange', vis);
+            window.removeEventListener('pagehide', hide);
+            window.removeEventListener('pageshow', show);
+            document.removeEventListener('freeze', hide);
+            document.removeEventListener('resume', show);
+        };
+    }, []);
+    const attAnswer = (v: string) => {
+        const now = Date.now();
+        if (v === 'continue') { applyAtt(attention.resume(attRef.current, now)); return; }
+        if (v === 'stop') { applyAtt(attention.stop(attRef.current, now)); return; }
+        applyAtt(attention.answer(attRef.current, v as 'yes' | 'no' | 'dunno', now));
+        if (v === 'yes') return;
+        // No / I don't know: someone else is at the iPad. Save everything now, then close the tab;
+        // a browser that does not let a page close its tab gets a goodbye screen instead (Q2)
+        setGoodbye(true);
+        void saveNow(g).then(() => { try { window.close(); } catch { /* not allowed */ } });
+    };
 
     // the stars also paint the magic picture
     const parts = (i: number) => PAINTINGS[i].regions.length;
@@ -723,6 +836,18 @@ export const App: React.FC = () => {
             {!g.introSeen && screen === 'home' && <Coach key={`intro-${lang}`} testId="intro" steps={t.intro} labels={{ next: t.tourNext, back: t.tourBack, skip: t.tourSkip, start: t.tourStart }} onDone={() => setG(s => ({ ...s, introSeen: true }))}
                 extra={<button onClick={() => setLang(lang === 'en' ? 'ru' : 'en')} className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600 text-xs font-black">{lang === 'en' ? 'RU' : 'EN'}</button>} />}
             {g.introSeen && !g.playTourSeen && screen === 'play' && problem && !attempt.result && <Coach testId="playtour" steps={t.playTour} labels={{ next: t.tourNext, back: t.tourBack, skip: t.tourSkip, start: t.tourGo }} onDone={() => setG(s => ({ ...s, playTourSeen: true }))} />}
+            {!goodbye && att.state === 'idle-check' && <AttentionModal key={`idle-${attOrder.join()}`} kind="idle" order={attOrder} t={t} onAnswer={attAnswer} />}
+            {!goodbye && att.state === 'resume-check' && <AttentionModal key={`resume-${attOrder.join()}`} kind="resume" order={attOrder} t={t} onAnswer={attAnswer} />}
+            {goodbye && (
+                <div className="fixed inset-0 z-[60] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4" data-testid="goodbye">
+                    <div className={`${card} max-w-md w-full text-center space-y-4`}>
+                        <div className="flex justify-center gap-2"><Lina mood="happy" size={72} /><Pip size={48} /></div>
+                        <h2 className="text-2xl font-black text-indigo-600 dark:text-indigo-400">💾 {t.byeTitle}</h2>
+                        <p className="font-bold text-slate-600 dark:text-slate-300">{t.byeBody}</p>
+                        <button data-testid="goodbye-back" onClick={() => { setGoodbye(false); applyAtt(attention.resume(attRef.current, Date.now())); }} className={`${primary} w-full py-4 text-xl`}>{t.byeBack}</button>
+                    </div>
+                </div>
+            )}
             {g.introSeen && !(screen === 'play' && !g.playTourSeen) && g.painting.choosing && <PaintingChoice g={g} t={t} lang={lang} justDone={paintDone} onChoose={i => { setG(s => chooseNextPainting(s, i, parts, STARS_PER_PART)); setPaintDone(null); }} />}
             <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl flex flex-col">
                 <header className="flex justify-between items-center py-3 mb-1 gap-2">
@@ -740,12 +865,16 @@ export const App: React.FC = () => {
                         <button data-testid="nav-settings" onClick={() => go('settings')} className="px-2.5 sm:px-3 py-2 bg-white dark:bg-slate-800 shadow-md rounded-xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm font-black">⚙️</button>
                     </div>
                 </header>
-                <StatsBar g={g} t={t} pop={pop} running={!!currentTopic} />
+                <StatsBar g={g} t={t} pop={pop} att={att} learning={!!currentTopic} />
+                {currentTopic && att.state === 'stopped' && !goodbye && (
+                    <button data-testid="timer-resume" onClick={() => applyAtt(attention.resume(attRef.current, Date.now()))}
+                        className="mb-3 w-full rounded-2xl border-2 border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 py-2 font-black text-indigo-700 dark:text-indigo-200">⏸ {t.attPaused} · ▶ {t.attContinue}</button>
+                )}
                 {banner && <div className="mb-3 animate-bounce-in" onClick={() => setBanner(null)}><Guide mood="cheer">{tr(banner, lang)}</Guide></div>}
                 <main className="w-full pb-8">
                     {screen === 'home' && <Home g={g} t={t} lang={lang} greeting={greeting[0]} chaptersOpen={chaptersOpen} onPlay={play} onHomework={playHomework} onRework={playRework} onTest={startTest} onStory={() => { setChapter(null); go('story'); }} onGallery={() => go('gallery')} onStats={() => go('stats')} />}
                     {screen === 'play' && problem && (
-                        <PlayView problem={problem} attempt={attempt} lang={lang} t={t} nextChapter={nextChapter(g.stars)}
+                        <PlayView problem={problem} attempt={attempt} lang={lang} t={t} nextChapter={nextChapter(g.stars)} partIn={g.painting.choosing ? 0 : (STARS_PER_PART - (g.painting.filled % STARS_PER_PART)) % STARS_PER_PART}
                             onSubmit={submit}
                             hintOpen={hintOpen(g)} onHint={() => { if (hintOpen(g)) setAttempt(a => ({ ...a, hint: true })); }}
                             onLearnFirst={() => openTheory(problem.skill, 'first')}
@@ -840,7 +969,7 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
             })()}
             <div className={`${card} !p-4`} data-testid="home-painting">
                 <div className="flex justify-between items-center font-black mb-2"><span>🎨 {t.painting}</span><span className="text-sm text-slate-400">{Math.floor(g.painting.filled / STARS_PER_PART)} / {p.regions.length}</span></div>
-                <PaintingView painting={p} filled={Math.floor(g.painting.filled / STARS_PER_PART)} />
+                <PaintingView painting={p} filled={Math.floor(g.painting.filled / STARS_PER_PART)} half={!g.painting.choosing && g.painting.filled % STARS_PER_PART > 0} />
                 <p className="text-xs font-bold text-slate-400 mt-2">{t.paintingHelp}</p>
             </div>
         </div>
@@ -848,7 +977,7 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
 };
 
 // hintOpen: hints are rare; when it is not there, a tap says so and sends her to the theory (she never sees how often)
-const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UIText; nextChapter: { n: number; in: number } | null; hintOpen: boolean; onSubmit: (g: Given) => void; onHint: () => void; onLearnFirst: () => void; onLearn: () => void; onNext: () => void }> = ({ problem, attempt, lang, t, nextChapter: chapterNext, hintOpen, onSubmit, onHint, onLearnFirst, onLearn, onNext }) => {
+const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UIText; nextChapter: { n: number; in: number } | null; partIn: number; hintOpen: boolean; onSubmit: (g: Given) => void; onHint: () => void; onLearnFirst: () => void; onLearn: () => void; onNext: () => void }> = ({ problem, attempt, lang, t, nextChapter: chapterNext, partIn, hintOpen, onSubmit, onHint, onLearnFirst, onLearn, onNext }) => {
     const [noHint, setNoHint] = useState(false);
     useEffect(() => { setNoHint(false); }, [problem.id]);
     const res = attempt.result;
@@ -879,6 +1008,8 @@ const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UI
                             <div className="font-black text-violet-800 dark:text-violet-200">🎨 {t.newColor}<div className="text-xs font-bold opacity-70">{res.newPart[1]} / {PAINTINGS[res.newPart[0]].regions.length}</div></div>
                         </div>
                     )}
+                    {/* a star that did not finish a part yet: say how close the new color is, so a right answer never looks like nothing */}
+                    {!res.newPart && partIn > 0 && <div className="text-center font-bold text-violet-700 dark:text-violet-300" data-testid="part-in">🎨 {t.partIn(partIn)}</div>}
                     {chapterNext && <div className="text-center font-bold text-amber-700 dark:text-amber-300" data-testid="next-chapter">📖 {t.chapterIn(chapterNext.in, chapterNext.n)}</div>}
                     <details className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 p-4">
                         <summary className="font-black cursor-pointer">🪜 {t.howSolve}</summary>
@@ -1025,7 +1156,7 @@ const GalleryView: React.FC<{ g: GameState; t: UIText; lang: Lang }> = ({ g, t, 
         <div className="space-y-4 animate-slide-up" data-testid="gallery-view">
             <div className={card}>
                 <h2 className="text-xl font-black mb-2">🎨 {tr(p.name, lang)} · {Math.floor(g.painting.filled / STARS_PER_PART)}/{p.regions.length}</h2>
-                <PaintingView painting={p} filled={Math.floor(g.painting.filled / STARS_PER_PART)} />
+                <PaintingView painting={p} filled={Math.floor(g.painting.filled / STARS_PER_PART)} half={!g.painting.choosing && g.painting.filled % STARS_PER_PART > 0} />
                 <p className="text-sm font-bold text-slate-400 mt-2">{t.paintingHelp}</p>
             </div>
             {g.painting.done.length > 0 && <h3 className="font-black text-lg">{t.finished}</h3>}

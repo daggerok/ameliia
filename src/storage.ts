@@ -2,7 +2,7 @@ import { type GameState, normalize } from './engine/game';
 
 // Progress lives on her device: localStorage for a fast start, IndexedDB as a second copy.
 // Each copy carries savedAt, the newer one wins. Both may be missing (private mode), the game still works.
-const KEY = 'math_quest_v1';
+export const KEY = 'math_quest_v1';
 const DB = 'math-quest';
 const STORE = 'state';
 
@@ -42,7 +42,8 @@ export const loadDb = async (): Promise<Saved | null> => {
 
 let pending: ReturnType<typeof setTimeout> | null = null;
 
-export const save = (state: GameState) => {
+// returns the time stamp of this save, so a tab knows whether another tab saved something newer
+export const save = (state: GameState): number => {
     const saved = wrap(state);
     try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch { /* full or private mode */ }
     // IndexedDB is written a moment later so quick changes do not pile up
@@ -53,6 +54,23 @@ export const save = (state: GameState) => {
             db.transaction(STORE, 'readwrite').objectStore(STORE).put(saved, 'main');
         } catch { /* IndexedDB not available */ }
     }, 800);
+    return saved.savedAt;
+};
+
+// right now, both copies, and wait until IndexedDB has it: before the app closes the tab
+export const saveNow = async (state: GameState) => {
+    if (pending) clearTimeout(pending);
+    const saved = wrap(state);
+    try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch { /* full or private mode */ }
+    try {
+        const db = await openDb();
+        await new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(STORE, 'readwrite');
+            tx.objectStore(STORE).put(saved, 'main');
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch { /* IndexedDB not available */ }
 };
 
 // ask the browser not to clear the data when space runs low (Safari still clears after 7 days unused unless on the Home Screen)
