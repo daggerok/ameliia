@@ -722,7 +722,7 @@ export const App: React.FC = () => {
     };
     const openRework = () => {
         const queue = reworkQueue(g.homeworkFixed, g.mistakeLog);
-        if (!queue.length) { setRework(null); setFocus('free'); setBanner({ en: UI.en.reworkDone, ru: UI.ru.reworkDone }); go('home'); return; }
+        if (!queue.length) { setRework(null); setFocus('free'); setScreen('home'); setBanner({ en: UI.en.reworkDone, ru: UI.ru.reworkDone }); return; }
         setRework(queue[0]);
         setScreen('review');
     };
@@ -903,7 +903,7 @@ export const App: React.FC = () => {
                         </div>
                     )}
                     {screen === 'test' && test && <TestView run={test} lang={lang} t={t} onAnswer={testAnswer} />}
-                    {screen === 'testResult' && test?.results && <TestResult run={test} lang={lang} t={t} onPractice={() => { setProblem(null); play(); }} onHome={() => go('home')} />}
+                    {screen === 'testResult' && test?.results && <TestResult run={test} lang={lang} t={t} onPractice={playRework} onHome={() => go('home')} />}
                     {screen === 'stats' && <StatsView g={g} t={t} lang={lang} />}
                     {screen === 'story' && <StoryView open={chaptersOpen} chapter={chapter} setChapter={i => { setChapter(i); if (i !== null && !g.chaptersRead.includes(i)) setG(s => ({ ...s, chaptersRead: [...s.chaptersRead, i] })); }} lang={lang} t={t} stars={g.stars} />}
                     {screen === 'gallery' && <GalleryView g={g} t={t} lang={lang} />}
