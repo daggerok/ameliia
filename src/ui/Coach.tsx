@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import * as React from 'react';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { Lina, Pip } from './Buddy';

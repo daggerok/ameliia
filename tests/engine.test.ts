@@ -42,7 +42,7 @@ const EXPR = String.raw`\(?\$?\d[\d,]*\)?(?:\s*[×÷+−]\s*\(?\$?\d[\d,]*\)?)*`
 const CHAIN = new RegExp(`(${EXPR})((?:\\s*=\\s*${EXPR})+)(?!\\s*(?:R|\\(остаток)|\\d|:\\d)`, 'g');
 const claims = (text: string) => {
     const out: { parts: string[]; raw: string }[] = [];
-    for (const m of text.matchAll(CHAIN)) {
+    for (const m of Array.from(text.matchAll(CHAIN))) {
         const before = text.slice(Math.max(0, m.index - 1), m.index);
         if (/[\d:]/.test(before)) continue;
         const parts = m[0].split('=').map(s => s.trim());
@@ -736,7 +736,7 @@ describe('game flow', () => {
             // whatever the generator makes on its own is a kind of the plan or a known extra
             const made = new Set<string>();
             each(skill, p => made.add(kindOf(p)));
-            expect([...made].filter(k => !kinds.includes(k) && !(extra[skill] ?? []).includes(k))).toEqual([]);
+            expect(Array.from(made).filter(k => !kinds.includes(k) && !(extra[skill] ?? []).includes(k))).toEqual([]);
             expect(kinds.every(k => made.has(k))).toBe(true);
         }
     });

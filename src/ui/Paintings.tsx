@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import * as React from 'react';
 import { type L10n, L } from '../engine/core';
 

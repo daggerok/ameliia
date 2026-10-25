@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type L10n, L } from './core';
 
 // A chapter opens every STARS_PER_CHAPTER stars. Each one is a short read with a little math inside.

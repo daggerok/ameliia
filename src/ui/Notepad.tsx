@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Coach, type CoachStep } from './Coach';

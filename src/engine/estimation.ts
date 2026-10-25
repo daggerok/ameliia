@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type L10n, type Problem, type Rng, type SkillId, L, choice, fmt, int, pick, pickStyle, ruPlural } from './core';
 import { AMELIIA, FAMILY } from './words';
 

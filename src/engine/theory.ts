@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type L10n, type Problem, type Rng, type SkillId, type Visual, L, SKILL_NAME, fmt, int, pick, ruPlural } from './core';
 import { longDivisionText, partialQuotientsText } from './division';
 import { makeProblem } from './index';

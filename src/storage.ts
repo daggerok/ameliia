@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type GameState, normalize } from './engine/game';
 
 // Progress lives on her device: localStorage for a fast start, IndexedDB as a second copy.

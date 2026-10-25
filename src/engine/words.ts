@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type Rng, pick } from './core';
 
 // People of the stories: Ameliia, her family and friends. ruGen is the form after "у" (у Амелии)

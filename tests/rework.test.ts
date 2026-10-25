@@ -20,7 +20,7 @@ const joinGroups = (s: string) => s.replace(/(\d)[  ](\d{3})(?!\d)/g, '$1$2').r
 const EXPR = String.raw`\(?\$?\d[\d,]*\)?(?:\s*[×÷+−]\s*\(?\$?\d[\d,]*\)?)*`;
 const CHAIN = new RegExp(`(${EXPR})((?:\\s*=\\s*${EXPR})+)`, 'g');
 const mathOk = (text: string) => {
-    for (const m of joinGroups(text).matchAll(CHAIN)) {
+    for (const m of Array.from(joinGroups(text).matchAll(CHAIN))) {
         const parts = m[0].split('=').map(s => s.trim());
         if (!parts.some(p => /[×÷+−]/.test(p))) continue;
         const v = parts.map(evaluate);
@@ -73,7 +73,7 @@ const mutations = (want: number): number[] => {
     const out = new Set<number>([want * 10, Math.floor(want / 10), want + 1, want - 1, want + 10, want - 10, want + 100]);
     const s = String(want);
     if (s.length >= 3) out.add(Number(s[0] + s[2] + s[1] + s.slice(3)));
-    return [...out].filter(x => x >= 0 && x !== want);
+    return Array.from(out).filter(x => x >= 0 && x !== want);
 };
 
 describe('what went wrong: every task type, every kind of wrong answer', () => {

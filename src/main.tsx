@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -221,7 +222,7 @@ const AttentionModal: React.FC<{ kind: 'idle' | 'resume'; order: string[]; t: UI
     // Tab stays inside the window
     const keys = (e: React.KeyboardEvent) => {
         if (e.key !== 'Tab') return;
-        const buttons = [...(box.current?.querySelectorAll('button') ?? [])];
+        const buttons = Array.from(box.current?.querySelectorAll('button') ?? []);
         const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
         e.preventDefault();
         buttons[(i + (e.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus();

@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type L10n, type Problem, type Rng, L, choice, int, pick } from './core';
 
 // Science Chapter 2 study guide: fill in the missing word, the way the test asks "What is gravity?".
@@ -59,7 +60,7 @@ export const makeScienceWords = (rng: Rng, want?: string): Problem => {
     const b = BLANKS[int(rng, 0, BLANKS.length - 1)];
     // mostly typed, like on the test; sometimes a word bank to start with
     const style = want === 'type' || want === 'bank' ? want : pick(rng, ['type', 'type', 'type', 'bank'] as const);
-    const others = [...new Set(BLANKS.map(x => x.word).filter(w => w !== b.word))];
+    const others = Array.from(new Set(BLANKS.map(x => x.word).filter(w => w !== b.word)));
     const bank = [b.word, ...[0, 1, 2].map(() => others.splice(int(rng, 0, others.length - 1), 1)[0])];
     const where = b.part === 1 ? L('Study guide, part I', 'Памятка, часть I') : L('Study guide, part II', 'Памятка, часть II');
     const steps = [

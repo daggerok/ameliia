@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type Problem, type Rng, type SkillId, TOPIC_OF } from './core';
 import { makeDivision } from './division';
 import { makeEstimation } from './estimation';

@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import {
     type Answer, type FillLine, type L10n, type Leg, type Problem, type Rng, type SkillId, type Unit,
     L, choice, dist, fmt, hours, int, minutes, pick, pickStyle, ruPlural, speedShort, speedUnit,
