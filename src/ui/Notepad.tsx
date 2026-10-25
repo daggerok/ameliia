@@ -24,6 +24,8 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
     const [pen, setPen] = useState(PENS[0]);
     const drawing = useRef<Stroke | null>(null);
     const panning = useRef<{ sx: number; sy: number; x: number; y: number } | null>(null);
+    // one finger at a time: a palm or a second finger on the screen must not join or break the line being drawn
+    const active = useRef<number | null>(null);
     const [size, setSize] = useState({ w: 0, h: 0 });
 
     // points are stored in CSS pixels, the canvas is scaled for sharp lines on the iPad
@@ -91,6 +93,8 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
     };
     const down = (e: React.PointerEvent) => {
         e.preventDefault();
+        if (active.current !== null) return;
+        active.current = e.pointerId;
         canvas.current?.setPointerCapture(e.pointerId);
         if (pen === HAND) { const [sx, sy] = screenAt(e); panning.current = { sx, sy, x: view.x, y: view.y }; return; }
         // the line looks the same on the screen at any zoom
@@ -98,6 +102,7 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
         redraw([...strokes, drawing.current]);
     };
     const move = (e: React.PointerEvent) => {
+        if (e.pointerId !== active.current) return;
         if (panning.current) {
             const [sx, sy] = screenAt(e), p = panning.current;
             setView({ ...view, x: p.x + sx - p.sx, y: p.y + sy - p.sy });
@@ -107,7 +112,9 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
         drawing.current.points.push(at(e));
         redraw([...strokes, drawing.current]);
     };
-    const up = () => {
+    const up = (e: React.PointerEvent) => {
+        if (e.pointerId !== active.current) return;
+        active.current = null;
         panning.current = null;
         if (!drawing.current) return;
         setStrokes([...strokes, drawing.current]);
@@ -142,7 +149,7 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
             <div className="bg-amber-50 dark:bg-slate-900 px-4 py-2 text-sm md:text-base font-bold text-slate-700 dark:text-slate-200 whitespace-pre-line max-h-28 overflow-y-auto border-b border-amber-200 dark:border-slate-700">{prompt}</div>
             <div ref={box} className="relative flex-1 bg-white rounded-b-3xl overflow-hidden" style={{ backgroundImage: 'linear-gradient(#e0e7ff 1px, transparent 1px), linear-gradient(90deg, #e0e7ff 1px, transparent 1px)', backgroundSize: `${GRID * view.z}px ${GRID * view.z}px`, backgroundPosition: `${view.x}px ${view.y}px` }}>
                 <canvas ref={canvas} data-testid="notepad-canvas" data-strokes={strokes.length} className={`absolute inset-0 touch-none ${pen === HAND ? 'cursor-grab' : 'cursor-crosshair'}`} style={{ touchAction: 'none' }}
-                    onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} />
+                    onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} onLostPointerCapture={up} />
             </div>
             {tour && <Coach testId="padtour" steps={tour.steps} labels={tour.labels} onDone={tour.onDone} />}
         </div>
