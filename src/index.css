@@ -1,4 +1,5 @@
-@import "tailwindcss";
+/* only the latest app: without source() Tailwind scans the whole repo, backups/ too, and ships their classes */
+@import "tailwindcss" source("./");
 
 @variant dark (&:where(.dark, .dark *));
 
