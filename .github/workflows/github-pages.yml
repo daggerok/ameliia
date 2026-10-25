@@ -21,6 +21,8 @@ jobs:
         uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install -E
+      # a broken answer or check must never reach her iPad: the tests gate the deploy
+      - run: bun test tests
       # Используем скрипт из вашего package.json
       - run: bun run build-github-pages
       - name: Setup Pages
