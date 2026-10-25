@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type Answer, type FillLine, type FillPart, type L10n, type Problem, type Rng, type SkillId, L, choice, fmt, int, multi, pick, pickStyle, ruPlural, shuffle } from './core';
 import { placeParts } from './strategies';
 import { roundTo } from './estimation';

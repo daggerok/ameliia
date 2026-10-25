@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 // Shared types and helpers of the math quest engine. Every text is produced in both languages at once,
 // so switching the language never changes the numbers of the current task.
 

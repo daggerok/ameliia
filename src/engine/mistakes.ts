@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type Given, type L10n, type Problem, type SkillId, type Visual, L, SKILL_NAME, fmt } from './core';
 import { diagnose } from './diagnose';
 import { type Section, type Theory, answerLine } from './theory';

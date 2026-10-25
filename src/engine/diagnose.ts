@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type Given, type L10n, type Problem, L, fillMarks, fmt, normWord } from './core';
 import { BLANKS, meaningOf } from './scienceWords';
 import { roundTo } from './estimation';
@@ -82,9 +83,9 @@ export const diagnoseNumber = (p: Problem, want: number, got: number): L10n | nu
     if (/\d0\d/.test(w) && w.replace(/(\d)0(\d)/, '$1$2') === g) return L(`A zero in the middle is missing: ${fmt(got, 'en')} instead of ${fmt(want, 'en')}. Every place needs a digit, even when it is 0.`,
         `Пропал ноль в середине: ${fmt(got, 'ru')} вместо ${fmt(want, 'ru')}. В каждом разряде нужна цифра, даже если это 0.`);
     if (w.length !== g.length) return null;
-    const diff = [...w].map((c, i) => (c === g[i] ? -1 : w.length - 1 - i)).filter(i => i >= 0);
+    const diff = Array.from(w).map((c, i) => (c === g[i] ? -1 : w.length - 1 - i)).filter(i => i >= 0);
     // the right digits in the wrong order: 9,155 instead of 9,515
-    if (diff.length === 2 && diff[0] === diff[1] + 1 && [...w].sort().join('') === [...g].sort().join('')) {
+    if (diff.length === 2 && diff[0] === diff[1] + 1 && Array.from(w).sort().join('') === Array.from(g).sort().join('')) {
         return L('All the digits are right, but two of them are in the wrong order. Write the digits one place at a time.', 'Все цифры верные, но две стоят не на своих местах. Записывай цифры по одному разряду.');
     }
     // a place name is needed below: no guessing past the hundred thousands
@@ -134,7 +135,7 @@ export const diagnose = (p: Problem, given: Given): L10n | null => {
     if (a.kind === 'multi') {
         const picked = new Set(given.choices ?? []);
         const missed = a.correct.filter(i => !picked.has(i)).map(i => a.options[i]);
-        const extra = [...picked].filter(i => !a.correct.includes(i)).map(i => a.options[i]);
+        const extra = Array.from(picked).filter(i => !a.correct.includes(i)).map(i => a.options[i]);
         const list = (xs: L10n[], lang: 'en' | 'ru') => xs.map(x => x[lang]).join('; ');
         const parts: L10n[] = [];
         if (missed.length) parts.push(L(`You did not pick: ${list(missed, 'en')}.`, `Ты не выбрала: ${list(missed, 'ru')}.`));

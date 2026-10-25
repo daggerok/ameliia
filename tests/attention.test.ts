@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { makeRng } from '../src/engine/core';
 import { type Attention, IDLE_MS, TICK_MS, attention as A, shuffleWith } from '../src/engine/attention';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 // she is active every `every` ms from t0 to t1, the app ticks every TICK_MS; returns the counted seconds
 const run = (a0: Attention, t0: number, t1: number, every: number, idleMs = IDLE_MS) => {
@@ -148,6 +149,6 @@ describe('study time: the state machine', () => {
         expect(busy.a.state).toBe('running');
     });
     test('no clock inside the logic', () => {
-        expect(readFileSync(new URL('../src/engine/attention.ts', import.meta.url), 'utf8')).not.toMatch(/Date\.now|performance\.now|new Date/);
+        expect(readFileSync(join(__dirname, '../src/engine/attention.ts'), 'utf8')).not.toMatch(/Date\.now|performance\.now|new Date/);
     });
 });

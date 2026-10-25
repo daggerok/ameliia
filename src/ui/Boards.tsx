@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import * as React from 'react';
 import { useState } from 'react';
 import { type Lang, type Leg, type Unit, type Visual, fmt } from '../engine/core';

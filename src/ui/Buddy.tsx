@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import * as React from 'react';
 
 export type Mood = 'happy' | 'think' | 'cheer' | 'care' | 'wow';

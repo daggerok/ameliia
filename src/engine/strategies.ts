@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type FillLine, type FillPart, type L10n, type Problem, type Rng, type SkillId, L, fmt, int } from './core';
 
 // Multiplication strategies from the 4th grade anchor chart (example 6 × 182):

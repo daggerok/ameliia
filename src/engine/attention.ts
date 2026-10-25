@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 // Study time is counted only while Ameliia is really studying. One state machine, pure functions,
 // the time always comes in as `now` (no clock inside), so every rule is tested with fake time.
 //

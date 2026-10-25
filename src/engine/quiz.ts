@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type L10n, type Problem, type Rng, type SkillId, L, TOPIC_OF, choice, fmt, int, pick, ruPlural, shuffle } from './core';
 import { makeFreshProblem, makeProblem } from './index';
 import { placeParts, standardRows } from './strategies';
@@ -236,7 +237,7 @@ const conceptFor = (skill: SkillId, rng: Rng): Problem => {
 // 1 question about the method + 2 fresh tasks of the same skill, every quiz different
 export const buildQuiz = (skill: SkillId, rng: Rng, seen: Set<string>): Problem[] => {
     const q1 = conceptFor(skill, rng);
-    const used = new Set([...seen, q1.id]);
+    const used = new Set(Array.from(seen).concat(q1.id));
     const q2 = makeFreshProblem(skill, rng, used);
     used.add(q2.id);
     const q3 = makeFreshProblem(skill, rng, used);

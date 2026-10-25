@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type Answer, type FillLine, type FillPart, type L10n, type Problem, type Rng, type SkillId, L, choice, fmt, int, pick, ruPlural } from './core';
 
 // Topic 3 "Model with Math" of her class (Savvas enVision, lessons 3-8 and the performance task):

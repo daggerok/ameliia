@@ -1,3 +1,4 @@
+/// <reference lib="esnext" />
 import { type L10n, type Rng, L, pick } from './core';
 
 // What Lina (the guide) and Pip (the capybara) say. Warm, short, never scary.
