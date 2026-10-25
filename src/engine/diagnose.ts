@@ -158,3 +158,8 @@ export const diagnose = (p: Problem, given: Given): L10n | null => {
     });
     return found.length ? L(found.map(x => x.en).join(' '), found.map(x => x.ru).join(' ')) : null;
 };
+
+// the review after a wrong answer must never break because of a diagnosis: anything unexpected simply gives none
+export const safeDiagnose = (p: Problem, given: Given): L10n | null => {
+    try { return diagnose(p, given); } catch (e) { console.error('diagnose failed', p.id, e); return null; }
+};
