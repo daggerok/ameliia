@@ -16,7 +16,7 @@ const factorPairs = (p: Problem): [number, number][] => {
     if (p.skill === 'multiply') return [[n('a'), n('b')]];
     if (p.skill === 'est-product' && 'ra' in d && !('rb' in d)) return [[n('b'), n('ra')]];
     if (p.skill === 'mult-mental' && 'x' in d) return [[n('x'), n('y')]];
-    if ('m' in d && 'a' in d && (p.skill.startsWith('mult-') || p.skill === 'multiply')) return [[n('m'), n('a')]];
+    if ('m' in d && 'a' in d && p.skill.startsWith('mult-')) return [[n('m'), n('a')]];
     return [];
 };
 
@@ -87,14 +87,15 @@ export const diagnoseNumber = (p: Problem, want: number, got: number): L10n | nu
     if (diff.length === 2 && diff[0] === diff[1] + 1 && [...w].sort().join('') === [...g].sort().join('')) {
         return L('All the digits are right, but two of them are in the wrong order. Write the digits one place at a time.', 'Все цифры верные, но две стоят не на своих местах. Записывай цифры по одному разряду.');
     }
-    if (diff.length !== 1) return null;
+    // a place name is needed below: no guessing past the hundred thousands
+    if (diff.length !== 1 || diff[0] >= PLACES.length) return null;
     const place = diff[0], wd = Number(w[w.length - 1 - place]), gd = Number(g[g.length - 1 - place]);
     if (Math.abs(wd - gd) === 1 && place > 0) {
         return L(`Only the ${PLACES[place][0]} digit is off by 1: ${gd} instead of ${wd}. That is usually a carry: check that you added the carried number once.`,
             `Ошибка только в разряде ${PLACES[place][1]}, на 1: ${gd} вместо ${wd}. Обычно это перенос: проверь, что перенесённое число прибавлено один раз.`);
     }
     return L(`Only the ${PLACES[place][0]} digit is wrong: ${gd} instead of ${wd}. Check the fact or the step in that place.`,
-        `Ошибка только в разряде ${PLACES[Math.min(place, PLACES.length - 1)][1]}: ${gd} вместо ${wd}. Проверь пример из таблицы или шаг в этом разряде.`);
+        `Ошибка только в разряде ${PLACES[place][1]}: ${gd} вместо ${wd}. Проверь пример из таблицы или шаг в этом разряде.`);
 };
 
 // a plain number option like "9,515" or "350 tortillas"
@@ -147,8 +148,16 @@ export const diagnose = (p: Problem, given: Given): L10n | null => {
         const got = numberIn(a.options[given.choice]), want = numberIn(a.options[a.correct]);
         return got !== null && want !== null ? diagnoseNumber(p, want, got) : null;
     }
-    // a worksheet: name the wrong boxes that show a clear pattern
     const blanks = given.blanks ?? [];
+    // the Standard Algorithm column: the digits under the line are one number, read them together, so a wrong
+    // hundreds digit is called the hundreds and not "the ones digit" of a one-digit box; the carries get no guess of their own
+    if (a.layout === 'column') {
+        const digits = a.digits.map(d => blanks[d.b]);
+        if (digits.some(x => !(x >= 0 && x <= 9 && Math.floor(x) === x))) return null;
+        const number = (xs: number[]) => xs.reduce((sum, x, k) => sum + x * 10 ** a.digits[k].col, 0);
+        return diagnoseNumber(p, number(a.digits.map(d => a.values[d.b])), number(digits));
+    }
+    // a worksheet: name the wrong boxes that show a clear pattern
     const marks = fillMarks(a, blanks);
     const found: L10n[] = [];
     marks.forEach((ok, i) => {

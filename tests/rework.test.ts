@@ -195,3 +195,46 @@ describe('a diagnosis never breaks the review', () => {
         expect(safeDiagnose(p, { value: 560 })).toBeNull();
     });
 });
+
+describe('what went wrong: the Standard Algorithm column is read as one number', () => {
+    const PLACE = ['ones', 'tens', 'hundreds', 'thousands', 'ten thousands'];
+    const column = (p: Problem) => p.answer as Extract<Problem['answer'], { layout: 'column' }>;
+    test('69 × 7 with 6 in the hundreds box: the hundreds digit is wrong, not the ones', () => {
+        const p = makeProblem('mult-standard', makeRng(1));
+        expect(p.id).toBe('mult-standard:7x69');
+        const a = column(p), blanks = [...a.values];
+        blanks[a.digits[2].b] = 6;
+        const d = diagnose(p, { blanks });
+        expect(d?.en).toContain('Only the hundreds digit is wrong: 6 instead of 4');
+        expect(d?.ru).toContain('сотен');
+        expect(d?.en).not.toContain('ones');
+    });
+    test('every digit box is named by its own place; a wrong carry alone gets no guess', () => {
+        let named = 0;
+        for (let seed = 1; seed <= 300; seed++) {
+            const p = makeProblem('mult-standard', makeRng(seed));
+            const a = column(p);
+            a.digits.forEach((box, k) => {
+                for (const delta of [1, 2, 9]) {
+                    const blanks = [...a.values];
+                    blanks[box.b] = (blanks[box.b] + delta) % 10;
+                    const d = diagnose(p, { blanks });
+                    const m = d?.en.match(/Only the ([a-z ]+) digit/);
+                    if (m) { named++; expect(m[1]).toBe(PLACE[a.digits[k].col]); }
+                    if (d) clean(d, `${p.id} ${JSON.stringify(blanks)}`);
+                }
+            });
+            a.carries.forEach(c => {
+                const blanks = [...a.values];
+                blanks[c.b] += 1;
+                expect(diagnose(p, { blanks })).toBeNull();
+            });
+        }
+        expect(named).toBeGreaterThan(300);
+    });
+    test('a number longer than the place names gets no place guess instead of a crash', () => {
+        const p = fake('div-4d', {});
+        expect(diagnoseNumber(p, 1234567, 2234567)).toBeNull();
+        expect(diagnoseNumber(p, 123456, 223456)?.en).toContain('hundred thousands');
+    });
+});
