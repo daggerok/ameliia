@@ -287,7 +287,7 @@ const FillSheet: React.FC<{ answer: FillAnswer; lang: Lang; values?: string[]; s
                 </span>
             );
         }
-        return (
+        const input = (
             <input key={`b${i}`} data-testid={`blank-${i}`} inputMode="numeric" enterKeyHint="next" autoComplete="off" value={values?.[i] ?? ''} placeholder={size === 'carry' ? '' : '?'} maxLength={size ? 2 : undefined}
                 onChange={e => setValue?.(i, e.target.value)} aria-label={`blank ${i + 1}`}
                 // a typed number gets its thousands separator: 1045 -> 1,045
@@ -298,10 +298,12 @@ const FillSheet: React.FC<{ answer: FillAnswer; lang: Lang; values?: string[]; s
                     const next = e.currentTarget.closest('[data-testid=fill-sheet]')?.querySelector<HTMLInputElement>(`[data-testid="blank-${i + 1}"]`);
                     if (next) { e.preventDefault(); next.focus(); }
                 }}
-                className={size === 'digit' ? 'w-9 h-11 sm:w-10 sm:h-12 text-center text-2xl font-black rounded-lg border-[3px] border-indigo-400 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 font-mono'
-                    : size === 'carry' ? 'w-7 h-7 sm:w-8 sm:h-8 text-center text-sm font-black rounded-md border-2 border-dashed border-rose-400 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-400/40 font-mono placeholder:text-rose-300'
+                className={size === 'digit' ? 'w-11 h-12 sm:w-12 sm:h-14 text-center text-2xl font-black rounded-lg border-[3px] border-indigo-400 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 font-mono'
+                    : size === 'carry' ? 'w-8 h-8 text-center text-sm font-black rounded-md border-2 border-dashed border-rose-400 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-400/40 font-mono placeholder:text-rose-300'
                     : `${answer.layout === 'area' && answer.top.length > 3 ? 'w-[3.75rem] text-sm !px-0' : 'w-[4.5rem]'} sm:w-20 md:w-24 px-1 py-1.5 ${answer.layout === 'vertical' ? 'text-right pr-2' : 'text-center'} text-lg md:text-xl font-black rounded-xl border-[3px] border-indigo-400 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20`} />
         );
+        // a carry box looks small, but a finger hits the whole 44 px square around it
+        return size === 'carry' ? <label key={`b${i}`} className="w-11 h-11 flex items-center justify-center cursor-text">{input}</label> : input;
     };
     // sheet texts carry English thousands commas (3,578); Russian shows 3 578
     const local = (s: string) => (lang === 'ru' ? s.replace(/(\d),(?=\d{3}(?!\d))/g, '$1\u00a0') : s);
@@ -343,7 +345,7 @@ const FillSheet: React.FC<{ answer: FillAnswer; lang: Lang; values?: string[]; s
         const at = (col: number) => ({ gridColumn: width - col });
         return (
             <div className="w-fit mx-auto" data-testid="fill-sheet" data-layout="column">
-                <div className="grid gap-x-1 gap-y-1 items-center justify-items-center font-mono font-black text-2xl md:text-3xl text-slate-800 dark:text-slate-100" style={{ gridTemplateColumns: `repeat(${width}, 2.6rem)` }}>
+                <div className="grid grid-cols-[repeat(var(--cols),2.75rem)] sm:grid-cols-[repeat(var(--cols),3rem)] gap-x-1 gap-y-1 items-center justify-items-center font-mono font-black text-2xl md:text-3xl text-slate-800 dark:text-slate-100" style={{ '--cols': width } as React.CSSProperties}>
                     {answer.carries.map(c => <div key={`c${c.col}`} style={{ ...at(c.col), gridRow: 1 }}>{blank(c.b, 'carry')}</div>)}
                     {top.split('').reverse().map((d, col) => <div key={`t${col}`} style={{ ...at(col), gridRow: 2 }}>{d}</div>)}
                     <div style={{ gridColumn: 1, gridRow: 3 }} className="text-slate-500">×</div>
@@ -859,7 +861,7 @@ export const App: React.FC = () => {
             {g.introSeen && !(screen === 'play' && !g.playTourSeen) && g.painting.choosing && <PaintingChoice g={g} t={t} lang={lang} justDone={paintDone} onChoose={i => { setG(s => chooseNextPainting(s, i, parts, STARS_PER_PART)); setPaintDone(null); }} />}
             <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl flex flex-col">
                 <header className="flex justify-between items-center py-3 mb-1 gap-2">
-                    <button onClick={() => go('home')} className="flex items-center gap-2 text-left min-w-0" data-testid="nav-home">
+                    <button onClick={() => go('home')} className="flex items-center gap-2 text-left min-w-0 min-h-11" data-testid="nav-home">
                         <Pip size={40} className="shrink-0" />
                         {/* the Russian title is long: on a phone it wraps onto two lines instead of sliding under the buttons */}
                         <div className="min-w-0">
@@ -868,9 +870,9 @@ export const App: React.FC = () => {
                         </div>
                     </button>
                     <div className="flex gap-1.5 sm:gap-2 shrink-0">
-                        <button data-testid="lang" onClick={() => setLang(lang === 'en' ? 'ru' : 'en')} className="px-2.5 sm:px-3 py-2 bg-white dark:bg-slate-800 shadow-md rounded-xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm font-black">{lang === 'en' ? 'RU' : 'EN'}</button>
-                        <button data-testid="nav-stats" onClick={() => go('stats')} className="px-2.5 sm:px-3 py-2 bg-white dark:bg-slate-800 shadow-md rounded-xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm font-black">📊</button>
-                        <button data-testid="nav-settings" onClick={() => go('settings')} className="px-2.5 sm:px-3 py-2 bg-white dark:bg-slate-800 shadow-md rounded-xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm font-black">⚙️</button>
+                        <button data-testid="lang" onClick={() => setLang(lang === 'en' ? 'ru' : 'en')} className="min-w-11 min-h-11 px-2.5 sm:px-3 py-2 bg-white dark:bg-slate-800 shadow-md rounded-xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm font-black">{lang === 'en' ? 'RU' : 'EN'}</button>
+                        <button data-testid="nav-stats" onClick={() => go('stats')} className="min-w-11 min-h-11 px-2.5 sm:px-3 py-2 bg-white dark:bg-slate-800 shadow-md rounded-xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm font-black">📊</button>
+                        <button data-testid="nav-settings" onClick={() => go('settings')} className="min-w-11 min-h-11 px-2.5 sm:px-3 py-2 bg-white dark:bg-slate-800 shadow-md rounded-xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm font-black">⚙️</button>
                     </div>
                 </header>
                 <StatsBar g={g} t={t} pop={pop} att={att} learning={!!currentTopic} />
