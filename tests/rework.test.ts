@@ -1,7 +1,7 @@
 /// <reference types="bun" />
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { type Given, type L10n, type Problem, type SkillId, fillMarks, makeRng, sameAnswer } from '../src/engine/core';
-import { diagnose, diagnoseNumber } from '../src/engine/diagnose';
+import { diagnose, diagnoseNumber, safeDiagnose } from '../src/engine/diagnose';
 import { ALL_SKILLS, fixRework, kindOf, logMistake, missedRework, newState, nextProblem, reworkDue, reworkEvery, startedRework, applyAnswer } from '../src/engine/game';
 import { makeProblem } from '../src/engine/index';
 import { reworkQueue, reworkSkill, reworkTheory } from '../src/engine/mistakes';
@@ -175,5 +175,23 @@ describe('mistakes come back in practice', () => {
         expect(s.homeworkFixed.length).toBe(18);
         const left = reworkQueue(s.homeworkFixed, s.mistakeLog).length;
         expect(left).toBeLessThan(25);
+    });
+});
+
+describe('a diagnosis never breaks the review', () => {
+    test('a task the diagnosis does not expect gives no diagnosis instead of a crash', () => {
+        // a word task without its list of accepted spellings: diagnose itself throws on it
+        const broken: Problem = { ...fake('forces', {}), answer: { kind: 'word', word: 'gravity' } as unknown as Problem['answer'] };
+        expect(() => diagnose(broken, { text: 'gravaty' })).toThrow();
+        const quiet = spyOn(console, 'error').mockImplementation(() => {});
+        expect(safeDiagnose(broken, { text: 'gravaty' })).toBeNull();
+        expect(quiet).toHaveBeenCalledTimes(1);
+        quiet.mockRestore();
+    });
+    test('a normal task gets the same diagnosis as before', () => {
+        const p: Problem = { ...fake('mult-tens', { m: 8, b: 70 }), answer: { kind: 'number', value: 560 } };
+        expect(safeDiagnose(p, { value: 56 })).toEqual(diagnose(p, { value: 56 }));
+        expect(safeDiagnose(p, { value: 56 })?.en).toContain('zero');
+        expect(safeDiagnose(p, { value: 560 })).toBeNull();
     });
 });

@@ -10,7 +10,7 @@ import { QUIZ_PASS, buildQuiz } from './engine/quiz';
 import { CHAPTERS, STARS_PER_CHAPTER } from './engine/story';
 import { type Section, type Theory, answerLine, buildTheory } from './engine/theory';
 import { type ReworkItem, reworkId, reworkQueue, reworkSkill, reworkTheory } from './engine/mistakes';
-import { diagnose } from './engine/diagnose';
+import { safeDiagnose } from './engine/diagnose';
 import { VisualView } from './ui/Boards';
 import { Guide, Lina, Pip } from './ui/Buddy';
 import { FIRST_SET, PAINTINGS, PaintingView, openPaintings } from './ui/Paintings';
@@ -557,12 +557,13 @@ type Learn = { skill: SkillId; failed?: Problem; mode: 'failed' | 'first' | 'due
 type Attempt = { hint: boolean; wrong: boolean; afterLearn: boolean; start: number; result: null | { ok: boolean; stars: number; praise: L10n; given: string; blanks?: number[]; newPart?: [number, number]; why?: L10n } };
 type TestRun = { problems: Problem[]; idx: number; given: Given[]; start: number; results?: boolean[] };
 
-const firstLocal = loadLocal();
-
 // the notepad lives deep inside every answer form; its first-opening tour comes from the game state
 const PadTourContext = React.createContext<PadTour | undefined>(undefined);
 
 export const App: React.FC = () => {
+    // read on every start of the app, not once per page: after a crash the error screen starts the app again,
+    // and it must begin from the latest saved progress, never write an older copy over it
+    const [firstLocal] = useState(loadLocal);
     const [g, setG] = useState<GameState>(() => firstLocal?.state ?? newState());
     const [paintDone, setPaintDone] = useState<number | null>(null);
     const [screen, setScreen] = useState<Screen>('home');
@@ -780,7 +781,7 @@ export const App: React.FC = () => {
         const newPart: [number, number] | undefined = ok && !g.painting.choosing && next.painting.index === g.painting.index && after > before ? [g.painting.index, after] : undefined;
         if (g.sound) ok ? Sound.good() : Sound.bad();
         if (ok) { setPop(true); setTimeout(() => setPop(false), 500); if (state.streak > 0 && state.streak % 5 === 0) celebrate(); }
-        setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), blanks: given.blanks, newPart, why: ok ? undefined : diagnose(problem, given) ?? undefined, praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
+        setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), blanks: given.blanks, newPart, why: ok ? undefined : safeDiagnose(problem, given) ?? undefined, praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
     };
 
     const theoryDone = () => {
@@ -1235,5 +1236,27 @@ const SettingsView: React.FC<{ g: GameState; setG: React.Dispatch<React.SetState
     );
 };
 
+// A crash in one screen must not leave her with a white page: a friendly note and a way back home.
+// Home starts the app again (a new key), and the app reads the latest saved progress
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { failed: boolean; round: number }> {
+    state = { failed: false, round: 0 };
+    static getDerivedStateFromError() { return { failed: true }; }
+    componentDidCatch(error: unknown) { console.error('Math Quest crashed', error); }
+    render() {
+        if (!this.state.failed) return <React.Fragment key={this.state.round}>{this.props.children}</React.Fragment>;
+        const ru = loadLocal()?.state.lang === 'ru';
+        return (
+            <div className="min-h-screen w-full p-4 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex items-center justify-center" data-testid="crash">
+                <div className={`${card} max-w-md text-center space-y-4`}>
+                    <div className="text-5xl">🙈</div>
+                    <h2 className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{ru ? 'Ой, что-то пошло не так' : 'Oops, something went wrong'}</h2>
+                    <p className="font-bold text-slate-600 dark:text-slate-300">{ru ? 'Приложение споткнулось, ты тут ни при чём. Вернёмся домой и продолжим!' : 'The app stumbled, it is not your fault. Let\'s go back home and keep going!'}</p>
+                    <button data-testid="crash-home" onClick={() => this.setState(s => ({ failed: false, round: s.round + 1 }))} className={`${primary} w-full py-4 text-xl`}>🏠 {ru ? 'Домой' : 'Home'}</button>
+                </div>
+            </div>
+        );
+    }
+}
+
 const rootEl = document.getElementById('root');
-if (rootEl) createRoot(rootEl).render(<App />);
+if (rootEl) createRoot(rootEl).render(<ErrorBoundary><App /></ErrorBoundary>);
