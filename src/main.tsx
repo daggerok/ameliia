@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type FillAnswer, type FillPart, type Given, type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
 import {
-    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, currentHomework, dailyGoal, dayOf, fixRework, grade, hintOpen, kindOf, logMistake, missedRework, reworkDue, startedRework, newState, nextProblem, prepPicks, totalTime,
+    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, currentHomework, dailyGoal, testPlan, dayOf, fixRework, grade, hintOpen, kindOf, logMistake, missedRework, reworkDue, startedRework, newState, nextProblem, prepPicks, totalTime,
 } from './engine/game';
 import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
 import { QUIZ_PASS, buildQuiz } from './engine/quiz';
@@ -25,7 +25,7 @@ import { type Attention, type Step, IDLE_MS, TICK_MS, attention, shuffleWith } f
 // ========================================
 const UI = {
     en: {
-        title: 'Math Quest', subtitle: 'with Lina and Pip', play: 'Play', playSub: 'Learn by playing', test: 'Practice test', testSub: '19 tasks, like at school',
+        title: 'Math Quest', subtitle: 'with Lina and Pip', play: 'Play', playSub: 'Learn by playing', test: 'Practice test', testSub: (n: number) => `${n} tasks of the new material, like at school`,
         story: 'Story book', gallery: 'My paintings', progress: 'Progress', settings: 'Settings', home: 'Home', check: 'Check', hint: 'Hint', hintRest: 'You cannot use a hint right now. Tap "Read the theory first": the answer to your question is there!', next: 'Next task',
         learn: 'Let\'s learn it with Lina', learnFirst: 'Read the theory first', readDone: 'I read it! Quiz time', quiz: 'Mini quiz', question: 'Question', of: 'of',
         quizPassed: 'Quiz passed!', quizFailed: 'Not yet, let\'s read it once more', tryNew: 'Try a new task', backToTask: 'Back to my task', readAgain: 'Read again with new examples',
@@ -74,7 +74,7 @@ const UI = {
         nextQ: 'Next question', finishQuiz: 'Finish the quiz', youAnswered: 'You answered', testIn: (n: number) => n === 0 ? 'The test is today! You are ready!' : n === 1 ? 'The test is tomorrow!' : `The test is in ${n} days`, testDate: 'School test date', almost: '2 of 3, almost perfect! Great learning.', earned: 'stars earned',
     },
     ru: {
-        title: 'Математический квест', subtitle: 'с Линой и Пип', play: 'Играть', playSub: 'Учимся, играя', test: 'Пробный тест', testSub: '19 заданий, как в школе',
+        title: 'Математический квест', subtitle: 'с Линой и Пип', play: 'Играть', playSub: 'Учимся, играя', test: 'Пробный тест', testSub: (n: number) => `${n} заданий по новому материалу, как в школе`,
         story: 'Книжка-история', gallery: 'Мои картины', progress: 'Прогресс', settings: 'Настройки', home: 'Домой', check: 'Проверить', hint: 'Подсказка', hintRest: 'Подсказку пока нельзя взять. Нажми «Сначала прочитать теорию»: там есть ответ на твой вопрос!', next: 'Следующее задание',
         learn: 'Разберёмся вместе с Линой', learnFirst: 'Сначала прочитать теорию', readDone: 'Прочитала! К викторине', quiz: 'Мини-викторина', question: 'Вопрос', of: 'из',
         quizPassed: 'Викторина пройдена!', quizFailed: 'Пока не получилось, прочитаем ещё раз', tryNew: 'Новое задание', backToTask: 'Вернуться к заданию', readAgain: 'Прочитать ещё раз с новыми примерами',
@@ -813,7 +813,7 @@ export const App: React.FC = () => {
         startProblem(nextProblem(g, rng, learn.skill, { day: today() }), true);
     };
 
-    const startTest = () => { setTest({ problems: buildTest(g, rng), idx: 0, given: [], start: Date.now() }); go('test'); };
+    const startTest = () => { setTest({ problems: buildTest(g, rng, today()), idx: 0, given: [], start: Date.now() }); go('test'); };
     const testAnswer = (given: Given) => {
         if (!test) return;
         const all = [...test.given, given];
@@ -953,7 +953,7 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
                 <button data-testid="progress" onClick={onStats} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📊</div><div className="font-black text-lg">{t.progress}</div><div className="text-xs font-bold text-slate-400">{goal.done} / {goal.total} ✓ · {mins} {t.minutes}</div></button>
                 <button data-testid="story" onClick={onStory} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📖</div><div className="font-black text-lg">{t.story}</div><div className="text-xs font-bold text-slate-400">{chaptersOpen} / {CHAPTERS.length}</div></button>
                 <button data-testid="gallery" onClick={onGallery} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">🎨</div><div className="font-black text-lg">{t.gallery}</div><div className="text-xs font-bold text-slate-400">{g.painting.done.length} ✓</div></button>
-                <button data-testid="test" onClick={onTest} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📝</div><div className="font-black text-lg">{t.test}</div><div className="text-xs font-bold text-slate-400">{t.testSub}</div></button>
+                <button data-testid="test" onClick={onTest} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📝</div><div className="font-black text-lg">{t.test}</div><div className="text-xs font-bold text-slate-400">{t.testSub(testPlan(g, today()).length)}</div></button>
             </div>
             <div className={`${card} !p-4`} data-testid="goal" data-done={String(done)}>
                 <div className="flex justify-between font-black mb-1"><span>{done ? '🏆' : '🎯'} {goal.homework ? t.goalPrep : goal.rows.length ? t.goalReview : t.goal}</span><span>{goal.done} / {goal.total}</span></div>
