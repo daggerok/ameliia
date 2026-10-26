@@ -32,8 +32,8 @@ const UI = {
         howSolve: 'How to solve it', correct: 'Correct!', wrong: 'Not quite', stars: 'Stars', streak: 'Streak', today: 'Today', accuracy: 'Correct', quotient: 'Answer',
         remainder: 'R', empty: 'Type your answer first', pick: 'Choose an answer', startTest: 'Start the test', finish: 'Finish the test', result: 'Your result', gradeL: 'Grade',
         time: 'Time', practiceMistakes: 'Practice my mistakes', back: 'Back', locked: 'Opens at', chapter: 'Chapter', read: 'Read', language: 'Language', theme: 'Theme',
-        sound: 'Sound', reset: 'Reset all progress', resetConfirm: 'Really delete all stars and progress?', parents: 'For Mom and Dad', minutes: 'min', goal: 'Daily goal', goalShort: 'Goal', goalPrep: 'Goal: this week\'s homework', goalPrepSub: 'Right answers for every kind of task of the homework, three each on the day it was given', goalSub: (n: number) => `${n} right answers today`, goalDone: 'Goal done! Extra practice makes you even stronger',
-        balance: 'Learning time', target: 'goal', skill: 'Skill', solved: 'Solved', reads: 'Theory', quizzes: 'Quizzes', tests: 'Practice tests', noTests: 'No tests yet',
+        sound: 'Sound', reset: 'Reset all progress', resetConfirm: 'Really delete all stars and progress?', parents: 'For Mom and Dad', minutes: 'min', goal: 'Daily goal', goalShort: 'Goal', goalPrep: 'Goal: this week\'s homework', goalPrepSub: 'Right answers for every kind of task of the homework, three each on the day it was given, plus the old skills due for a review', goalReview: 'Review day: old material', goalReviewSub: (n: number) => `No new homework today. ${n} right answers, the old skills due for a review first`, goalSub: (n: number) => `${n} right answers today`, goalDone: 'Goal done! Extra practice makes you even stronger',
+        balance: 'Learning time', target: 'goal', skill: 'Skill', solved: 'Solved', reads: 'Theory', quizzes: 'Quizzes', review: 'Review', reviewToday: 'today', reviewEvery: (n: number) => `every ${n} ${n === 1 ? 'day' : 'days'}`, tests: 'Practice tests', noTests: 'No tests yet',
         painting: 'Magic painting', finished: 'Finished paintings', newPainting: 'Your painting is finished! A new one is waiting.', light: 'Light', dark: 'Dark', system: 'Auto',
         on: 'On', off: 'Off', yourAnswer: 'Your answer', rightAnswer: 'Right answer', starsWord: 'stars', reviewFirst: 'Let\'s look at the theory for this one first, then you will crush it!',
         testIntro: 'Like a real test: no hints, answer every task, the results come at the end. Ready?', theoryFor: 'Theory', skipTheory: 'Back to the task', paintingHelp: 'Every 2 stars paint one more part of the picture. When it is finished, you choose the next one.',
@@ -81,8 +81,8 @@ const UI = {
         howSolve: 'Как решать', correct: 'Верно!', wrong: 'Не совсем', stars: 'Звёзды', streak: 'Серия', today: 'Сегодня', accuracy: 'Верно', quotient: 'Ответ',
         remainder: 'Ост.', empty: 'Сначала напиши ответ', pick: 'Выбери ответ', startTest: 'Начать тест', finish: 'Закончить тест', result: 'Твой результат', gradeL: 'Оценка',
         time: 'Время', practiceMistakes: 'Потренировать ошибки', back: 'Назад', locked: 'Откроется при', chapter: 'Глава', read: 'Читать', language: 'Язык', theme: 'Тема',
-        sound: 'Звук', reset: 'Сбросить весь прогресс', resetConfirm: 'Точно удалить все звёзды и прогресс?', parents: 'Для мамы и папы', minutes: 'мин', goal: 'Цель на день', goalShort: 'Цель', goalPrep: 'Цель: домашка этой недели', goalPrepSub: 'Верные ответы на каждый вид заданий из домашки, по три в день, когда её задали', goalSub: (n: number) => `${n} верных ответов за день`, goalDone: 'Цель выполнена! Дополнительная практика сделает тебя ещё сильнее',
-        balance: 'Время учёбы', target: 'цель', skill: 'Навык', solved: 'Решено', reads: 'Теория', quizzes: 'Викторины', tests: 'Пробные тесты', noTests: 'Тестов пока нет',
+        sound: 'Звук', reset: 'Сбросить весь прогресс', resetConfirm: 'Точно удалить все звёзды и прогресс?', parents: 'Для мамы и папы', minutes: 'мин', goal: 'Цель на день', goalShort: 'Цель', goalPrep: 'Цель: домашка этой недели', goalPrepSub: 'Верные ответы на каждый вид заданий из домашки, по три в день, когда её задали, плюс старые навыки, которым пора повториться', goalReview: 'День повторения: старое', goalReviewSub: (n: number) => `Сегодня нет новой домашки. ${n} верных ответов, сначала старые навыки, которым пора повториться`, goalSub: (n: number) => `${n} верных ответов за день`, goalDone: 'Цель выполнена! Дополнительная практика сделает тебя ещё сильнее',
+        balance: 'Время учёбы', target: 'цель', skill: 'Навык', solved: 'Решено', reads: 'Теория', quizzes: 'Викторины', review: 'Повтор', reviewToday: 'сегодня', reviewEvery: (n: number) => `раз в ${n} ${n === 1 ? 'день' : n < 5 ? 'дня' : 'дней'}`, tests: 'Пробные тесты', noTests: 'Тестов пока нет',
         painting: 'Волшебная картина', finished: 'Готовые картины', newPainting: 'Картина готова! Тебя ждёт новая.', light: 'Светлая', dark: 'Тёмная', system: 'Авто',
         on: 'Вкл', off: 'Выкл', yourAnswer: 'Твой ответ', rightAnswer: 'Правильный ответ', starsWord: 'звёзд', reviewFirst: 'Давай сначала заглянем в теорию к этому заданию, и всё получится!',
         testIntro: 'Как настоящий тест: без подсказок, ответь на все задания, результаты в конце. Готова?', theoryFor: 'Теория', skipTheory: 'Вернуться к заданию', paintingHelp: 'Каждые 2 звезды раскрашивают ещё кусочек картины. Когда картина готова, ты выбираешь следующую.',
@@ -956,14 +956,14 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
                 <button data-testid="test" onClick={onTest} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📝</div><div className="font-black text-lg">{t.test}</div><div className="text-xs font-bold text-slate-400">{t.testSub}</div></button>
             </div>
             <div className={`${card} !p-4`} data-testid="goal" data-done={String(done)}>
-                <div className="flex justify-between font-black mb-1"><span>{done ? '🏆' : '🎯'} {goal.rows.length ? t.goalPrep : t.goal}</span><span>{goal.done} / {goal.total}</span></div>
-                <div className="text-xs font-bold text-slate-400 mb-2">{done ? t.goalDone : goal.rows.length ? t.goalPrepSub : t.goalSub(goal.total)} · ⏱ {mins} {t.minutes}</div>
+                <div className="flex justify-between font-black mb-1"><span>{done ? '🏆' : '🎯'} {goal.homework ? t.goalPrep : goal.rows.length ? t.goalReview : t.goal}</span><span>{goal.done} / {goal.total}</span></div>
+                <div className="text-xs font-bold text-slate-400 mb-2">{done ? t.goalDone : goal.homework ? t.goalPrepSub : goal.rows.length ? t.goalReviewSub(goal.total) : t.goalSub(goal.total)} · ⏱ {mins} {t.minutes}</div>
                 <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"><div className={`h-full bg-gradient-to-r ${done ? 'from-amber-400 to-amber-500' : 'from-emerald-400 to-emerald-600'}`} style={{ width: `${Math.min(100, (goal.done / goal.total) * 100)}%` }} /></div>
                 {goal.rows.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-3" data-testid="goal-rows">
                         {goal.rows.map(r => (
                             <span key={r.skill} data-testid={`goal-${r.skill}`} className={`text-xs font-bold rounded-full px-2.5 py-1 border ${r.done >= r.need ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300'}`}>
-                                {r.done >= r.need ? '✓' : `${r.done}/${r.need}`} {tr(SKILL_NAME[r.skill], lang)}
+                                {r.done >= r.need ? '✓' : `${r.done}/${r.need}`} {r.review ? '🔁 ' : ''}{tr(SKILL_NAME[r.skill], lang)}
                             </span>
                         ))}
                     </div>
@@ -1122,12 +1122,12 @@ const StatsView: React.FC<{ g: GameState; t: UIText; lang: Lang }> = ({ g, t, la
             </div>
             <div className={`${card} overflow-x-auto`}>
                 <table className="w-full text-sm">
-                    <thead><tr className="text-left text-slate-400 text-xs uppercase"><th className="py-1">{t.skill}</th><th className="px-1">{t.solved}</th><th className="px-1">✓</th><th className="hidden sm:table-cell px-1">{t.reads}</th><th className="hidden sm:table-cell px-1">{t.quizzes}</th></tr></thead>
+                    <thead><tr className="text-left text-slate-400 text-xs uppercase"><th className="py-1">{t.skill}</th><th className="px-1">{t.solved}</th><th className="px-1">✓</th><th className="hidden sm:table-cell px-1">{t.reads}</th><th className="hidden sm:table-cell px-1">{t.quizzes}</th><th className="px-1">🔁 {t.review}</th></tr></thead>
                     <tbody>
                         {ALL_SKILLS.map(s => {
                             const st = g.skills[s];
                             const acc = st.seen ? Math.round((st.correct / st.seen) * 100) : null;
-                            return <tr key={s} className="border-t border-slate-100 dark:border-slate-700"><td className="py-1.5 font-bold break-words pr-1">{TOPIC_ICON[TOPIC_OF[s]]} {tr(SKILL_NAME[s], lang)}</td><td className="px-1">{st.correct}/{st.seen}</td><td className={acc === null ? '' : acc >= 80 ? 'text-emerald-600 font-black' : acc >= 60 ? 'text-amber-600 font-black' : 'text-rose-600 font-black'}>{acc === null ? '-' : `${acc}%`}</td><td className="hidden sm:table-cell px-1">{st.theoryReads}</td><td className="hidden sm:table-cell px-1">{st.quizPasses}</td></tr>;
+                            return <tr key={s} className="border-t border-slate-100 dark:border-slate-700"><td className="py-1.5 font-bold break-words pr-1">{TOPIC_ICON[TOPIC_OF[s]]} {tr(SKILL_NAME[s], lang)}</td><td className="px-1">{st.correct}/{st.seen}</td><td className={acc === null ? '' : acc >= 80 ? 'text-emerald-600 font-black' : acc >= 60 ? 'text-amber-600 font-black' : 'text-rose-600 font-black'}>{acc === null ? '-' : `${acc}%`}</td><td className="hidden sm:table-cell px-1">{st.theoryReads}</td><td className="hidden sm:table-cell px-1">{st.quizPasses}</td><td className={`px-1 text-xs font-bold ${st.dueOn && st.dueOn <= today() ? 'text-rose-600' : 'text-slate-400'}`}>{st.dueOn ? `${st.dueOn <= today() ? t.reviewToday : st.dueOn.slice(5)} · ${t.reviewEvery(st.level)}` : '-'}</td></tr>;
                         })}
                     </tbody>
                 </table>

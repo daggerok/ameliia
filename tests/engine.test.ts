@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, DAILY_RIGHT, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, totalTime, uncovered } from '../src/engine/game';
+import { ALL_SKILLS, DAILY_RIGHT, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, totalTime, uncovered } from '../src/engine/game';
 import { KINDS_4_2 } from '../src/engine/topic4';
 import { makeFreshProblem, makeProblem } from '../src/engine';
 import { HOMEWORK_MISTAKES, reworkQueue, reworkTheory } from '../src/engine/mistakes';
@@ -469,11 +469,8 @@ describe('Lesson 4-2 homework: 2-digit numbers times multiples of 10', () => {
         g = right(g, makeProblem('mult-2x10', rng, 'story'), day);
         expect(dailyGoal(g, day).done).toBe(3);
         expect(dailyGoal(g, '2026-10-28').done).toBe(0);
-        // normal play leans on the homework while the day's plan is open
-        let hw = 0;
-        for (let i = 0; i < 200; i++) if (nextSkill(s, makeRng(i + 1), day) === 'mult-2x10') hw++;
-        expect(hw).toBeGreaterThan(60);
-        expect(hw).toBeLessThan(140);
+        // normal play is the homework while the day's plan is open
+        for (let i = 0; i < 100; i++) expect(nextSkill(s, makeRng(i + 1), day)).toBe('mult-2x10');
         // once it is covered, play goes back to the usual mix and the homework button keeps the whole lesson
         let c = s;
         for (const k of KINDS_4_2) for (let i = 0; i < 3; i++) c = right(c, makeProblem('mult-2x10', rng, k), day);
@@ -483,6 +480,81 @@ describe('Lesson 4-2 homework: 2-digit numbers times multiples of 10', () => {
         expect(prepPicks(c, day).map(([, k]) => k).sort()).toEqual(Array.from(KINDS_4_2).sort());
         // the homework mode theory comes with its building blocks
         expect(chainOf('mult-2x10')).toEqual(['mult-tens', 'mult-area']);
+    });
+});
+
+describe('spaced review: old skills come back on a ladder of 1, 2, 3, 4 ... days', () => {
+    const right = (s: ReturnType<typeof newState>, skill: SkillId, day: string, ok = true, kind?: string) => applyAnswer(s, makeProblem(skill, makeRng(day.length + skill.length), kind), ok, { firstTry: true, hint: false, sec: 5, day }).state;
+    test('a right answer on the due day climbs one step, a wrong answer drops to the bottom', () => {
+        expect(addDays('2026-10-30', 3)).toBe('2026-11-02');
+        expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+        let s = newState();
+        expect(s.skills.round).toMatchObject({ level: 0, dueOn: '', bumpedOn: '' });
+        s = right(s, 'round', '2026-11-02');
+        expect(s.skills.round).toMatchObject({ level: 1, dueOn: '2026-11-03', bumpedOn: '2026-11-02' });
+        // more right answers the same day change nothing
+        s = right(s, 'round', '2026-11-02');
+        expect(s.skills.round).toMatchObject({ level: 1, dueOn: '2026-11-03' });
+        expect(reviewsDue(s, '2026-11-02')).toEqual([]);
+        expect(reviewsDue(s, '2026-11-03')).toEqual(['round']);
+        s = right(s, 'round', '2026-11-03');
+        expect(s.skills.round).toMatchObject({ level: 2, dueOn: '2026-11-05' });
+        // a right answer before the day is extra practice, not a step
+        s = right(s, 'round', '2026-11-04');
+        expect(s.skills.round).toMatchObject({ level: 2, dueOn: '2026-11-05' });
+        // a late review still counts and is scheduled from that day
+        s = right(s, 'round', '2026-11-07');
+        expect(s.skills.round).toMatchObject({ level: 3, dueOn: '2026-11-10' });
+        // wrong: theory first, back to the first step, due today
+        s = right(s, 'round', '2026-11-10', false);
+        expect(s.skills.round).toMatchObject({ level: 0, dueOn: '2026-11-10', needsTheory: true });
+        expect(reviewsDue(s, '2026-11-10')).toEqual([]);
+        s = applyQuiz(s, 'round', true, []);
+        expect(reviewsDue(s, '2026-11-10')).toEqual(['round']);
+        s = right(s, 'round', '2026-11-10');
+        expect(s.skills.round).toMatchObject({ level: 1, dueOn: '2026-11-11' });
+        // a practice test counts the same way
+        let t = newState();
+        const ps = [makeProblem('div-2d', makeRng(1)), makeProblem('div-3d', makeRng(2))];
+        t = applyTest(t, ps, [true, false], 60, '2026-11-02');
+        expect(t.skills['div-2d']).toMatchObject({ level: 1, dueOn: '2026-11-03' });
+        expect(t.skills['div-3d']).toMatchObject({ level: 0, dueOn: '2026-11-02', needsTheory: true });
+        // an old save without the ladder starts at the bottom, nothing is due
+        const old = normalize({ ...newState(), skills: { round: { seen: 5, correct: 5 } } });
+        expect(old.skills.round).toMatchObject({ seen: 5, level: 0, dueOn: '' });
+        expect(reviewsDue(old, '2026-11-02')).toEqual([]);
+    });
+    test('play order: the homework of the day, then a failed skill, then the reviews due, then free practice', () => {
+        const hwDay = '2026-10-28', free = '2026-11-02';
+        let s = newState();
+        s = right(s, 'div-4d', '2026-10-27');
+        expect(reviewsDue(s, hwDay)).toEqual(['div-4d']);
+        // the homework comes before the review that is due
+        for (let i = 0; i < 50; i++) expect(nextSkill(s, makeRng(i + 1), hwDay)).toBe('mult-2x10');
+        // homework covered: the review, every time, until it is done
+        let c = s;
+        for (const k of KINDS_4_2) c = right(c, 'mult-2x10', hwDay, true, k);
+        expect(uncovered(c, hwDay)).toEqual([]);
+        for (let i = 0; i < 50; i++) expect(nextSkill(c, makeRng(i + 1), hwDay)).toBe('div-4d');
+        c = right(c, 'div-4d', hwDay);
+        expect(reviewsDue(c, hwDay)).toEqual([]);
+        for (let i = 0; i < 50; i++) expect(nextSkill(c, makeRng(i + 1), hwDay)).not.toBe('div-4d');
+        // a failed skill comes before the review due
+        let f = right(s, 'round', hwDay, false);
+        for (const k of KINDS_4_2) f = right(f, 'mult-2x10', hwDay, true, k);
+        for (let i = 0; i < 50; i++) expect(nextSkill(f, makeRng(i + 1), hwDay)).toBe('round');
+        // without a day the reviews are not used (tests of the old flow)
+        for (let i = 0; i < 50; i++) expect(nextSkill(s, makeRng(i + 1))).not.toBe('div-4d');
+        // the day's goal: the homework rows plus one for the review; the row stays once she did it
+        expect(dailyGoal(s, hwDay)).toMatchObject({ total: KINDS_4_2.length + 1, done: 0, homework: true });
+        expect(dailyGoal(s, hwDay).rows.find(r => r.skill === 'div-4d')).toMatchObject({ need: 1, done: 0, review: true });
+        const d = right(s, 'div-4d', hwDay);
+        expect(dailyGoal(d, hwDay).rows.find(r => r.skill === 'div-4d')).toMatchObject({ need: 1, done: 1, review: true });
+        expect(dailyGoal(d, hwDay).done).toBe(1);
+        // no homework: 30 right answers, the review due shown as a row
+        expect(dailyGoal(s, free)).toMatchObject({ total: DAILY_RIGHT, done: 0, homework: false });
+        expect(dailyGoal(s, free).rows).toEqual([{ skill: 'div-4d', need: 1, done: 0, review: true }]);
+        for (let i = 0; i < 50; i++) expect(nextSkill(s, makeRng(i + 1), free)).toBe('div-4d');
     });
 });
 
@@ -880,9 +952,10 @@ describe('game flow', () => {
         expect(tasks).toBe(total - 2);
         // everything covered: test prep keeps going with the whole plan
         expect(prepPicks(s, day).length).toBe(total);
-        // after the test day: 30 right answers of any kind
+        // after the test day: 30 right answers of any kind (the rows are the skills due for a review)
         const after = '2026-10-24';
-        expect(dailyGoal(s, after)).toEqual({ rows: [], done: 0, total: DAILY_RIGHT });
+        expect(dailyGoal(s, after)).toMatchObject({ done: 0, total: DAILY_RIGHT, homework: false });
+        expect(dailyGoal(s, after).rows.every(r => r.review)).toBe(true);
         expect(uncovered(s, after)).toEqual([]);
         for (let i = 0; i < 40; i++) s = right(s, makeProblem('round', rng), after);
         expect(dailyGoal(s, after).done).toBe(DAILY_RIGHT);

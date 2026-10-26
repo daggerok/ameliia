@@ -12,6 +12,11 @@ export type SkillStat = {
     reviewIn: number;       // > 0: comes back after that many other tasks
     reviewPending: boolean; // passed the quiz, one more task later proves it stuck
     theoryReads: number; quizPasses: number; quizFails: number;
+    // spaced review: a right answer on or after the due day raises the level by one and sets the next due day
+    // that many days later (1, 2, 3, 4 ... days: an arithmetic ladder); a wrong answer drops the level to 0 and makes it due today
+    level: number;
+    dueOn: string;          // YYYY-MM-DD of the next review, '' until the first right answer
+    bumpedOn: string;       // the day the level was last raised, so the day's goal keeps the row after she did it
 };
 
 export type HistoryItem = { t: number; skill: SkillId; ok: boolean; firstTry: boolean; hint: boolean; sec: number };
@@ -52,7 +57,7 @@ export type GameState = {
 
 export const ALL_SKILLS = Object.keys(TOPIC_OF) as SkillId[];
 
-const emptyStat = (): SkillStat => ({ seen: 0, correct: 0, rightStreak: 0, needsTheory: false, reviewIn: 0, reviewPending: false, theoryReads: 0, quizPasses: 0, quizFails: 0 });
+const emptyStat = (): SkillStat => ({ seen: 0, correct: 0, rightStreak: 0, needsTheory: false, reviewIn: 0, reviewPending: false, theoryReads: 0, quizPasses: 0, quizFails: 0, level: 0, dueOn: '', bumpedOn: '' });
 
 export const newState = (): GameState => ({
     version: 1, lang: 'en', theme: 'system', sound: true,
@@ -93,6 +98,19 @@ export const normalize = (raw: unknown): GameState => {
 
 // the day on the device clock (her iPad is on New York time), not in UTC
 export const dayOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const addDays = (day: string, n: number) => { const [y, m, d] = day.split('-').map(Number); return dayOf(new Date(y, m - 1, d + n)); };
+
+// a right answer on or after the due day moves the skill one step up the ladder; extra right answers before the day change nothing
+const reviewRight = (st: SkillStat, day: string) => {
+    if (st.dueOn && st.dueOn > day) return;
+    st.level++;
+    st.dueOn = addDays(day, st.level);
+    st.bumpedOn = day;
+};
+const reviewWrong = (st: SkillStat, day: string) => { st.level = 0; st.dueOn = day; };
+
+// old skills whose review day has come (a failed one is on its way through theory and quiz already)
+export const reviewsDue = (state: GameState, day: string): SkillId[] => ALL_SKILLS.filter(s => { const st = state.skills[s]; return st.dueOn !== '' && st.dueOn <= day && !st.needsTheory; });
 
 const countRight = (state: GameState, day: string, skill: SkillId, n: number, kind?: string) => {
     const d = { ...(state.dailySkills[day] ?? {}) };
@@ -174,23 +192,28 @@ export const dayPlan = (state: GameState, day: string): PlanRow[] => {
     return rows;
 };
 
-export type GoalRow = { skill: SkillId; done: number; need: number };
-export type Goal = { done: number; total: number; rows: GoalRow[] };
+export type GoalRow = { skill: SkillId; done: number; need: number; review?: boolean };
+// homework: the day has a homework plan, so the rows are the goal; otherwise the goal is DAILY_RIGHT answers and the rows are the reviews due
+export type Goal = { done: number; total: number; rows: GoalRow[]; homework: boolean };
 
 export const dailyGoal = (state: GameState, day: string): Goal => {
     const got = state.dailySkills[day] ?? {};
     const plan = dayPlan(state, day);
-    if (plan.length) {
-        const kinds = state.dailyKinds[day] ?? {};
-        const skills = Array.from(new Set(plan.map(r => r.skill)));
-        const rows = skills.map(skill => {
-            const mine = plan.filter(r => r.skill === skill);
-            return { skill, need: mine.reduce((s, r) => s + r.need, 0), done: mine.reduce((s, r) => s + Math.min(r.need, kinds[`${skill}:${r.kind}`] ?? 0), 0) };
-        });
-        return { rows, done: rows.reduce((s, r) => s + r.done, 0), total: rows.reduce((s, r) => s + r.need, 0) };
+    const kinds = state.dailyKinds[day] ?? {};
+    const skills = Array.from(new Set(plan.map(r => r.skill)));
+    const rows: GoalRow[] = skills.map(skill => {
+        const mine = plan.filter(r => r.skill === skill);
+        return { skill, need: mine.reduce((s, r) => s + r.need, 0), done: mine.reduce((s, r) => s + Math.min(r.need, kinds[`${skill}:${r.kind}`] ?? 0), 0) };
+    });
+    // one right answer for every old skill whose review day has come (done once she did it today); the homework covers its own skills
+    for (const s of ALL_SKILLS) {
+        const st = state.skills[s];
+        if (skills.includes(s)) continue;
+        if ((st.dueOn !== '' && st.dueOn <= day) || st.bumpedOn === day) rows.push({ skill: s, need: 1, done: st.bumpedOn === day ? 1 : 0, review: true });
     }
+    if (plan.length) return { rows, done: rows.reduce((s, r) => s + r.done, 0), total: rows.reduce((s, r) => s + r.need, 0), homework: true };
     const all = Object.values(got).reduce((s, n) => s + (n ?? 0), 0);
-    return { rows: [], done: Math.min(all, DAILY_RIGHT), total: DAILY_RIGHT };
+    return { rows, done: Math.min(all, DAILY_RIGHT), total: DAILY_RIGHT, homework: false };
 };
 
 // the kinds of tasks of the plan she has not answered right enough times yet today (none without a current homework)
@@ -245,15 +268,19 @@ export const nextTopic = (state: GameState, rng: Rng): Topic => {
     return best;
 };
 
-// with a day: while kinds of the day's homework plan are not covered yet, every other task is one of them,
-// so the lesson of the day is what she sees the most in normal play too
+// In this order (owner, 2026-10-26): the new material first, a kind of the day's homework she has not covered yet;
+// then a failed skill whose waiting time is over; then an old skill whose review day has come; then free practice,
+// where the 50/25/25 share of the topics applies
 export const nextSkill = (state: GameState, rng: Rng, day?: string): SkillId => {
-    // a failed skill comes back for review once its waiting time is over
+    if (day) {
+        const open = uncovered(state, day);
+        if (open.length) return pick(rng, open)[0];
+    }
     const due = ALL_SKILLS.filter(s => state.skills[s].needsTheory || (state.skills[s].reviewPending && state.skills[s].reviewIn === 0));
     if (due.length) return pick(rng, due);
     if (day) {
-        const open = uncovered(state, day);
-        if (open.length && rng() < 0.5) return pick(rng, open)[0];
+        const overdue = reviewsDue(state, day);
+        if (overdue.length) return pick(rng, overdue);
     }
     const topic = nextTopic(state, rng);
     const open = unlocked(state, topic);
@@ -355,11 +382,12 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
         state.bestStreak = Math.max(state.bestStreak, state.streak);
         stars = starsFor(opts.firstTry, opts.hint);
         state.stars += stars;
-        if (opts.day) countRight(state, opts.day, p.skill, 1, kindOf(p));
+        if (opts.day) { countRight(state, opts.day, p.skill, 1, kindOf(p)); reviewRight(st, opts.day); }
     } else {
         st.rightStreak = 0;
         st.needsTheory = true;
         state.streak = 0;
+        if (opts.day) reviewWrong(st, opts.day);
     }
     state.history = [...state.history, { t: Date.now(), skill: p.skill, ok, firstTry: opts.firstTry, hint: opts.hint, sec: Math.round(opts.sec) }].slice(-600);
     return { state, stars };
@@ -416,11 +444,11 @@ export const buildTest = (state: GameState, rng: Rng): Problem[] => {
 
 export const applyTest = (prev: GameState, problems: Problem[], results: boolean[], sec: number, day?: string): GameState => {
     const state = structuredClone(prev);
-    if (day) problems.forEach((p, i) => { if (results[i]) countRight(state, day, p.skill, 1, kindOf(p)); });
+    if (day) problems.forEach((p, i) => { if (results[i]) { countRight(state, day, p.skill, 1, kindOf(p)); reviewRight(state.skills[p.skill], day); } });
     const wrong = problems.filter((_, i) => !results[i]).map(p => p.skill);
     problems.forEach(p => remember(state, p.id));
-    // a mistake in the test sends that skill to theory and quiz next time it shows up
-    wrong.forEach(s => { state.skills[s].needsTheory = true; state.skills[s].rightStreak = 0; });
+    // a mistake in the test sends that skill to theory and quiz next time it shows up, and back to the first step of the review ladder
+    wrong.forEach(s => { state.skills[s].needsTheory = true; state.skills[s].rightStreak = 0; if (day) reviewWrong(state.skills[s], day); });
     const score = results.filter(Boolean).length;
     state.tests = [...state.tests, { t: Date.now(), score, total: problems.length, sec: Math.round(sec), wrong }].slice(-50);
     state.stars += score;
