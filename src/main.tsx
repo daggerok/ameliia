@@ -864,9 +864,11 @@ export const App: React.FC = () => {
                 <header className="flex justify-between items-center py-3 mb-1 gap-2">
                     <button onClick={() => go('home')} className="flex items-center gap-2 text-left min-w-0 min-h-11" data-testid="nav-home">
                         <Pip size={40} className="shrink-0" />
-                        {/* the Russian title is long: on a phone it wraps onto two lines instead of sliding under the buttons */}
+                        {/* the Russian title is long: on a phone it wraps onto two lines instead of sliding under the buttons;
+                            below 375 px even the single word «Математический» is wider than the room left, so the title gets
+                            smaller there and may hyphenate (the page lang is ru then, so the browser knows where to break) */}
                         <div className="min-w-0">
-                            <h1 className="text-[15px] sm:text-xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-wide leading-tight sm:leading-none">{t.title}</h1>
+                            <h1 className="text-[15px] max-[375px]:text-[13px] max-[375px]:hyphens-auto sm:text-xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-wide leading-tight sm:leading-none">{t.title}</h1>
                             <p className="text-[10px] md:text-xs text-slate-400 font-bold italic">{t.subtitle}</p>
                         </div>
                     </button>
