@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, DAILY_RIGHT, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, totalTime, uncovered } from '../src/engine/game';
+import { ALL_SKILLS, DAILY_RIGHT, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
 import { KINDS_4_2 } from '../src/engine/topic4';
 import { makeFreshProblem, makeProblem } from '../src/engine';
 import { HOMEWORK_MISTAKES, reworkQueue, reworkTheory } from '../src/engine/mistakes';
@@ -873,7 +873,25 @@ describe('game flow', () => {
         s = applyAnswer(s, makeProblem('div-3d', rng), true, { firstTry: true, hint: false, sec: 5 }).state;
         expect(s.skills['div-3d'].reviewPending).toBe(false);
     });
-    test('the practice test: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2 and 2 different multiplication strategies', () => {
+    test('the practice test follows the new material: two tasks of every homework kind plus the reviews due', () => {
+        const day = '2026-10-28', s = newState();
+        const t1 = buildTest(s, makeRng(9), day);
+        expect(t1.length).toBe(2 * KINDS_4_2.length);
+        expect(t1.every(p => p.skill === 'mult-2x10')).toBe(true);
+        expect(new Set(t1.map(p => p.id)).size).toBe(t1.length);
+        for (const k of KINDS_4_2) expect(t1.filter(p => kindOf(p) === k).length).toBe(2);
+        // an old skill due for a review that day gets one task; a homework skill due is not doubled
+        let r = applyAnswer(s, makeProblem('div-4d', makeRng(1)), true, { firstTry: true, hint: false, sec: 5, day: '2026-10-27' }).state;
+        r = applyAnswer(r, makeProblem('mult-2x10', makeRng(2)), true, { firstTry: true, hint: false, sec: 5, day: '2026-10-27' }).state;
+        expect(reviewsDue(r, day)).toEqual(['div-4d', 'mult-2x10']);
+        const t2 = buildTest(r, makeRng(9), day);
+        expect(t2.length).toBe(2 * KINDS_4_2.length + 1);
+        expect(t2.filter(p => p.skill === 'div-4d').length).toBe(1);
+        expect(testPlan(r, day).length).toBe(t2.length);
+        // a day without a homework still tests the last one given
+        expect(buildTest(s, makeRng(9), '2026-11-02').every(p => p.skill === 'mult-2x10')).toBe(true);
+    });
+    test('the practice test without a day: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2 and 2 different multiplication strategies', () => {
         const test1 = buildTest(newState(), makeRng(9));
         expect(test1.length).toBe(19);
         expect(test1.filter(p => p.skill === 'mult-2x10').length).toBe(1);

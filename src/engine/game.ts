@@ -431,11 +431,27 @@ export const TEST_PLAN: SkillId[] = [
 
 export const STRATEGIES: SkillId[] = ['mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];
 
-export const buildTest = (state: GameState, rng: Rng): Problem[] => {
+// The practice test follows the new material (owner, 2026-10-26, "update our test with new material unless I ask something else"):
+// two different tasks of every kind of the current homework (one each when the homework has more than 10 kinds, at most 20 in all)
+// plus one task of every old skill due for a review that day, at most 5. Without a day: the old fixed mix of TEST_PLAN
+export const TEST_PER_KIND = 2;
+export const TEST_MAX = 20;
+export const TEST_REVIEWS = 5;
+export type TestRow = { skill: SkillId; kind?: string };
+export const testPlan = (state: GameState, day: string): TestRow[] => {
+    const kinds: TestRow[] = currentHomework(state, day).plan.flatMap(([skill, ks]) => ks.map(kind => ({ skill, kind })));
+    const per = kinds.length * TEST_PER_KIND <= TEST_MAX ? TEST_PER_KIND : 1;
+    const hw = kinds.flatMap(k => Array.from({ length: per }, () => k)).slice(0, TEST_MAX);
+    const reviews = reviewsDue(state, day).filter(s => !kinds.some(k => k.skill === s)).slice(0, TEST_REVIEWS).map(skill => ({ skill }));
+    return [...hw, ...reviews];
+};
+
+export const buildTest = (state: GameState, rng: Rng, day?: string): Problem[] => {
     const seen = new Set(state.recent);
     const out: Problem[] = [];
-    for (const s of shuffle(rng, [...TEST_PLAN, ...shuffle(rng, STRATEGIES).slice(0, 2)])) {
-        const p = makeFreshProblem(s, rng, seen);
+    const rows: TestRow[] = day ? testPlan(state, day) : [...TEST_PLAN, ...shuffle(rng, STRATEGIES).slice(0, 2)].map(skill => ({ skill }));
+    for (const { skill, kind } of shuffle(rng, rows)) {
+        const p = makeFreshProblem(skill, rng, seen, kind);
         seen.add(p.id);
         out.push(p);
     }
