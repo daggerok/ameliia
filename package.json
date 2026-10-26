@@ -13,13 +13,12 @@
     "stop": "pm2 kill",
     "logs": "pm2 logs",
     "test": "bun test tests",
-    "dev": "npm run test -- --watchAll"
+    "dev": "npm run test -- --watch"
   },
   "keywords": [
     "parcel",
     "rimraf",
     "sass",
-    "jest",
     "pm2"
   ],
   "author": "Maksim Kostromin / GitHub: daggerok",
@@ -32,7 +31,6 @@
     "@parcel/transformer-sass": "2.16.4",
     "@types/bun": "1.4.3",
     "@types/node": "26.0.0",
-    "jest": "30.4.2",
     "parcel": "2.16.4",
     "pm2": "7.0.1",
     "rimraf": "6.1.3",
