@@ -440,12 +440,12 @@ describe('Lesson 4-2 homework: 2-digit numbers times multiples of 10', () => {
         });
         expect(Array.from(kinds).sort()).toEqual(Array.from(KINDS_4_2).sort());
     });
-    test('the homework of 2026-10-26: two right answers per kind that day, one on each repeat day until Friday, the button names it', () => {
+    test('the homework of 2026-10-26: three right answers per kind that day, one on each repeat day until Friday, the button names it', () => {
         const s = newState();
         const n = KINDS_4_2.length;
         expect(activeHomework(s, '2026-10-25')).toEqual([]);
         expect(dailyGoal(s, '2026-10-25').total).toBe(DAILY_RIGHT);
-        expect(dailyGoal(s, '2026-10-26').total).toBe(2 * n);
+        expect(dailyGoal(s, '2026-10-26').total).toBe(3 * n);
         expect(dailyGoal(s, '2026-10-28').total).toBe(n);
         expect(dailyGoal(s, '2026-10-30').total).toBe(n);
         expect(dailyGoal(s, '2026-10-31').total).toBe(DAILY_RIGHT);
@@ -454,7 +454,7 @@ describe('Lesson 4-2 homework: 2-digit numbers times multiples of 10', () => {
         expect(currentHomework(s, '2026-10-24').id).toBe('topic3');
         expect(currentHomework(s, '2026-10-26').id).toBe('lesson-4-2');
         expect(currentHomework(s, '2026-11-05').id).toBe('lesson-4-2');
-        // the same kind right twice counts twice on the first day, a third time counts no more
+        // the same kind right three times counts three times on the first day, a fourth time counts no more
         const day = '2026-10-26', rng = makeRng(11);
         const right = (st: typeof s, p: Problem, d: string) => applyAnswer(st, p, true, { firstTry: true, hint: false, sec: 5, day: d }).state;
         let g = right(s, makeProblem('mult-2x10', rng, 'story'), day);
@@ -462,9 +462,12 @@ describe('Lesson 4-2 homework: 2-digit numbers times multiples of 10', () => {
         expect(uncovered(g, day)).toContainEqual(['mult-2x10', 'story']);
         g = right(g, makeProblem('mult-2x10', rng, 'story'), day);
         expect(dailyGoal(g, day).done).toBe(2);
+        expect(uncovered(g, day)).toContainEqual(['mult-2x10', 'story']);
+        g = right(g, makeProblem('mult-2x10', rng, 'story'), day);
+        expect(dailyGoal(g, day).done).toBe(3);
         expect(uncovered(g, day)).not.toContainEqual(['mult-2x10', 'story']);
         g = right(g, makeProblem('mult-2x10', rng, 'story'), day);
-        expect(dailyGoal(g, day).done).toBe(2);
+        expect(dailyGoal(g, day).done).toBe(3);
         expect(dailyGoal(g, '2026-10-28').done).toBe(0);
         // normal play leans on the homework while the day's plan is open
         let hw = 0;
@@ -473,9 +476,9 @@ describe('Lesson 4-2 homework: 2-digit numbers times multiples of 10', () => {
         expect(hw).toBeLessThan(140);
         // once it is covered, play goes back to the usual mix and the homework button keeps the whole lesson
         let c = s;
-        for (const k of KINDS_4_2) for (let i = 0; i < 2; i++) c = right(c, makeProblem('mult-2x10', rng, k), day);
+        for (const k of KINDS_4_2) for (let i = 0; i < 3; i++) c = right(c, makeProblem('mult-2x10', rng, k), day);
         expect(uncovered(c, day)).toEqual([]);
-        expect(dailyGoal(c, day)).toMatchObject({ done: 2 * n, total: 2 * n });
+        expect(dailyGoal(c, day)).toMatchObject({ done: 3 * n, total: 3 * n });
         for (let i = 0; i < 100; i++) expect(nextSkill(c, makeRng(i + 1), day)).not.toBe('mult-2x10');
         expect(prepPicks(c, day).map(([, k]) => k).sort()).toEqual(Array.from(KINDS_4_2).sort());
         // the homework mode theory comes with its building blocks
