@@ -4,7 +4,7 @@ import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } 
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
 import { ALL_SKILLS, DAILY_RIGHT, PREP_PLAN, STRATEGIES, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, totalTime, uncovered } from '../src/engine/game';
-import { makeFreshProblem, makeProblem } from '../src/engine/index';
+import { makeFreshProblem, makeProblem } from '../src/engine';
 import { HOMEWORK_MISTAKES, reworkQueue, reworkTheory } from '../src/engine/mistakes';
 import { buildQuiz } from '../src/engine/quiz';
 import { buildTheory, chainOf } from '../src/engine/theory';

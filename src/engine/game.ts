@@ -1,7 +1,7 @@
 /// <reference lib="esnext" />
 import { type Given, type Lang, type Problem, type Rng, type SkillId, type Topic, SKILLS_OF, TOPIC_OF, TOPIC_TARGET, pick, shuffle } from './core';
 import { forceKind } from './forces';
-import { makeFreshProblem } from './index';
+import { makeFreshProblem } from '.';
 import { type LoggedMistake, type ReworkItem, reworkId } from './mistakes';
 import { IDEA_KIND } from './science';
 
