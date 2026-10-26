@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { makeRng, sameAnswer } from '../src/engine/core';
 import { diagnose } from '../src/engine/diagnose';
 import { kindOf } from '../src/engine/game';
-import { makeProblem } from '../src/engine/index';
+import { makeProblem } from '../src/engine';
 import { BLANKS, DEFINITIONS } from '../src/engine/scienceWords';
 
 describe('science words: fill in the blank', () => {

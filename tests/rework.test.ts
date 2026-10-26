@@ -3,7 +3,7 @@ import { describe, expect, spyOn, test } from 'bun:test';
 import { type Given, type L10n, type Problem, type SkillId, fillMarks, makeRng, sameAnswer } from '../src/engine/core';
 import { diagnose, diagnoseNumber, safeDiagnose } from '../src/engine/diagnose';
 import { ALL_SKILLS, fixRework, kindOf, logMistake, missedRework, newState, nextProblem, reworkDue, reworkEvery, startedRework, applyAnswer } from '../src/engine/game';
-import { makeProblem } from '../src/engine/index';
+import { makeProblem } from '../src/engine';
 import { reworkQueue, reworkSkill, reworkTheory } from '../src/engine/mistakes';
 
 // an independent check of every "a op b = c" claim in a text (same idea as in engine.test.ts)

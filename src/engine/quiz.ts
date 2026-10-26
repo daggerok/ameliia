@@ -1,6 +1,6 @@
 /// <reference lib="esnext" />
 import { type L10n, type Problem, type Rng, type SkillId, L, TOPIC_OF, choice, fmt, int, pick, ruPlural, shuffle } from './core';
-import { makeFreshProblem, makeProblem } from './index';
+import { makeFreshProblem, makeProblem } from '.';
 import { placeParts, standardRows } from './strategies';
 
 const concept = (skill: SkillId, id: string, q: L10n, right: L10n, wrong: L10n[], why: L10n, rng: Rng): Problem => ({
