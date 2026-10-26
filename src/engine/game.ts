@@ -147,7 +147,7 @@ export const HOMEWORKS: Homework[] = [
         sub: L('Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания'),
     },
     {
-        id: 'lesson-4-2', given: '2026-10-26', until: '2026-10-30', first: 2, again: 1, plan: LESSON_4_2_PLAN,
+        id: 'lesson-4-2', given: '2026-10-26', until: '2026-10-30', first: 3, again: 1, plan: LESSON_4_2_PLAN,
         title: L('Homework: Lesson 4-2, 2-digit numbers × multiples of 10', 'Домашка: урок 4-2, двузначные × круглые десятки'),
         sub: L('Arrays and area models, 50 × 15, a building of 30 floors, Greg and Marta, the dentist\'s boxes, which product is greater. Theory first, then tasks', 'Массивы и модели площади, 50 × 15, дом в 30 этажей, Грег и Марта, коробки стоматолога, какое произведение больше. Сначала теория, потом задания'),
     },
