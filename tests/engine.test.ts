@@ -3,7 +3,8 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, DAILY_RIGHT, PREP_PLAN, STRATEGIES, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, totalTime, uncovered } from '../src/engine/game';
+import { ALL_SKILLS, DAILY_RIGHT, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, totalTime, uncovered } from '../src/engine/game';
+import { KINDS_4_2 } from '../src/engine/topic4';
 import { makeFreshProblem, makeProblem } from '../src/engine';
 import { HOMEWORK_MISTAKES, reworkQueue, reworkTheory } from '../src/engine/mistakes';
 import { buildQuiz } from '../src/engine/quiz';
@@ -124,6 +125,8 @@ const expected = (p: Problem): number | { q: number; r: number } | 'choice' => {
         // the only number task of these two: 8 × 50 with the associative property, and cups of coffee for some weeks
         case 'mult-mental': return n('x') * n('y');
         case 'mult-word': return n('x') * n('w');
+        // the products, the story, and how many more minutes: value is the product of the lesson
+        case 'mult-2x10': return p.answer.kind === 'number' ? n('value') : 'choice';
         default: return 'choice';
     }
 };
@@ -380,6 +383,103 @@ describe('Topic 3 test prep and Science Chapter 2', () => {
         });
         // every idea of Part I shows up
         expect(keys.size).toBeGreaterThanOrEqual(14);
+    });
+});
+
+describe('Lesson 4-2 homework: 2-digit numbers times multiples of 10', () => {
+    const tensOnes = (a: number) => [Math.floor(a / 10) * 10, a % 10];
+    test('every blank and product is recomputed from the numbers: one factor a multiple of 10, the other 2-digit with ones', () => {
+        const kinds = new Set<string>();
+        each('mult-2x10', p => {
+            const d = p.data as Record<string, number>, a = p.answer, style = String(p.data.style);
+            kinds.add(style);
+            if (['array', 'area', 'product', 'story'].includes(style)) {
+                expect(d.m % 10).toBe(0);
+                expect(d.m).toBeGreaterThanOrEqual(10);
+                expect(d.m).toBeLessThanOrEqual(90);
+                expect(d.a).toBeGreaterThanOrEqual(11);
+                expect(d.a).toBeLessThanOrEqual(99);
+                expect(d.a % 10).not.toBe(0);
+                expect(d.value).toBe(d.m * d.a);
+            }
+            const [t, o] = tensOnes(d.a);
+            if (style === 'array') {
+                if (a.kind !== 'fill' || a.layout !== 'lines') throw new Error(`${p.id}: not a lines sheet`);
+                expect(a.values).toEqual([d.m * t, d.m * o, d.m * d.a, d.m * d.a]);
+            }
+            if (style === 'area') {
+                if (a.kind !== 'fill' || a.layout !== 'area') throw new Error(`${p.id}: not an area sheet`);
+                expect(a.values).toEqual([t, o, d.m * t, d.m * o, d.m * d.a]);
+                // tens and ones on top in her own order, the boxes follow
+                expect(sameAnswer(a, { blanks: a.values })).toBe(true);
+                expect(sameAnswer(a, { blanks: [o, t, d.m * o, d.m * t, d.m * d.a] })).toBe(true);
+                expect(sameAnswer(a, { blanks: [t, o, d.m * o, d.m * t, d.m * d.a] })).toBe(false);
+            }
+            if (style === 'diff') {
+                expect(d.x % 10).toBe(0);
+                expect(d.y - d.x).toBe(d.m);
+                expect([28, 30, 31]).toContain(d.days);
+                expect(d.value).toBe(d.days * (d.y - d.x));
+            }
+            if (style === 'two') {
+                if (a.kind !== 'fill' || a.layout !== 'lines') throw new Error(`${p.id}: not a lines sheet`);
+                expect(a.values).toEqual([d.c1 * d.s1, d.c2 * d.s2, d.c1 * d.s1 + d.c2 * d.s2]);
+                for (const [c, s] of [[d.c1, d.s1], [d.c2, d.s2]]) {
+                    expect([c % 10 === 0, s % 10 === 0].filter(Boolean).length).toBe(1);
+                    expect(c % 10 === 0 ? s : c).toBeLessThanOrEqual(99);
+                }
+            }
+            if (style === 'compare') {
+                if (a.kind !== 'choice') throw new Error(`${p.id}: not a choice`);
+                const right = a.options[a.correct].en;
+                expect(d.hi).toBeGreaterThan(d.lo);
+                // without multiplying: the right option names the greater product; Miranda: yes exactly when her product is greater
+                if (p.id.includes(':compare:w:')) expect(evaluate(right.split(':')[0])).toBe(d.hi);
+                else expect(right.startsWith('Yes')).toBe(d.p1 > d.p2);
+            }
+        });
+        expect(Array.from(kinds).sort()).toEqual(Array.from(KINDS_4_2).sort());
+    });
+    test('the homework of 2026-10-26: two right answers per kind that day, one on each repeat day until Friday, the button names it', () => {
+        const s = newState();
+        const n = KINDS_4_2.length;
+        expect(activeHomework(s, '2026-10-25')).toEqual([]);
+        expect(dailyGoal(s, '2026-10-25').total).toBe(DAILY_RIGHT);
+        expect(dailyGoal(s, '2026-10-26').total).toBe(2 * n);
+        expect(dailyGoal(s, '2026-10-28').total).toBe(n);
+        expect(dailyGoal(s, '2026-10-30').total).toBe(n);
+        expect(dailyGoal(s, '2026-10-31').total).toBe(DAILY_RIGHT);
+        expect(uncovered(s, '2026-10-31')).toEqual([]);
+        expect(currentHomework(s, '2026-10-22').id).toBe('topic3');
+        expect(currentHomework(s, '2026-10-24').id).toBe('topic3');
+        expect(currentHomework(s, '2026-10-26').id).toBe('lesson-4-2');
+        expect(currentHomework(s, '2026-11-05').id).toBe('lesson-4-2');
+        // the same kind right twice counts twice on the first day, a third time counts no more
+        const day = '2026-10-26', rng = makeRng(11);
+        const right = (st: typeof s, p: Problem, d: string) => applyAnswer(st, p, true, { firstTry: true, hint: false, sec: 5, day: d }).state;
+        let g = right(s, makeProblem('mult-2x10', rng, 'story'), day);
+        expect(dailyGoal(g, day).done).toBe(1);
+        expect(uncovered(g, day)).toContainEqual(['mult-2x10', 'story']);
+        g = right(g, makeProblem('mult-2x10', rng, 'story'), day);
+        expect(dailyGoal(g, day).done).toBe(2);
+        expect(uncovered(g, day)).not.toContainEqual(['mult-2x10', 'story']);
+        g = right(g, makeProblem('mult-2x10', rng, 'story'), day);
+        expect(dailyGoal(g, day).done).toBe(2);
+        expect(dailyGoal(g, '2026-10-28').done).toBe(0);
+        // normal play leans on the homework while the day's plan is open
+        let hw = 0;
+        for (let i = 0; i < 200; i++) if (nextSkill(s, makeRng(i + 1), day) === 'mult-2x10') hw++;
+        expect(hw).toBeGreaterThan(60);
+        expect(hw).toBeLessThan(140);
+        // once it is covered, play goes back to the usual mix and the homework button keeps the whole lesson
+        let c = s;
+        for (const k of KINDS_4_2) for (let i = 0; i < 2; i++) c = right(c, makeProblem('mult-2x10', rng, k), day);
+        expect(uncovered(c, day)).toEqual([]);
+        expect(dailyGoal(c, day)).toMatchObject({ done: 2 * n, total: 2 * n });
+        for (let i = 0; i < 100; i++) expect(nextSkill(c, makeRng(i + 1), day)).not.toBe('mult-2x10');
+        expect(prepPicks(c, day).map(([, k]) => k).sort()).toEqual(Array.from(KINDS_4_2).sort());
+        // the homework mode theory comes with its building blocks
+        expect(chainOf('mult-2x10')).toEqual(['mult-tens', 'mult-area']);
     });
 });
 
@@ -698,13 +798,14 @@ describe('game flow', () => {
         s = applyAnswer(s, makeProblem('div-3d', rng), true, { firstTry: true, hint: false, sec: 5 }).state;
         expect(s.skills['div-3d'].reviewPending).toBe(false);
     });
-    test('the practice test: 6 division, 5 science, 5 of Topic 3 and 2 different multiplication strategies', () => {
+    test('the practice test: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2 and 2 different multiplication strategies', () => {
         const test1 = buildTest(newState(), makeRng(9));
-        expect(test1.length).toBe(18);
+        expect(test1.length).toBe(19);
+        expect(test1.filter(p => p.skill === 'mult-2x10').length).toBe(1);
         expect(test1.filter(p => p.topic === 'division').length).toBe(6);
         expect(test1.filter(p => p.topic === 'science').length).toBe(5);
         expect(test1.some(p => p.skill === 'sci-words')).toBe(true);
-        expect(test1.filter(p => p.topic === 'estimation').length).toBe(7);
+        expect(test1.filter(p => p.topic === 'estimation').length).toBe(8);
         expect(test1.some(p => p.skill === 'forces')).toBe(true);
         const strategies = test1.filter(p => STRATEGIES.includes(p.skill)).map(p => p.skill);
         expect(strategies.length).toBe(2);
@@ -726,9 +827,9 @@ describe('game flow', () => {
         s = chooseNextPainting(r.state, 4, parts, 2);
         expect(s.painting).toEqual({ index: 4, filled: 6, done: [0], choosing: false });
     });
-    test('every kind of task of the plan is made on request and named the same way', () => {
+    test('every kind of task of every homework plan is made on request and named the same way', () => {
         const extra: Record<string, string[]> = { 'est-product': ['tens', 'reasonable'], 'motion-ideas': ['energy'], 'speed-trip': ['leg'] };
-        for (const [skill, kinds] of PREP_PLAN) {
+        for (const [skill, kinds] of HOMEWORKS.flatMap(h => h.plan)) {
             for (const kind of kinds) for (let seed = 1; seed <= 60; seed++) {
                 const p = makeProblem(skill, makeRng(seed * 31 + kind.length), kind);
                 if (kindOf(p) !== kind) throw new Error(`${skill}:${kind} asked, got ${kindOf(p)} (${p.id})`);

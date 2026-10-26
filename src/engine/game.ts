@@ -1,9 +1,10 @@
 /// <reference lib="esnext" />
-import { type Given, type Lang, type Problem, type Rng, type SkillId, type Topic, SKILLS_OF, TOPIC_OF, TOPIC_TARGET, pick, shuffle } from './core';
+import { type Given, type L10n, type Lang, type Problem, type Rng, type SkillId, type Topic, L, SKILLS_OF, TOPIC_OF, TOPIC_TARGET, pick, shuffle } from './core';
 import { forceKind } from './forces';
 import { makeFreshProblem } from '.';
 import { type LoggedMistake, type ReworkItem, reworkId } from './mistakes';
 import { IDEA_KIND } from './science';
+import { KINDS_4_2 } from './topic4';
 
 export type SkillStat = {
     seen: number; correct: number; rightStreak: number;
@@ -110,7 +111,7 @@ export const kindOf = (p: Problem): string => {
     if (p.skill === 'speed-trip') return p.id.split(':')[1];
     if (p.skill === 'sci-words') return String(p.data.style);
     if (p.skill === 'est-product') return ({ t: 'tens', b: 'big', r: 'reasonable' } as Record<string, string>)[p.id.split(':')[1]] ?? 'all';
-    if (['mult-tens', 'mult-mental', 'mult-expr', 'mult-word'].includes(p.skill)) return String(p.data.style);
+    if (['mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10'].includes(p.skill)) return String(p.data.style);
     return 'all';
 };
 
@@ -132,31 +133,76 @@ export const PREP_PLAN: [SkillId, string[]][] = [
 ];
 export const DAILY_RIGHT = 30;
 
+// Topic 4, Lesson 4-2 (Additional Practice 4-2, p. 45-46, homework of 2026-10-26): every kind of task on the two pages
+export const LESSON_4_2_PLAN: [SkillId, string[]][] = [['mult-2x10', Array.from(KINDS_4_2)]];
+
+// A homework: the kinds of tasks on its photos, the day it was given and the last day of its repeats (the test date
+// of the settings when it has none). While a homework is current the daily goal is its plan: `first` right answers
+// per kind on the day it was given, `again` on each later day, so the lesson comes back a few times in its week.
+export type Homework = { id: string; title: L10n; sub: L10n; given: string; until?: string; first: number; again: number; plan: [SkillId, string[]][] };
+export const HOMEWORKS: Homework[] = [
+    {
+        id: 'topic3', given: '2026-10-19', first: 1, again: 1, plan: PREP_PLAN,
+        title: L('Test prep: Topic 3 and Science Chapter 2', 'К тесту: Topic 3 и наука, глава 2'),
+        sub: L('Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания'),
+    },
+    {
+        id: 'lesson-4-2', given: '2026-10-26', until: '2026-10-30', first: 2, again: 1, plan: LESSON_4_2_PLAN,
+        title: L('Homework: Lesson 4-2, 2-digit numbers × multiples of 10', 'Домашка: урок 4-2, двузначные × круглые десятки'),
+        sub: L('Arrays and area models, 50 × 15, a building of 30 floors, Greg and Marta, the dentist\'s boxes, which product is greater. Theory first, then tasks', 'Массивы и модели площади, 50 × 15, дом в 30 этажей, Грег и Марта, коробки стоматолога, какое произведение больше. Сначала теория, потом задания'),
+    },
+];
+const lastDay = (h: Homework, state: GameState) => h.until ?? state.testDate;
+// the homeworks whose week includes the day
+export const activeHomework = (state: GameState, day: string): Homework[] => HOMEWORKS.filter(h => h.given <= day && day <= lastDay(h, state));
+// the homework of the home screen button: the current one given last, else the last one given before the day, else the first
+export const currentHomework = (state: GameState, day: string): Homework => {
+    const active = activeHomework(state, day);
+    if (active.length) return active[active.length - 1];
+    const past = HOMEWORKS.filter(h => h.given <= day);
+    return past.length ? past[past.length - 1] : HOMEWORKS[0];
+};
+export type PlanRow = { skill: SkillId; kind: string; need: number };
+// the plan of a day: every kind of task of the current homeworks and the right answers it needs (the most when two homeworks share a kind)
+export const dayPlan = (state: GameState, day: string): PlanRow[] => {
+    const rows: PlanRow[] = [];
+    for (const h of activeHomework(state, day)) for (const [skill, ks] of h.plan) for (const kind of ks) {
+        const need = day === h.given ? h.first : h.again;
+        const row = rows.find(r => r.skill === skill && r.kind === kind);
+        if (row) row.need = Math.max(row.need, need); else rows.push({ skill, kind, need });
+    }
+    return rows;
+};
+
 export type GoalRow = { skill: SkillId; done: number; need: number };
 export type Goal = { done: number; total: number; rows: GoalRow[] };
 
 export const dailyGoal = (state: GameState, day: string): Goal => {
     const got = state.dailySkills[day] ?? {};
-    if (day <= state.testDate) {
+    const plan = dayPlan(state, day);
+    if (plan.length) {
         const kinds = state.dailyKinds[day] ?? {};
-        const rows = PREP_PLAN.map(([skill, ks]) => ({ skill, need: ks.length, done: ks.filter(k => kinds[`${skill}:${k}`]).length }));
+        const skills = Array.from(new Set(plan.map(r => r.skill)));
+        const rows = skills.map(skill => {
+            const mine = plan.filter(r => r.skill === skill);
+            return { skill, need: mine.reduce((s, r) => s + r.need, 0), done: mine.reduce((s, r) => s + Math.min(r.need, kinds[`${skill}:${r.kind}`] ?? 0), 0) };
+        });
         return { rows, done: rows.reduce((s, r) => s + r.done, 0), total: rows.reduce((s, r) => s + r.need, 0) };
     }
     const all = Object.values(got).reduce((s, n) => s + (n ?? 0), 0);
     return { rows: [], done: Math.min(all, DAILY_RIGHT), total: DAILY_RIGHT };
 };
 
-// the kinds of tasks of the plan she has not answered right yet today (none after the test day)
+// the kinds of tasks of the plan she has not answered right enough times yet today (none without a current homework)
 export const uncovered = (state: GameState, day: string): [SkillId, string][] => {
-    if (day > state.testDate) return [];
     const kinds = state.dailyKinds[day] ?? {};
-    return PREP_PLAN.flatMap(([skill, ks]) => ks.filter(k => !kinds[`${skill}:${k}`]).map(k => [skill, k] as [SkillId, string]));
+    return dayPlan(state, day).filter(r => (kinds[`${r.skill}:${r.kind}`] ?? 0) < r.need).map(r => [r.skill, r.kind] as [SkillId, string]);
 };
 
-// test prep picks a kind of task she has not covered yet today; once all are done, any kind of the plan
+// the homework button picks a kind of task she has not covered yet today; once all are done, any kind of the current homework
 export const prepPicks = (state: GameState, day: string): [SkillId, string][] => {
     const open = uncovered(state, day);
-    return open.length ? open : PREP_PLAN.flatMap(([skill, ks]) => ks.map(k => [skill, k] as [SkillId, string]));
+    return open.length ? open : currentHomework(state, day).plan.flatMap(([skill, ks]) => ks.map(k => [skill, k] as [SkillId, string]));
 };
 
 // Ladders: a skill opens after 2 correct answers in the one before it (motion ideas and forces are open from the start)
@@ -167,7 +213,7 @@ export const LADDER: Record<Topic, SkillId[]> = {
     // Topic 3 test (2026-10-23): multiplying by multiples of 10, estimating products, the four strategies, mental math,
     // matching expressions and word problems; comparison and extra information (Lesson 3-8) stay early too
     estimation: ['round', 'mult-tens', 'est-product', 'compare', 'word-steps', 'mult-area', 'mult-partial', 'mult-dist', 'mult-standard',
-        'mult-mental', 'mult-expr', 'mult-word', 'est-sum', 'multiply'],
+        'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-sum', 'multiply'],
 };
 
 export const unlocked = (state: GameState, topic: Topic): SkillId[] => {
@@ -199,10 +245,16 @@ export const nextTopic = (state: GameState, rng: Rng): Topic => {
     return best;
 };
 
-export const nextSkill = (state: GameState, rng: Rng): SkillId => {
+// with a day: while kinds of the day's homework plan are not covered yet, every other task is one of them,
+// so the lesson of the day is what she sees the most in normal play too
+export const nextSkill = (state: GameState, rng: Rng, day?: string): SkillId => {
     // a failed skill comes back for review once its waiting time is over
     const due = ALL_SKILLS.filter(s => state.skills[s].needsTheory || (state.skills[s].reviewPending && state.skills[s].reviewIn === 0));
     if (due.length) return pick(rng, due);
+    if (day) {
+        const open = uncovered(state, day);
+        if (open.length && rng() < 0.5) return pick(rng, open)[0];
+    }
     const topic = nextTopic(state, rng);
     const open = unlocked(state, topic);
     const newest = open[open.length - (topic === 'science' ? OPEN_SCIENCE.length + 1 : 1)];
@@ -223,7 +275,7 @@ export const nextSkill = (state: GameState, rng: Rng): SkillId => {
 // with a day: a skill of the plan gives a kind of task not covered yet today, so any practice fills the plan;
 // a kind with nothing new left (she has seen all its questions) gives way to another kind, never a repeat
 export const nextProblem = (state: GameState, rng: Rng, skill?: SkillId, opts: { kind?: string; day?: string } = {}): Problem => {
-    const s = skill ?? nextSkill(state, rng);
+    const s = skill ?? nextSkill(state, rng, opts.day);
     const seen = new Set(state.recent);
     const open = opts.day ? shuffle(rng, uncovered(state, opts.day).filter(([k]) => k === s).map(([, k]) => k)) : [];
     for (const kind of [...(opts.kind ? [opts.kind] : []), ...open.filter(k => k !== opts.kind)]) {
@@ -340,12 +392,13 @@ export const addTime = (prev: GameState, topic: Topic, sec: number, day: string)
     return state;
 };
 
-// Practice test like the ones at school: 6 division, 4 science (Chapter 2: speed, trips, velocity, forces),
-// 5 of the Topic 3 assessment (multiples of 10, estimating, mental math, expressions, word problems), plus 2 different multiplication strategies
+// Practice test like the ones at school: 6 division, 5 science (Chapter 2: speed, trips, velocity, forces, words),
+// 5 of the Topic 3 assessment (multiples of 10, estimating, mental math, expressions, word problems),
+// 1 of Lesson 4-2 (2-digit numbers by multiples of 10), plus 2 different multiplication strategies
 export const TEST_PLAN: SkillId[] = [
     'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word',
     'speed-basic', 'speed-trip', 'motion-ideas', 'forces', 'sci-words',
-    'mult-tens', 'est-product', 'mult-mental', 'mult-expr', 'mult-word',
+    'mult-tens', 'est-product', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10',
 ];
 
 export const STRATEGIES: SkillId[] = ['mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];

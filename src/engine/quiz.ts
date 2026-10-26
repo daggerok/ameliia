@@ -58,6 +58,8 @@ const concepts: Partial<Record<SkillId, (rng: Rng) => Problem[]>> = {
     'mult-mental': rng => [choiceOf('mult-mental', rng)],
     'mult-expr': rng => [choiceOf('mult-expr', rng)],
     'mult-word': rng => [choiceOf('mult-word', rng)],
+    // which product is greater: the only choice task of the lesson
+    'mult-2x10': rng => [makeProblem('mult-2x10', rng, 'compare')],
     'mult-tens': rng => {
         const [m, d] = pick(rng, [[5, 2], [5, 4], [5, 6], [5, 8], [2, 5], [4, 5], [6, 5], [8, 5]]);
         const z = int(rng, 2, 3), b = d * 10 ** z, p = m * b;

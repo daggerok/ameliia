@@ -479,10 +479,61 @@ const topic3Builders: Record<'mult-tens' | 'mult-mental' | 'mult-expr' | 'mult-w
     }),
 };
 
+// ---------- Topic 4, Lesson 4-2: 2-digit numbers times multiples of 10 with arrays and area models ----------
+
+const topic4Builders: Record<'mult-2x10', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'mult-2x10': rng => {
+        const m = 10 * int(rng, 2, 6), t = 10 * int(rng, 1, 4), o = int(rng, 2, 9), a = t + o, p = m * a;
+        const b = a + int(rng, 1, 5), r = roundTo(a, 10);
+        const n = (x: number, lang: 'en' | 'ru') => fmt(x, lang);
+        return {
+            hook: [
+                L(`Pip packs ${m} boxes with ${a} capybara cookies in each. ${m} × ${a} looks new, but it is only ${m} groups of ${t} and ${m} groups of ${o}: two easy products and one sum!`,
+                    `Пип пакует ${m} коробок, в каждой ${a} ${ruPlural(a, 'печенье', 'печенья', 'печений')} для капибар. ${m} × ${a} выглядит новым, но это всего лишь ${m} групп по ${t} и ${m} групп по ${o}: два лёгких произведения и одна сумма!`),
+                L(`The train to the school of magic has ${m} cars with ${a} seats in each. How many seats? Break ${a} apart, and the zero of ${m} rides along in every part.`,
+                    `В поезде до школы волшебства ${m} вагонов, в каждом ${a} ${ruPlural(a, 'место', 'места', 'мест')}. Сколько мест? Разбей ${a} на части, и ноль числа ${m} поедет вместе с каждой частью.`),
+                L(`A building has ${m} floors, and every floor is ${a} feet tall. How tall is it? ${m} groups of ${a}: that is a multiplication, and an area model makes it easy.`,
+                    `В доме ${m} этажей, высота каждого ${a} ${ruPlural(a, 'фут', 'фута', 'футов')}. Какой высоты дом? ${m} групп по ${a}: это умножение, а модель площади делает его лёгким.`),
+            ],
+            sections: [
+                { kind: 'idea', title: T.idea, body: [
+                    L(`${m} × ${a} means ${m} groups of ${a}. Break ${a} into ${t} + ${o}: (${m} groups of ${t}) + (${m} groups of ${o}).`, `${m} × ${a} - это ${m} групп по ${a}. Разбей ${a} на ${t} + ${o}: (${m} групп по ${t}) + (${m} групп по ${o}).`),
+                    L(`An array shows the groups as rows of blocks. An area model shows them as two boxes: ${m} × ${t} and ${m} × ${o}. Add the boxes and you have the product.`, `Массив показывает группы рядами кубиков. Модель площади показывает их двумя клетками: ${m} × ${t} и ${m} × ${o}. Сложи клетки - и получишь произведение.`),
+                ] },
+                { kind: 'steps', title: T.how, body: [
+                    L(`1. Break the 2-digit number into tens and ones: ${a} = ${t} + ${o}.`, `1. Разбей двузначное число на десятки и единицы: ${a} = ${t} + ${o}.`),
+                    L(`2. Multiply the multiple of 10 by each part. Use the basic fact and write the zeros back: ${m} × ${t} is ${m / 10} × ${t / 10} = ${(m / 10) * (t / 10)} with two zeros, ${n(m * t, 'en')}. ${m} × ${o} is ${m / 10} × ${o} = ${(m / 10) * o} with one zero, ${n(m * o, 'en')}.`,
+                        `2. Умножь круглое число на каждую часть. Возьми табличный пример и допиши нули: ${m} × ${t} - это ${m / 10} × ${t / 10} = ${(m / 10) * (t / 10)} и два нуля, ${n(m * t, 'ru')}. ${m} × ${o} - это ${m / 10} × ${o} = ${(m / 10) * o} и один ноль, ${n(m * o, 'ru')}.`),
+                    L(`3. Add the partial products: ${n(m * t, 'en')} + ${n(m * o, 'en')} = ${n(p, 'en')}.`, `3. Сложи частичные произведения: ${n(m * t, 'ru')} + ${n(m * o, 'ru')} = ${n(p, 'ru')}.`),
+                    L(`4. Check with an estimate: ${a} is about ${r}, ${m} × ${r} = ${n(m * r, 'en')}, close to ${n(p, 'en')} ✓`, `4. Проверь прикидкой: ${a} - это примерно ${r}, ${m} × ${r} = ${n(m * r, 'ru')}, близко к ${n(p, 'ru')} ✓`),
+                ] },
+                { kind: 'example', title: L('An area model', 'Модель площади'), prompt: L(`${m} × ${a}`, `${m} × ${a}`), body: [
+                    L(`On top: ${t} and ${o}. On the left: ${m}.`, `Сверху: ${t} и ${o}. Слева: ${m}.`),
+                    L(`Boxes: ${m} × ${t} = ${n(m * t, 'en')} and ${m} × ${o} = ${n(m * o, 'en')}.`, `Клетки: ${m} × ${t} = ${n(m * t, 'ru')} и ${m} × ${o} = ${n(m * o, 'ru')}.`),
+                    L(`${n(m * t, 'en')} + ${n(m * o, 'en')} = ${n(p, 'en')}.`, `${n(m * t, 'ru')} + ${n(m * o, 'ru')} = ${n(p, 'ru')}.`),
+                ], visual: { kind: 'area', a, b: m } },
+                { kind: 'example', title: L('Which is greater, without multiplying?', 'Что больше, не умножая?'), prompt: L(`${a} × ${m} or ${b} × ${m}?`, `${a} × ${m} или ${b} × ${m}?`), body: [
+                    L(`Both have groups of ${m}. ${b} groups are more than ${a} groups, so ${b} × ${m} is greater.`, `В обоих группы по ${m}. ${b} ${ruPlural(b, 'группа', 'группы', 'групп')} больше, чем ${a} ${ruPlural(a, 'группа', 'группы', 'групп')}, значит ${b} × ${m} больше.`),
+                    L(`Two different products, like ${m} × ${a} and ${m - 10} × ${b}? Find both with a model, then compare the totals: ${n(p, 'en')} and ${n((m - 10) * b, 'en')}.`, `Два разных произведения, например ${m} × ${a} и ${m - 10} × ${b}? Найди оба с помощью модели и сравни итоги: ${n(p, 'ru')} и ${n((m - 10) * b, 'ru')}.`),
+                ] },
+                { kind: 'warn', title: T.warn, body: [
+                    L(`Keep every zero: ${m} × ${o} = ${n(m * o, 'en')}, not ${(m / 10) * o}. And ${m} × ${a} is ${m} × ${t} + ${m} × ${o}, not ${m} × ${t} + ${o}.`, `Не теряй нули: ${m} × ${o} = ${n(m * o, 'ru')}, а не ${(m / 10) * o}. И ${m} × ${a} - это ${m} × ${t} + ${m} × ${o}, а не ${m} × ${t} + ${o}.`),
+                    L('"How many more in a month?" Find how many more in ONE day first (40 − 30 = 10), then multiply by the days: 31 × 10 = 310.', '«На сколько больше за месяц?» Сначала найди, на сколько больше за ОДИН день (40 − 30 = 10), потом умножь на число дней: 31 × 10 = 310.'),
+                    L('Two kinds of boxes: multiply each kind, then add the two products. Never add the boxes first.', 'Два вида коробок: умножь каждый вид отдельно, потом сложи два произведения. Никогда не складывай коробки первыми.'),
+                ] },
+                { kind: 'trick', title: T.trick, body: [
+                    L(`Ten groups: write a zero. 10 × ${a} = ${n(10 * a, 'en')}. Twenty groups: double that, 20 × ${a} = ${n(20 * a, 'en')}.`, `Десять групп: допиши ноль. 10 × ${a} = ${n(10 * a, 'ru')}. Двадцать групп: удвой, 20 × ${a} = ${n(20 * a, 'ru')}.`),
+                ] },
+            ],
+        };
+    },
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
     ...strategyBuilders,
     ...wordBuilders,
     ...topic3Builders,
+    ...topic4Builders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
         const skip = Array.from({ length: q }, (_, i) => (i + 1) * d);
@@ -870,6 +921,7 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'mult-dist': ['mult-area'], 'mult-partial': ['mult-area'], 'mult-standard': ['mult-partial'],
     'compare': ['div-facts'], 'word-steps': ['mult-standard', 'round'],
     'sci-words': [], 'mult-mental': ['mult-tens', 'mult-dist'], 'mult-expr': ['mult-dist', 'mult-partial'], 'mult-word': ['compare', 'mult-standard'],
+    'mult-2x10': ['mult-tens', 'mult-area'],
 };
 
 // every building block in learning order: a skill comes after everything it needs
