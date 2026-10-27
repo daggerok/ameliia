@@ -939,16 +939,22 @@ const blocksIntro = (skill: SkillId, chain: SkillId[]): Section => ({
         : L(`${i + 1}. ${SKILL_NAME[s].en} - tap the block below to read it`, `${i + 1}. ${SKILL_NAME[s].ru} - нажми на блок ниже, чтобы прочитать`))),
 });
 
-export const answerLine = (p: Problem): L10n => {
+// the right answer alone (1,234 or the chosen option), for the report of her answers
+export const answerText = (p: Problem): L10n => {
     const a = p.answer;
-    if (a.kind === 'number') return L(`Answer: ${fmt(a.value, 'en')}`, `Ответ: ${fmt(a.value, 'ru')}`);
-    if (a.kind === 'remainder') return L(`Answer: ${fmt(a.q, 'en')} R ${a.r}`, `Ответ: ${fmt(a.q, 'ru')} (остаток ${a.r})`);
+    if (a.kind === 'number') return L(fmt(a.value, 'en'), fmt(a.value, 'ru'));
+    if (a.kind === 'remainder') return L(`${fmt(a.q, 'en')} R ${a.r}`, `${fmt(a.q, 'ru')} (остаток ${a.r})`);
     // a worksheet: the last blank is the final product
-    if (a.kind === 'fill') return L(`Answer: ${fmt(a.values[a.values.length - 1], 'en')}`, `Ответ: ${fmt(a.values[a.values.length - 1], 'ru')}`);
-    if (a.kind === 'multi') return L(`Answer: ${a.correct.map(i => a.options[i].en).join('; ')}`, `Ответ: ${a.correct.map(i => a.options[i].ru).join('; ')}`);
-    if (a.kind === 'word') return L(`Answer: ${a.word}`, `Ответ: ${a.word}`);
+    if (a.kind === 'fill') return L(fmt(a.values[a.values.length - 1], 'en'), fmt(a.values[a.values.length - 1], 'ru'));
+    if (a.kind === 'multi') return L(a.correct.map(i => a.options[i].en).join('; '), a.correct.map(i => a.options[i].ru).join('; '));
+    if (a.kind === 'word') return L(a.word, a.word);
     const o = a.options[a.correct];
-    return L(`Answer: ${o.en}`, `Ответ: ${o.ru}`);
+    return L(o.en, o.ru);
+};
+
+export const answerLine = (p: Problem): L10n => {
+    const a = answerText(p);
+    return L(`Answer: ${a.en}`, `Ответ: ${a.ru}`);
 };
 
 export const buildTheory = (skill: SkillId, rng: Rng, failed?: Problem): Theory => {

@@ -2,9 +2,9 @@
 import * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { type FillAnswer, type FillPart, type Given, type L10n, type Lang, type Problem, type SkillId, type Topic, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
+import { type FillAnswer, type FillPart, type Given, type L10n, type Lang, type Problem, type SkillId, type Topic, L, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
 import {
-    type GameState, ALL_SKILLS, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, currentHomework, dailyGoal, testPlan, dayOf, fixRework, grade, hintOpen, kindOf, logMistake, missedRework, reworkDue, startedRework, newState, nextProblem, prepPicks, totalTime,
+    type GameState, type HistoryFrom, ALL_SKILLS, HISTORY_MAX, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, currentHomework, dailyGoal, testPlan, dayOf, fixRework, grade, hintOpen, kindOf, logMistake, missedRework, reworkDue, startedRework, newState, nextProblem, prepPicks, totalTime,
 } from './engine/game';
 import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
 import { QUIZ_PASS, buildQuiz } from './engine/quiz';
@@ -12,6 +12,8 @@ import { CHAPTERS, STARS_PER_CHAPTER } from './engine/story';
 import { type Section, type Theory, answerLine, buildTheory } from './engine/theory';
 import { type ReworkItem, reworkId, reworkQueue, reworkSkill, reworkTheory } from './engine/mistakes';
 import { safeDiagnose } from './engine/diagnose';
+import { type Period, type SkillRow, PERIODS, activeSkills, dayRows, itemsOf, skillRows, summarize, testsOf } from './engine/progress';
+import { kindName } from './engine/kinds';
 import { VisualView } from './ui/Boards';
 import { Guide, Lina, Pip } from './ui/Buddy';
 import { FIRST_SET, PAINTINGS, PaintingView, openPaintings } from './ui/Paintings';
@@ -34,6 +36,10 @@ const UI = {
         time: 'Time', practiceMistakes: 'Practice my mistakes', back: 'Back', locked: 'Opens at', chapter: 'Chapter', read: 'Read', language: 'Language', theme: 'Theme',
         sound: 'Sound', reset: 'Reset all progress', resetConfirm: 'Really delete all stars and progress?', parents: 'For Mom and Dad', minutes: 'min', goal: 'Daily goal', goalShort: 'Goal', goalPrep: 'Goal: this week\'s homework', goalPrepSub: 'Right answers for every kind of task of the homework, three each on the day it was given, plus the old skills due for a review', goalReview: 'Review day: old material', goalReviewSub: (n: number) => `No new homework today. ${n} right answers, the old skills due for a review first`, goalSub: (n: number) => `${n} right answers today`, goalDone: 'Goal done! Extra practice makes you even stronger',
         balance: 'Learning time', target: 'goal', skill: 'Skill', solved: 'Solved', reads: 'Theory', quizzes: 'Quizzes', review: 'Review', reviewToday: 'today', reviewEvery: (n: number) => `every ${n} ${n === 1 ? 'day' : 'days'}`, tests: 'Practice tests', noTests: 'No tests yet',
+        period: { today: 'Today', week: '7 days', all: 'All time' } as Record<string, string>, repTasks: 'Tasks', repRight: 'Right', repWrong: 'Wrong', repHints: 'Hints', repDays: 'Days', repLogNote: (n: number) => `The log keeps the last ${n} tasks`,
+        repSkills: 'What she can solve', repSkillsSub: 'Tap a skill to see every kind of its tasks: how often it was asked, how it went and which were never asked', repAsked: 'asked', repNotAsked: 'not asked yet', repNeed: 'homework today', repLast: 'last', repFailed: 'failed, theory first', repWeak: 'needs work', repGood: 'solid', repFew: 'too early to tell',
+        repNotStarted: (n: number) => `${n} more skills were not touched in this period`, repNoTasks: 'No tasks in this period yet', repLog: 'Task log', repOnlyWrong: 'Only mistakes', repAll: 'All tasks', repMore: 'Show more', repOld: 'the task itself was not saved before this update',
+        repByDay: 'By day', repTest: 'test', repFrom: { play: 'play', homework: 'homework', rework: 'rework', test: 'test' } as Record<string, string>, repSec: 's',
         painting: 'Magic painting', finished: 'Finished paintings', newPainting: 'Your painting is finished! A new one is waiting.', light: 'Light', dark: 'Dark', system: 'Auto',
         on: 'On', off: 'Off', yourAnswer: 'Your answer', rightAnswer: 'Right answer', starsWord: 'stars', reviewFirst: 'Let\'s look at the theory for this one first, then you will crush it!',
         testIntro: 'Like a real test: no hints, answer every task, the results come at the end. Ready?', theoryFor: 'Theory', skipTheory: 'Back to the task', paintingHelp: 'Every 2 stars paint one more part of the picture. When it is finished, you choose the next one.',
@@ -83,6 +89,10 @@ const UI = {
         time: 'Время', practiceMistakes: 'Потренировать ошибки', back: 'Назад', locked: 'Откроется при', chapter: 'Глава', read: 'Читать', language: 'Язык', theme: 'Тема',
         sound: 'Звук', reset: 'Сбросить весь прогресс', resetConfirm: 'Точно удалить все звёзды и прогресс?', parents: 'Для мамы и папы', minutes: 'мин', goal: 'Цель на день', goalShort: 'Цель', goalPrep: 'Цель: домашка этой недели', goalPrepSub: 'Верные ответы на каждый вид заданий из домашки, по три в день, когда её задали, плюс старые навыки, которым пора повториться', goalReview: 'День повторения: старое', goalReviewSub: (n: number) => `Сегодня нет новой домашки. ${n} верных ответов, сначала старые навыки, которым пора повториться`, goalSub: (n: number) => `${n} верных ответов за день`, goalDone: 'Цель выполнена! Дополнительная практика сделает тебя ещё сильнее',
         balance: 'Время учёбы', target: 'цель', skill: 'Навык', solved: 'Решено', reads: 'Теория', quizzes: 'Викторины', review: 'Повтор', reviewToday: 'сегодня', reviewEvery: (n: number) => `раз в ${n} ${n === 1 ? 'день' : n < 5 ? 'дня' : 'дней'}`, tests: 'Пробные тесты', noTests: 'Тестов пока нет',
+        period: { today: 'Сегодня', week: '7 дней', all: 'Всё время' } as Record<string, string>, repTasks: 'Заданий', repRight: 'Верно', repWrong: 'Ошибок', repHints: 'Подсказок', repDays: 'Дней', repLogNote: (n: number) => `Журнал хранит последние ${n} заданий`,
+        repSkills: 'Что она умеет решать', repSkillsSub: 'Нажми на навык: все виды его заданий, сколько раз спрашивали, как получилось и какие ни разу не попадались', repAsked: 'спрошено', repNotAsked: 'ещё не спрашивали', repNeed: 'домашка сегодня', repLast: 'последний', repFailed: 'ошибка, сначала теория', repWeak: 'надо подтянуть', repGood: 'уверенно', repFew: 'рано судить',
+        repNotStarted: (n: number) => `Ещё ${n} навыков в этот период не трогали`, repNoTasks: 'В этот период заданий ещё не было', repLog: 'Журнал заданий', repOnlyWrong: 'Только ошибки', repAll: 'Все задания', repMore: 'Показать ещё', repOld: 'само задание до этого обновления не сохранялось',
+        repByDay: 'По дням', repTest: 'тест', repFrom: { play: 'игра', homework: 'домашка', rework: 'работа над ошибками', test: 'тест' } as Record<string, string>, repSec: 'с',
         painting: 'Волшебная картина', finished: 'Готовые картины', newPainting: 'Картина готова! Тебя ждёт новая.', light: 'Светлая', dark: 'Тёмная', system: 'Авто',
         on: 'Вкл', off: 'Выкл', yourAnswer: 'Твой ответ', rightAnswer: 'Правильный ответ', starsWord: 'звёзд', reviewFirst: 'Давай сначала заглянем в теорию к этому заданию, и всё получится!',
         testIntro: 'Как настоящий тест: без подсказок, ответь на все задания, результаты в конце. Готова?', theoryFor: 'Теория', skipTheory: 'Вернуться к заданию', paintingHelp: 'Каждые 2 звезды раскрашивают ещё кусочек картины. Когда картина готова, ты выбираешь следующую.',
@@ -773,7 +783,8 @@ export const App: React.FC = () => {
     const submit = (given: Given) => {
         if (!problem) return;
         const ok = sameAnswer(problem.answer, given);
-        const { state, stars } = applyAnswer(g, problem, ok, { firstTry: !attempt.afterLearn, hint: attempt.hint, sec: (Date.now() - attempt.start) / 1000, day: today() });
+        const from: HistoryFrom = focus === 'free' ? 'play' : focus === 'prep' ? 'homework' : 'rework';
+        const { state, stars } = applyAnswer(g, problem, ok, { firstTry: !attempt.afterLearn, hint: attempt.hint, sec: (Date.now() - attempt.start) / 1000, day: today(), given: givenL10n(problem, given), from });
         let next = paint(state, stars);
         // every wrong answer goes to the rework list; a right answer while reworking fixes that mistake
         if (!ok && focus !== 'rework') next = logMistake(next, problem, givenText(problem, given, lang), Date.now(), given);
@@ -820,7 +831,7 @@ export const App: React.FC = () => {
         if (test.idx + 1 < test.problems.length) { setTest({ ...test, given: all, idx: test.idx + 1 }); return; }
         const results = test.problems.map((p, i) => sameAnswer(p.answer, all[i]));
         const sec = (Date.now() - test.start) / 1000;
-        let next = paint(applyTest(g, test.problems, results, sec, today()), results.filter(Boolean).length);
+        let next = paint(applyTest(g, test.problems, results, sec, today(), test.problems.map((p, i) => givenL10n(p, all[i]))), results.filter(Boolean).length);
         test.problems.forEach((p, i) => { if (!results[i]) next = logMistake(next, p, givenText(p, all[i], lang), Date.now(), all[i]); });
         setG(next);
         setTest({ ...test, given: all, results });
@@ -927,6 +938,7 @@ export const App: React.FC = () => {
 const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chaptersOpen: number; onPlay: () => void; onHomework: () => void; onRework: () => void; onTest: () => void; onStory: () => void; onGallery: () => void; onStats: () => void }> = ({ g, t, lang, greeting, chaptersOpen, onPlay, onHomework, onRework, onTest, onStory, onGallery, onStats }) => {
     const toRework = reworkQueue(g.homeworkFixed, g.mistakeLog).length;
     const mins = Math.floor((g.daily[today()] ?? 0) / 60);
+    const todayItems = itemsOf(g, today(), 'today'), todayRight = todayItems.filter(h => h.ok).length, todayWrong = todayItems.length - todayRight;
     // the daily goal is right answers: while a homework is current, every kind of task of it
     const goal = dailyGoal(g, today());
     const hw = currentHomework(g, today());
@@ -950,7 +962,7 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
                     : <button data-testid="daily-test" data-done="false" onClick={onTest} className="w-full rounded-3xl p-4 text-left flex items-center gap-3 bg-amber-100 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 active:scale-[0.98]"><span className="text-3xl">📝</span><span><span className="block font-black text-amber-800 dark:text-amber-200">{t.dailyTodo}</span><span className="block text-xs font-bold text-amber-700/70 dark:text-amber-300/70">{t.dailyTodoSub}</span></span></button>;
             })()}
             <div className="grid grid-cols-2 gap-3">
-                <button data-testid="progress" onClick={onStats} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📊</div><div className="font-black text-lg">{t.progress}</div><div className="text-xs font-bold text-slate-400">{goal.done} / {goal.total} ✓ · {mins} {t.minutes}</div></button>
+                <button data-testid="progress" onClick={onStats} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📊</div><div className="font-black text-lg">{t.progress}</div><div className="text-xs font-bold text-slate-400">{todayRight} ✓ · {todayWrong} ✗ · {mins} {t.minutes}</div></button>
                 <button data-testid="story" onClick={onStory} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📖</div><div className="font-black text-lg">{t.story}</div><div className="text-xs font-bold text-slate-400">{chaptersOpen} / {CHAPTERS.length}</div></button>
                 <button data-testid="gallery" onClick={onGallery} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">🎨</div><div className="font-black text-lg">{t.gallery}</div><div className="text-xs font-bold text-slate-400">{g.painting.done.length} ✓</div></button>
                 <button data-testid="test" onClick={onTest} className={`${card} !p-4 text-left active:scale-[0.98]`}><div className="text-3xl">📝</div><div className="font-black text-lg">{t.test}</div><div className="text-xs font-bold text-slate-400">{t.testSub(testPlan(g, today()).length)}</div></button>
@@ -1066,6 +1078,8 @@ const givenText = (p: Problem, g: Given, lang: Lang) => p.answer.kind === 'fill'
     : p.answer.kind === 'word' ? (g.text || '-')
     : p.answer.kind === 'multi' ? ((g.choices ?? []).map(i => tr((p.answer as { options: L10n[] }).options[i], lang)).join('; ') || '-')
     : p.answer.kind === 'remainder' ? `${g.q ?? '-'} R ${g.r ?? '-'}` : fmt(g.value ?? 0, lang);
+// her answer in both languages, for the task log
+const givenL10n = (p: Problem, g: Given): L10n => L(givenText(p, g, 'en'), givenText(p, g, 'ru'));
 
 const TestResult: React.FC<{ run: TestRun; lang: Lang; t: UIText; onPractice: () => void; onHome: () => void }> = ({ run, lang, t, onPractice, onHome }) => {
     const results = run.results ?? [];
@@ -1097,47 +1111,170 @@ const TestResult: React.FC<{ run: TestRun; lang: Lang; t: UIText; onPractice: ()
     );
 };
 
+// ========================================
+// PROGRESS (for Mom and Dad): what was done today, this week or in all, which kinds of tasks she solves and which she does not
+// ========================================
+const pctOf = (right: number, asked: number) => (asked ? Math.round((right / asked) * 100) : null);
+const pctClass = (pct: number | null) => (pct === null ? 'text-slate-400' : pct >= 80 ? 'text-emerald-600 dark:text-emerald-400' : pct >= 60 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400');
+
 const StatsView: React.FC<{ g: GameState; t: UIText; lang: Lang }> = ({ g, t, lang }) => {
+    const [period, setPeriod] = useState<Period>('today');
+    const [onlyWrong, setOnlyWrong] = useState(false);
+    const [shown, setShown] = useState(30);
+    // skills whose kinds are open; the homework skills start open
+    const [toggled, setToggled] = useState<SkillId[]>([]);
+    const day = today();
+    const loc = lang === 'en' ? 'en-US' : 'ru-RU';
+    const fmtDay = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' });
+    const fmtTime = (ms: number) => new Date(ms).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+    const sum = useMemo(() => summarize(g, day, period), [g, day, period]);
+    const skills = useMemo(() => activeSkills(skillRows(g, day, period)), [g, day, period]);
+    const items = useMemo(() => itemsOf(g, day, period).slice().reverse(), [g, day, period]);
+    const days = useMemo(() => dayRows(g, day, period), [g, day, period]);
+    const tests = useMemo(() => testsOf(g, day, period).slice().reverse(), [g, day, period]);
+    const isOpen = (r: SkillRow) => toggled.includes(r.skill) !== r.planned;
+    const toggle = (sk: SkillId) => setToggled(x => (x.includes(sk) ? x.filter(y => y !== sk) : [...x, sk]));
+    const log = onlyWrong ? items.filter(h => !h.ok) : items;
     const total = totalTime(g) || 1;
-    const week = Object.entries(g.daily).sort().slice(-7);
+    const tile = (icon: string, value: React.ReactNode, label: string, testid: string) => (
+        <div className="bg-slate-50 dark:bg-slate-900/40 rounded-2xl p-2.5 text-center" data-testid={testid}><div className="text-lg md:text-2xl font-black whitespace-nowrap">{icon} {value}</div><div className="text-[10px] md:text-xs uppercase font-extrabold tracking-wider text-slate-400">{label}</div></div>
+    );
+    const status = (r: SkillRow) => {
+        const st = g.skills[r.skill], pct = pctOf(r.right, r.asked);
+        if (st.needsTheory) return <span className="text-rose-600 dark:text-rose-400">🔴 {t.repFailed}</span>;
+        if (r.asked === 0) return <span className="text-slate-400">⚪ {t.repNotAsked}</span>;
+        if (r.asked < 3) return <span className="text-slate-400">⚪ {t.repFew}</span>;
+        if (pct !== null && pct < 70) return <span className="text-amber-600 dark:text-amber-400">🟠 {t.repWeak}</span>;
+        return <span className="text-emerald-600 dark:text-emerald-400">🟢 {t.repGood}</span>;
+    };
+    let lastDay = '';
     return (
         <div className="space-y-4 animate-slide-up" data-testid="stats">
             <div className={card}>
-                <h2 className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mb-3">⏱ {t.balance}</h2>
-                {(['division', 'science', 'estimation'] as Topic[]).map(tp => {
-                    const share = g.time[tp] / total;
+                <div className="flex gap-2 mb-3" data-testid="period">
+                    {PERIODS.map(p => <button key={p} data-testid={`period-${p}`} data-active={String(p === period)} onClick={() => { setPeriod(p); setShown(30); }} className={`${p === period ? primary : secondary} flex-1 min-h-11 py-2 text-sm md:text-base`}>{t.period[p]}</button>)}
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {tile('⏱', sum.minutes, t.minutes, 'sum-minutes')}
+                    {tile('📝', sum.asked, t.repTasks, 'sum-asked')}
+                    {tile('✅', sum.right, t.repRight, 'sum-right')}
+                    {tile('❌', sum.wrong, t.repWrong, 'sum-wrong')}
+                    {tile('💡', sum.hints, t.repHints, 'sum-hints')}
+                    {period === 'today' ? tile('⭐', sum.stars, t.stars, 'sum-stars') : tile('📅', sum.days, t.repDays, 'sum-days')}
+                </div>
+                {period === 'all' && <p className="text-xs font-bold text-slate-400 mt-2">{t.repLogNote(HISTORY_MAX)}</p>}
+            </div>
+
+            <div className={card} data-testid="skills">
+                <h2 className="text-xl font-black text-indigo-600 dark:text-indigo-400">📚 {t.repSkills}</h2>
+                <p className="text-xs font-bold text-slate-400 mb-2">{t.repSkillsSub}</p>
+                {skills.length === 0 && <p className="text-slate-400 font-bold">{t.repNoTasks}</p>}
+                {skills.map(r => {
+                    const pct = pctOf(r.right, r.asked);
                     return (
-                        <div key={tp} className="mb-3">
-                            <div className="flex justify-between font-bold text-sm"><span>{TOPIC_ICON[tp]} {tr(TOPIC_NAME[tp], lang)}</span><span>{Math.round(g.time[tp] / 60)} {t.minutes} · {Math.round(share * 100)}% ({t.target} {TOPIC_TARGET[tp] * 100}%)</span></div>
-                            <div className="relative h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mt-1">
-                                <div className="h-full bg-indigo-500" style={{ width: `${share * 100}%` }} />
-                                <div className="absolute top-0 h-full w-0.5 bg-rose-500" style={{ left: `${TOPIC_TARGET[tp] * 100}%` }} />
-                            </div>
+                        <div key={r.skill} className="border-t border-slate-100 dark:border-slate-700" data-testid="skill-row" data-skill={r.skill} data-open={String(isOpen(r))}>
+                            <button onClick={() => toggle(r.skill)} className="w-full min-h-11 py-2 flex items-center gap-2 text-left">
+                                <span className="text-slate-400 text-xs w-3">{isOpen(r) ? '▾' : '▸'}</span>
+                                <span className="flex-1 font-black">{TOPIC_ICON[TOPIC_OF[r.skill]]} {tr(SKILL_NAME[r.skill], lang)}{r.planned && <span className="ml-1 text-[10px] uppercase font-black text-sky-600 dark:text-sky-300">📚</span>}</span>
+                                <span className="text-xs font-bold whitespace-nowrap"><span className="text-emerald-600 dark:text-emerald-400">✓ {r.right}</span> <span className="text-rose-600 dark:text-rose-400">✗ {r.wrong}</span> <span className={pctClass(pct)}>{pct === null ? '-' : `${pct}%`}</span></span>
+                                <span className="hidden sm:inline text-xs font-bold whitespace-nowrap">{status(r)}</span>
+                            </button>
+                            {isOpen(r) && (
+                                <div className="pb-2 pl-5 space-y-1">
+                                    <div className="sm:hidden text-xs font-bold mb-1">{status(r)}</div>
+                                    {g.skills[r.skill].dueOn && <div className={`text-xs font-bold mb-1 ${g.skills[r.skill].dueOn <= day ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}`}>🔁 {t.review}: {g.skills[r.skill].dueOn <= day ? t.reviewToday : g.skills[r.skill].dueOn.slice(5)} · {t.reviewEvery(g.skills[r.skill].level)}</div>}
+                                    {r.kinds.map(k => {
+                                        const kp = pctOf(k.right, k.asked);
+                                        return (
+                                            <div key={k.kind} className={`flex items-center gap-2 text-sm ${k.asked ? '' : 'opacity-60'}`} data-testid="kind-row" data-kind={k.kind} data-asked={k.asked}>
+                                                <span className="flex-1 font-medium leading-tight">{tr(kindName(r.skill, k.kind), lang)}{k.need > 0 && <span className={`ml-1 text-[10px] font-black ${k.done >= k.need ? 'text-emerald-600' : 'text-sky-600 dark:text-sky-300'}`}>· {t.repNeed} {k.done}/{k.need}</span>}</span>
+                                                {k.asked
+                                                    ? <span className="text-xs font-bold whitespace-nowrap"><span className="text-slate-400">{k.asked} {t.repAsked}</span> <span className="text-emerald-600 dark:text-emerald-400">✓ {k.right}</span> <span className="text-rose-600 dark:text-rose-400">✗ {k.wrong}</span> <span className={pctClass(kp)}>{kp}%</span>{period !== 'today' && <span className="text-slate-400"> · {k.last.slice(5)}</span>}</span>
+                                                    : <span className="text-xs font-bold text-slate-400 whitespace-nowrap">{t.repNotAsked}</span>}
+                                            </div>
+                                        );
+                                    })}
+                                    {r.unknown > 0 && <div className="text-xs font-bold text-slate-400">{r.unknown} · {t.repOld}</div>}
+                                </div>
+                            )}
                         </div>
                     );
                 })}
-                <div className="flex gap-2 items-end h-24 mt-4">
-                    {week.map(([d, s]) => <div key={d} className="flex-1 flex flex-col items-center gap-1"><div className="w-full bg-emerald-400 rounded-t-lg" style={{ height: `${Math.min(80, s / 30)}px` }} /><span className="text-[10px] font-bold text-slate-400">{d.slice(5)}</span></div>)}
+                {skills.length > 0 && skills.length < ALL_SKILLS.length && <p className="text-xs font-bold text-slate-400 mt-2 border-t border-slate-100 dark:border-slate-700 pt-2">{t.repNotStarted(ALL_SKILLS.length - skills.length)}</p>}
+            </div>
+
+            <div className={card} data-testid="log">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                    <h2 className="text-xl font-black text-indigo-600 dark:text-indigo-400">📋 {t.repLog}</h2>
+                    <button data-testid="log-filter" onClick={() => { setOnlyWrong(x => !x); setShown(30); }} className={`${onlyWrong ? primary : secondary} min-h-11 px-3 py-1 text-xs`}>{onlyWrong ? t.repAll : `❌ ${t.repOnlyWrong}`}</button>
                 </div>
+                {log.length === 0 && <p className="text-slate-400 font-bold">{t.repNoTasks}</p>}
+                {log.slice(0, shown).map((h, i) => {
+                    const d = dayOf(new Date(h.t));
+                    const header = d !== lastDay && period !== 'today';
+                    lastDay = d;
+                    return (
+                        <React.Fragment key={`${h.t}:${i}`}>
+                            {header && <div className="font-black text-sm text-slate-500 dark:text-slate-300 mt-3 mb-1">{fmtDay(d)}</div>}
+                            <div className={`border-t border-slate-100 dark:border-slate-700 py-2 ${h.ok ? '' : 'bg-rose-50/60 dark:bg-rose-950/20 -mx-2 px-2 rounded-lg'}`} data-testid="log-item" data-ok={String(h.ok)}>
+                                <div className="flex flex-wrap items-center gap-x-2 text-xs font-bold text-slate-400">
+                                    <span className="text-base">{h.ok ? '✅' : '❌'}</span>
+                                    <span>{fmtTime(h.t)}</span>
+                                    <span className="text-slate-600 dark:text-slate-300">{TOPIC_ICON[TOPIC_OF[h.skill]]} {tr(SKILL_NAME[h.skill], lang)}{h.kind && h.kind !== 'all' ? ` · ${tr(kindName(h.skill, h.kind), lang)}` : ''}</span>
+                                    {h.from && <span className="px-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-[10px] uppercase">{t.repFrom[h.from]}</span>}
+                                    {h.hint && <span>💡</span>}
+                                    {!h.firstTry && <span>🔁</span>}
+                                    <span>{h.sec}{t.repSec}</span>
+                                </div>
+                                {h.prompt ? <div className="whitespace-pre-line text-sm md:text-base font-medium leading-snug mt-1">{tr(h.prompt, lang)}</div> : <div className="text-xs font-bold text-slate-400 mt-1">{t.repOld}</div>}
+                                {!h.ok && h.given && <div className="text-sm font-black text-rose-600 dark:text-rose-400 mt-1">{t.yourAnswer}: {tr(h.given, lang)}</div>}
+                                {h.answer && <div className={`text-sm font-black mt-0.5 ${h.ok ? 'text-slate-500 dark:text-slate-400' : 'text-emerald-700 dark:text-emerald-300'}`}>{t.rightAnswer}: {tr(h.answer, lang)}</div>}
+                            </div>
+                        </React.Fragment>
+                    );
+                })}
+                {log.length > shown && <button data-testid="log-more" onClick={() => setShown(n => n + 50)} className={`${secondary} w-full min-h-11 py-2 mt-2 text-sm`}>{t.repMore} ({log.length - shown})</button>}
             </div>
-            <div className={`${card} overflow-x-auto`}>
-                <table className="w-full text-sm">
-                    <thead><tr className="text-left text-slate-400 text-xs uppercase"><th className="py-1">{t.skill}</th><th className="px-1">{t.solved}</th><th className="px-1">✓</th><th className="hidden sm:table-cell px-1">{t.reads}</th><th className="hidden sm:table-cell px-1">{t.quizzes}</th><th className="px-1">🔁 {t.review}</th></tr></thead>
-                    <tbody>
-                        {ALL_SKILLS.map(s => {
-                            const st = g.skills[s];
-                            const acc = st.seen ? Math.round((st.correct / st.seen) * 100) : null;
-                            return <tr key={s} className="border-t border-slate-100 dark:border-slate-700"><td className="py-1.5 font-bold break-words pr-1">{TOPIC_ICON[TOPIC_OF[s]]} {tr(SKILL_NAME[s], lang)}</td><td className="px-1">{st.correct}/{st.seen}</td><td className={acc === null ? '' : acc >= 80 ? 'text-emerald-600 font-black' : acc >= 60 ? 'text-amber-600 font-black' : 'text-rose-600 font-black'}>{acc === null ? '-' : `${acc}%`}</td><td className="hidden sm:table-cell px-1">{st.theoryReads}</td><td className="hidden sm:table-cell px-1">{st.quizPasses}</td><td className={`px-1 text-xs font-bold ${st.dueOn && st.dueOn <= today() ? 'text-rose-600' : 'text-slate-400'}`}>{st.dueOn ? `${st.dueOn <= today() ? t.reviewToday : st.dueOn.slice(5)} · ${t.reviewEvery(st.level)}` : '-'}</td></tr>;
-                        })}
-                    </tbody>
-                </table>
-            </div>
-            <div className={card}>
+
+            {period !== 'today' && (
+                <div className={`${card} overflow-x-auto`} data-testid="days">
+                    <h2 className="text-xl font-black text-indigo-600 dark:text-indigo-400 mb-2">📆 {t.repByDay}</h2>
+                    <table className="w-full text-sm">
+                        <thead><tr className="text-left text-slate-400 text-xs uppercase"><th className="py-1">{t.repDays}</th><th className="px-1 text-right">⏱ {t.minutes}</th><th className="px-1 text-right">📝</th><th className="px-1 text-right">✅</th><th className="px-1 text-right">❌</th><th className="px-1 text-right">%</th><th className="px-1 text-right">📝 {t.repTest}</th></tr></thead>
+                        <tbody>
+                            {days.map(r => { const pct = pctOf(r.right, r.asked); return <tr key={r.day} className="border-t border-slate-100 dark:border-slate-700 font-bold" data-testid="day-row" data-day={r.day}><td className="py-1.5">{fmtDay(r.day)}</td><td className="px-1 text-right">{r.minutes}</td><td className="px-1 text-right">{r.asked}</td><td className="px-1 text-right text-emerald-600 dark:text-emerald-400">{r.right}</td><td className="px-1 text-right text-rose-600 dark:text-rose-400">{r.wrong}</td><td className={`px-1 text-right ${pctClass(pct)}`}>{pct === null ? '-' : pct}</td><td className="px-1 text-right">{r.tests.map(x => `${x.score}/${x.total}`).join(', ') || '-'}</td></tr>; })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            <div className={card} data-testid="tests">
                 <h2 className="text-xl font-black mb-2">📝 {t.tests}</h2>
-                {g.tests.length === 0 ? <p className="text-slate-400 font-bold">{t.noTests}</p> : g.tests.slice().reverse().map((x, i) => (
-                    <div key={i} className="flex justify-between font-bold border-t border-slate-100 dark:border-slate-700 py-1.5"><span>{new Date(x.t).toLocaleDateString(lang === 'en' ? 'en-US' : 'ru-RU')}</span><span>{x.score}/{x.total} · {grade(x.score, x.total)}</span></div>
+                {tests.length === 0 ? <p className="text-slate-400 font-bold">{t.noTests}</p> : tests.map((x, i) => (
+                    <div key={i} className="border-t border-slate-100 dark:border-slate-700 py-1.5">
+                        <div className="flex justify-between font-bold"><span>{fmtDay(dayOf(new Date(x.t)))} {fmtTime(x.t)} · {Math.round(x.sec / 60)} {t.minutes}</span><span className={pctClass(pctOf(x.score, x.total))}>{x.score}/{x.total} · {grade(x.score, x.total)}</span></div>
+                        {x.wrong.length > 0 && <div className="text-xs font-bold text-rose-600 dark:text-rose-400">❌ {Array.from(new Set(x.wrong)).map(sk => tr(SKILL_NAME[sk], lang)).join(', ')}</div>}
+                    </div>
                 ))}
             </div>
+
+            {period === 'all' && (
+                <div className={card}>
+                    <h2 className="text-xl font-black text-indigo-600 dark:text-indigo-400 mb-3">⏱ {t.balance}</h2>
+                    {(['division', 'science', 'estimation'] as Topic[]).map(tp => {
+                        const share = g.time[tp] / total;
+                        return (
+                            <div key={tp} className="mb-3">
+                                <div className="flex justify-between font-bold text-sm"><span>{TOPIC_ICON[tp]} {tr(TOPIC_NAME[tp], lang)}</span><span>{Math.round(g.time[tp] / 60)} {t.minutes} · {Math.round(share * 100)}% ({t.target} {TOPIC_TARGET[tp] * 100}%)</span></div>
+                                <div className="relative h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mt-1">
+                                    <div className="h-full bg-indigo-500" style={{ width: `${share * 100}%` }} />
+                                    <div className="absolute top-0 h-full w-0.5 bg-rose-500" style={{ left: `${TOPIC_TARGET[tp] * 100}%` }} />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 };
