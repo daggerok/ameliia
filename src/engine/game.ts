@@ -4,6 +4,7 @@ import { forceKind } from './forces';
 import { makeFreshProblem } from '.';
 import { type LoggedMistake, type ReworkItem, reworkId } from './mistakes';
 import { IDEA_KIND } from './science';
+import { answerText } from './theory';
 import { KINDS_4_2 } from './topic4';
 
 export type SkillStat = {
@@ -19,7 +20,15 @@ export type SkillStat = {
     bumpedOn: string;       // the day the level was last raised, so the day's goal keeps the row after she did it
 };
 
-export type HistoryItem = { t: number; skill: SkillId; ok: boolean; firstTry: boolean; hint: boolean; sec: number };
+// where a task came from: free play, the homework button, the rework of a mistake or a practice test
+export type HistoryFrom = 'play' | 'homework' | 'rework' | 'test';
+export type HistoryItem = {
+    t: number; skill: SkillId; ok: boolean; firstTry: boolean; hint: boolean; sec: number;
+    // since 2026-10-26 the task itself, so Progress shows what was asked, what she wrote and the right answer (older items carry none)
+    id?: string; kind?: string; from?: HistoryFrom; prompt?: L10n; given?: L10n; answer?: L10n;
+};
+// the log keeps this many tasks (about three weeks of practice)
+export const HISTORY_MAX = 1000;
 export type TestResult = { t: number; score: number; total: number; sec: number; wrong: SkillId[] };
 
 export type GameState = {
@@ -363,7 +372,7 @@ export const missedRework = (prev: GameState, item: ReworkItem): GameState => it
 export const starsFor = (firstTry: boolean, hint: boolean) => (firstTry ? (hint ? 2 : 3) : 1);
 
 // Pure update after an answer; returns how many stars were earned
-export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { firstTry: boolean; hint: boolean; sec: number; day?: string }): { state: GameState; stars: number } => {
+export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { firstTry: boolean; hint: boolean; sec: number; day?: string; given?: L10n; from?: HistoryFrom }): { state: GameState; stars: number } => {
     const state: GameState = structuredClone(prev);
     const st = state.skills[p.skill];
     if (st.reviewPending && st.reviewIn === 0) st.reviewPending = false;
@@ -389,7 +398,7 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
         state.streak = 0;
         if (opts.day) reviewWrong(st, opts.day);
     }
-    state.history = [...state.history, { t: Date.now(), skill: p.skill, ok, firstTry: opts.firstTry, hint: opts.hint, sec: Math.round(opts.sec) }].slice(-600);
+    state.history = [...state.history, { t: Date.now(), skill: p.skill, ok, firstTry: opts.firstTry, hint: opts.hint, sec: Math.round(opts.sec), id: p.id, kind: kindOf(p), from: opts.from ?? 'play', prompt: p.prompt, given: opts.given, answer: answerText(p) }].slice(-HISTORY_MAX);
     return { state, stars };
 };
 
@@ -458,7 +467,7 @@ export const buildTest = (state: GameState, rng: Rng, day?: string): Problem[] =
     return out;
 };
 
-export const applyTest = (prev: GameState, problems: Problem[], results: boolean[], sec: number, day?: string): GameState => {
+export const applyTest = (prev: GameState, problems: Problem[], results: boolean[], sec: number, day?: string, given?: L10n[]): GameState => {
     const state = structuredClone(prev);
     if (day) problems.forEach((p, i) => { if (results[i]) { countRight(state, day, p.skill, 1, kindOf(p)); reviewRight(state.skills[p.skill], day); } });
     const wrong = problems.filter((_, i) => !results[i]).map(p => p.skill);
@@ -467,6 +476,9 @@ export const applyTest = (prev: GameState, problems: Problem[], results: boolean
     wrong.forEach(s => { state.skills[s].needsTheory = true; state.skills[s].rightStreak = 0; if (day) reviewWrong(state.skills[s], day); });
     const score = results.filter(Boolean).length;
     state.tests = [...state.tests, { t: Date.now(), score, total: problems.length, sec: Math.round(sec), wrong }].slice(-50);
+    // every test answer goes to the log too, with the time of the whole test shared out
+    const t = Date.now(), per = Math.round(sec / Math.max(1, problems.length));
+    state.history = [...state.history, ...problems.map((p, i): HistoryItem => ({ t, skill: p.skill, ok: results[i], firstTry: true, hint: false, sec: per, id: p.id, kind: kindOf(p), from: 'test', prompt: p.prompt, given: given?.[i], answer: answerText(p) }))].slice(-HISTORY_MAX);
     state.stars += score;
     // test answers count in the Correct % too
     state.answered += problems.length;
