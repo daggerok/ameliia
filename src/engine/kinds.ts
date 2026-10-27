@@ -1,6 +1,7 @@
 /// <reference lib="esnext" />
 import { type L10n, type SkillId, L } from './core';
 import { KINDS_4_2 } from './topic4';
+import { KINDS_4_3 } from './topic4est';
 
 // Every kind of task a skill can ask (the `kind` of `kindOf` in game.ts), with a short name for the Progress screen,
 // so the report shows which kinds she has solved, which she gets wrong and which were never asked at all.
@@ -83,9 +84,21 @@ const NAMES: Partial<Record<SkillId, Record<string, L10n>>> = {
         two: L('The dentist\'s boxes: two products', 'Коробки стоматолога: два произведения'),
         compare: L('Which product is greater', 'Какое произведение больше'),
     },
+    'est-2x2': {
+        guided: L('23 × 12: 23 is close to 25, 12 is close to __', '23 × 12: 23 близко к 25, 12 близко к __'),
+        round: L('Estimate each product by rounding', 'Прикинь произведение округлением'),
+        ways: L('More than one way to estimate (select all)', 'Несколько способов прикидки (выбери все)'),
+        story: L('Bathtub every day for 31 days', 'Ванна каждый день 31 день'),
+        weeks: L('Gadgets a day, 7 days a week, 4 weeks', 'Гаджеты в день, 7 дней в неделю, 4 недели'),
+        vocab: L('Vocabulary: compatible numbers', 'Словарь: удобные числа'),
+        sense: L('Nathan: greater or less than the actual product', 'Натан: больше или меньше точного произведения'),
+        think: L('Rounding or compatible numbers?', 'Округление или удобные числа?'),
+        box: L('Tour guide: numbers from the box', 'Экскурсовод: числа из рамки'),
+    },
 };
 
 export const KINDS_OF = (skill: SkillId): string[] => Object.keys(NAMES[skill] ?? { all: 0 });
 export const kindName = (skill: SkillId, kind: string): L10n => NAMES[skill]?.[kind] ?? (kind === 'all' ? L('All tasks', 'Все задания') : L(kind, kind));
 // keeps the registry and the generator in step: every kind of Lesson 4-2 must have a name
 export const LESSON_4_2_KINDS: readonly string[] = KINDS_4_2;
+export const LESSON_4_3_KINDS: readonly string[] = KINDS_4_3;

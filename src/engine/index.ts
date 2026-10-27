@@ -8,6 +8,7 @@ import { makeScienceWords } from './scienceWords';
 import { makeStrategy } from './strategies';
 import { makeTopic3 } from './topic3';
 import { makeTopic4 } from './topic4';
+import { makeTopic4Est } from './topic4est';
 import { makeWordProblem } from './wordproblems';
 
 // kind: a kind of task inside the skill (a style like "partials" or "map"); skills with one kind ignore it
@@ -19,6 +20,7 @@ export const makeProblem = (skill: SkillId, rng: Rng, kind?: string): Problem =>
     if (topic === 'science') return makeScience(rng, skill, kind);
     if (skill === 'mult-tens' || skill === 'mult-mental' || skill === 'mult-expr' || skill === 'mult-word') return makeTopic3(rng, skill, kind);
     if (skill === 'mult-2x10') return makeTopic4(rng, kind);
+    if (skill === 'est-2x2') return makeTopic4Est(rng, kind);
     if (skill.startsWith('mult-')) return makeStrategy(rng, skill);
     if (skill === 'compare' || skill === 'word-steps') return makeWordProblem(rng, skill);
     return makeEstimation(rng, skill, kind);
