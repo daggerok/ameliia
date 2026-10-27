@@ -529,11 +529,62 @@ const topic4Builders: Record<'mult-2x10', (rng: Rng) => { hook: L10n[]; sections
     },
 };
 
+// ---------- Topic 4, Lesson 4-3: estimate a product with rounding or compatible numbers ----------
+
+const topic4EstBuilders: Record<'est-2x2', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'est-2x2': rng => {
+        const c = pick(rng, [25, 75]), a = c + pick(rng, [-2, -1, 1, 2]), b = 10 * int(rng, 2, 8) + pick(rng, [1, 2, 3, 4, 6, 7, 8, 9]);
+        const ra = roundTo(a, 10), rb = roundTo(b, 10);
+        const n = (x: number, lang: 'en' | 'ru') => fmt(x, lang);
+        return {
+            hook: [
+                L('A roller coaster has 38 seats and runs 24 times each hour. About how many people can ride each hour? Nobody needs the exact number: 25 × 40 = 1,000, about a thousand!',
+                    'В американских горках 38 мест, и они едут 24 раза в час. Примерно сколько людей прокатится за час? Точное число никому не нужно: 25 × 40 = 1 000, около тысячи!'),
+                L(`Pip wants to know if ${a} bags of ${b} carrots fit in the barn. He does not count every carrot: he estimates, ${c} × ${rb} = ${n(c * rb, 'en')}.`,
+                    `Пип хочет узнать, поместятся ли в сарай ${a} ${ruPlural(a, 'мешок', 'мешка', 'мешков')} по ${b} ${ruPlural(b, 'морковке', 'морковки', 'морковок')}. Он не считает каждую морковку, а прикидывает: ${c} × ${rb} = ${n(c * rb, 'ru')}.`),
+            ],
+            sections: [
+                { kind: 'idea', title: T.idea, body: [
+                    L('"About how many" asks for an estimate: a number close to the exact answer that you can find in your head.', '«Примерно сколько» просит прикидку: число рядом с точным ответом, которое можно найти в уме.'),
+                    L('Two ways to get easy numbers: ROUND each number to the nearest ten (38 → 40), or use COMPATIBLE NUMBERS, numbers close to the real ones that are easy to multiply mentally (24 → 25).',
+                        'Два способа получить лёгкие числа: ОКРУГЛИТЬ каждое число до десятков (38 → 40) или взять УДОБНЫЕ ЧИСЛА, числа рядом с настоящими, которые легко перемножить в уме (24 → 25).'),
+                    L('There is more than one way to estimate a product. Both ways are right when the estimate is close to the exact product.', 'Прикинуть произведение можно по-разному. Оба способа верны, если прикидка близка к точному произведению.'),
+                ] },
+                { kind: 'steps', title: T.how, body: [
+                    L(`1. Look at the numbers: ${a} × ${b}.`, `1. Посмотри на числа: ${a} × ${b}.`),
+                    L(`2. Rounding: ${a} → ${ra}, ${b} → ${rb}. Multiply the front digits and write two zeros: ${ra / 10} × ${rb / 10} = ${(ra / 10) * (rb / 10)}, ${ra} × ${rb} = ${n(ra * rb, 'en')}.`,
+                        `2. Округление: ${a} → ${ra}, ${b} → ${rb}. Перемножь цифры без нулей и допиши два нуля: ${ra / 10} × ${rb / 10} = ${(ra / 10) * (rb / 10)}, ${ra} × ${rb} = ${n(ra * rb, 'ru')}.`),
+                    L(`3. Compatible numbers: ${a} is close to ${c}. ${c} × 4 = ${c * 4}, so ${c} × ${rb} = ${n(c * rb, 'en')}.`, `3. Удобные числа: ${a} близко к ${c}. ${c} × 4 = ${c * 4}, значит ${c} × ${rb} = ${n(c * rb, 'ru')}.`),
+                    L(`4. Compare with the exact product: ${a} × ${b} = ${n(a * b, 'en')}. Both estimates are close.`, `4. Сравни с точным произведением: ${a} × ${b} = ${n(a * b, 'ru')}. Обе прикидки близко.`),
+                ] },
+                { kind: 'example', title: L('Another Look: the roller coaster', 'Ещё раз: американские горки'), prompt: L('38 seats, 24 rides each hour. About how many people ride each hour?', '38 мест, 24 поездки в час. Примерно сколько людей катается за час?'), body: [
+                    L('24 is close to 25. 38 is close to 40.', '24 близко к 25. 38 близко к 40.'),
+                    L('25 × 40 = 1,000', '25 × 40 = 1 000'),
+                    L('About 1,000 people can ride the roller coaster each hour.', 'Примерно 1 000 человек может прокатиться за час.'),
+                ] },
+                { kind: 'example', title: L('Greater or less than the actual product?', 'Больше или меньше точного произведения?'), prompt: L('67 × 36 estimated as 70 × 40', '67 × 36 прикинули как 70 × 40'), body: [
+                    L('67 → 70 and 36 → 40: both numbers went up.', '67 → 70 и 36 → 40: оба числа стали больше.'),
+                    L('Bigger factors make a bigger product, so 70 × 40 = 2,800 is greater than 67 × 36 = 2,412.', 'Большие множители дают большее произведение, значит 70 × 40 = 2 800 больше, чем 67 × 36 = 2 412.'),
+                    L('Both rounded down, like 61 × 32 → 60 × 30 = 1,800: the estimate is less than 61 × 32 = 1,952.', 'Оба округлены вниз, например 61 × 32 → 60 × 30 = 1 800: прикидка меньше, чем 61 × 32 = 1 952.'),
+                ] },
+                { kind: 'warn', title: T.warn, body: [
+                    L(`Count the zeros: ${ra} × ${rb} has two zeros, so it is ${n(ra * rb, 'en')}, not ${(ra / 10) * (rb / 10)} or ${n((ra * rb) / 10, 'en')}.`, `Считай нули: в ${ra} × ${rb} два нуля, значит это ${n(ra * rb, 'ru')}, а не ${(ra / 10) * (rb / 10)} и не ${n((ra * rb) / 10, 'ru')}.`),
+                    L('Weeks first: 45 a day for 4 weeks is 45 × 28 (4 × 7 = 28 days), about 50 × 30 = 1,500.', 'Сначала недели: 45 в день за 4 недели - это 45 × 28 (4 × 7 = 28 дней), примерно 50 × 30 = 1 500.'),
+                ] },
+                { kind: 'trick', title: T.trick, body: [
+                    L('Quarters help: 25 × 4 = 100, so 25 × 40 = 1,000 and 25 × 80 = 2,000. 75 is three quarters: 75 × 4 = 300.', 'Помогают четвертаки: 25 × 4 = 100, значит 25 × 40 = 1 000 и 25 × 80 = 2 000. 75 - это три четвертака: 75 × 4 = 300.'),
+                ] },
+            ],
+        };
+    },
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
     ...strategyBuilders,
     ...wordBuilders,
     ...topic3Builders,
     ...topic4Builders,
+    ...topic4EstBuilders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
         const skip = Array.from({ length: q }, (_, i) => (i + 1) * d);
@@ -922,6 +973,7 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'compare': ['div-facts'], 'word-steps': ['mult-standard', 'round'],
     'sci-words': [], 'mult-mental': ['mult-tens', 'mult-dist'], 'mult-expr': ['mult-dist', 'mult-partial'], 'mult-word': ['compare', 'mult-standard'],
     'mult-2x10': ['mult-tens', 'mult-area'],
+    'est-2x2': ['est-product'],
 };
 
 // every building block in learning order: a skill comes after everything it needs

@@ -13,7 +13,7 @@ export type SkillId =
     | 'mult-area' | 'mult-dist' | 'mult-partial' | 'mult-standard'
     | 'compare' | 'word-steps'
     | 'mult-tens' | 'mult-mental' | 'mult-expr' | 'mult-word'
-    | 'mult-2x10';
+    | 'mult-2x10' | 'est-2x2';
 
 export type Answer =
     | { kind: 'number'; value: number }
@@ -155,14 +155,14 @@ export const TOPIC_OF: Record<SkillId, Topic> = {
     'mult-area': 'estimation', 'mult-dist': 'estimation', 'mult-partial': 'estimation', 'mult-standard': 'estimation',
     'compare': 'estimation', 'word-steps': 'estimation',
     'mult-tens': 'estimation', 'mult-mental': 'estimation', 'mult-expr': 'estimation', 'mult-word': 'estimation',
-    'mult-2x10': 'estimation',
+    'mult-2x10': 'estimation', 'est-2x2': 'estimation',
 };
 
 export const SKILLS_OF: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
     science: ['speed-basic', 'speed-find', 'speed-trip', 'speed-units', 'motion-ideas', 'forces', 'sci-words'],
     estimation: ['round', 'est-sum', 'est-product', 'multiply', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard', 'compare', 'word-steps',
-        'mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10'],
+        'mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2'],
 };
 
 // share of learning time the owner asked for
@@ -199,6 +199,7 @@ export const SKILL_NAME: Record<SkillId, L10n> = {
     'mult-expr': L('Which expressions match', 'Какие выражения подходят'),
     'mult-word': L('Multiplication word problems and bar diagrams', 'Задачи на умножение и схемы из полосок'),
     'mult-2x10': L('2-digit numbers × multiples of 10', 'Двузначные × круглые десятки'),
+    'est-2x2': L('Estimate products: rounding or compatible numbers', 'Прикидка произведения: округление или удобные числа'),
 };
 
 export const TOPIC_NAME: Record<Topic, L10n> = {
