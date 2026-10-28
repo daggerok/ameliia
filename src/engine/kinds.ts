@@ -1,6 +1,7 @@
 /// <reference lib="esnext" />
 import { type L10n, type SkillId, L } from './core';
 import { KINDS_4_2 } from './topic4';
+import { KINDS_4_4 } from './topic4arr';
 import { KINDS_4_3 } from './topic4est';
 
 // Every kind of task a skill can ask (the `kind` of `kindOf` in game.ts), with a short name for the Progress screen,
@@ -95,6 +96,14 @@ const NAMES: Partial<Record<SkillId, Record<string, L10n>>> = {
         think: L('Rounding or compatible numbers?', 'Округление или удобные числа?'),
         box: L('Tour guide: numbers from the box', 'Экскурсовод: числа из рамки'),
     },
+    'mult-2x2': {
+        array: L('12 × 24 as an array: four partial products', '12 × 24 массивом: четыре частичных произведения'),
+        hours: L('Barb: hours each week for 14 weeks', 'Барб: часы в неделю за 14 недель'),
+        reason: L('Teri: is the answer reasonable?', 'Тери: ответ разумный?'),
+        sales: L('Nolan\'s store: total sales of two kinds of boxes', 'Магазин Нолана: выручка за два вида коробок'),
+        missing: L('Insert the missing partial products', 'Впиши пропущенные частичные произведения'),
+        factor: L('Insert the missing factor', 'Впиши пропущенный множитель'),
+    },
 };
 
 export const KINDS_OF = (skill: SkillId): string[] => Object.keys(NAMES[skill] ?? { all: 0 });
@@ -102,3 +111,4 @@ export const kindName = (skill: SkillId, kind: string): L10n => NAMES[skill]?.[k
 // keeps the registry and the generator in step: every kind of Lesson 4-2 must have a name
 export const LESSON_4_2_KINDS: readonly string[] = KINDS_4_2;
 export const LESSON_4_3_KINDS: readonly string[] = KINDS_4_3;
+export const LESSON_4_4_KINDS: readonly string[] = KINDS_4_4;

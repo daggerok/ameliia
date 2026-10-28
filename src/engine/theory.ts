@@ -579,12 +579,93 @@ const topic4EstBuilders: Record<'est-2x2', (rng: Rng) => { hook: L10n[]; section
     },
 };
 
+// ---------- Topic 4, Lesson 4-4: arrays and partial products (4.NBT.B.5) ----------
+// written for a 9-year-old: one short idea per line, a picture she knows (a chocolate bar, a garden), then many worked examples
+
+const topic4ArrBuilders: Record<'mult-2x2', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'mult-2x2': rng => {
+        const two = (lo: number, hi: number) => 10 * int(rng, lo, hi) + int(rng, 1, 9);
+        const a = two(1, 2), b = two(1, 2);
+        const [at, ao, bt, bo] = [Math.floor(a / 10) * 10, a % 10, Math.floor(b / 10) * 10, b % 10];
+        const ps = [at * bt, at * bo, ao * bt, ao * bo];
+        const n = (x: number, lang: 'en' | 'ru') => fmt(x, lang);
+        const sum = (xs: number[], lang: 'en' | 'ru') => xs.map(x => n(x, lang)).join(' + ');
+        return {
+            hook: [
+                L('A chocolate bar has 12 rows of 24 squares. Counting 288 squares one by one takes forever! Snap it into 4 easy pieces instead.',
+                    'В шоколадке 12 рядов по 24 дольки. Считать 288 долек по одной - очень долго! Лучше разломи её на 4 лёгких кусочка.'),
+                L(`Pip plants ${a} rows of carrots with ${b} carrots in each row. He cuts the garden into tens and ones, and every piece is a fact he already knows.`,
+                    `Пип сажает ${a} ${ruPlural(a, 'ряд', 'ряда', 'рядов')} моркови, по ${b} в каждом ряду. Он делит грядку на десятки и единицы, и каждый кусочек - пример, который он уже знает.`),
+            ],
+            sections: [
+                { kind: 'idea', title: T.idea, body: [
+                    L('An array is a rectangle of squares: rows times columns.', 'Массив - это прямоугольник из клеток: ряды умножить на столбцы.'),
+                    L('Cut both sides into TENS and ONES. Now you have 4 small rectangles.', 'Разрежь обе стороны на ДЕСЯТКИ и ЕДИНИЦЫ. Получится 4 маленьких прямоугольника.'),
+                    L('Each small rectangle is a PARTIAL PRODUCT: a part of the answer.', 'Каждый маленький прямоугольник - это ЧАСТИЧНОЕ ПРОИЗВЕДЕНИЕ: кусочек ответа.'),
+                    L('Add the 4 partial products and you get the whole product.', 'Сложи 4 частичных произведения - и получишь всё произведение.'),
+                ] },
+                { kind: 'steps', title: T.how, body: [
+                    L(`1. Break each factor: ${a} = ${at} + ${ao}, ${b} = ${bt} + ${bo}.`, `1. Разбей каждый множитель: ${a} = ${at} + ${ao}, ${b} = ${bt} + ${bo}.`),
+                    L(`2. Tens × tens: ${at} × ${bt} = ${n(ps[0], 'en')}. The big rectangle.`, `2. Десятки × десятки: ${at} × ${bt} = ${n(ps[0], 'ru')}. Большой прямоугольник.`),
+                    L(`3. Tens × ones: ${at} × ${bo} = ${ps[1]}.`, `3. Десятки × единицы: ${at} × ${bo} = ${ps[1]}.`),
+                    L(`4. Ones × tens: ${ao} × ${bt} = ${ps[2]}.`, `4. Единицы × десятки: ${ao} × ${bt} = ${ps[2]}.`),
+                    L(`5. Ones × ones: ${ao} × ${bo} = ${ps[3]}. The tiny corner.`, `5. Единицы × единицы: ${ao} × ${bo} = ${ps[3]}. Крошечный уголок.`),
+                    L(`6. Add: ${sum(ps, 'en')} = ${n(a * b, 'en')}.`, `6. Сложи: ${sum(ps, 'ru')} = ${n(a * b, 'ru')}.`),
+                ] },
+                { kind: 'example', title: L('Another Look: 12 × 24', 'Ещё раз: 12 × 24'), prompt: L('12 rows, 24 columns', '12 рядов, 24 столбца'), body: [
+                    L('12 = 10 + 2 and 24 = 20 + 4.', '12 = 10 + 2 и 24 = 20 + 4.'),
+                    L('10 × 20 = 200, 10 × 4 = 40, 2 × 20 = 40, 2 × 4 = 8', '10 × 20 = 200, 10 × 4 = 40, 2 × 20 = 40, 2 × 4 = 8'),
+                    L('200 + 40 + 40 + 8 = 288. So, 12 × 24 = 288.', '200 + 40 + 40 + 8 = 288. Значит, 12 × 24 = 288.'),
+                ], visual: { kind: 'area', a: 24, b: 12 } },
+                { kind: 'example', title: T.example2, prompt: L(`${a} × ${b}`, `${a} × ${b}`), body: [
+                    L(`${a} = ${at} + ${ao}, ${b} = ${bt} + ${bo}`, `${a} = ${at} + ${ao}, ${b} = ${bt} + ${bo}`),
+                    L(`${at} × ${bt} = ${n(ps[0], 'en')}, ${at} × ${bo} = ${ps[1]}, ${ao} × ${bt} = ${ps[2]}, ${ao} × ${bo} = ${ps[3]}`, `${at} × ${bt} = ${n(ps[0], 'ru')}, ${at} × ${bo} = ${ps[1]}, ${ao} × ${bt} = ${ps[2]}, ${ao} × ${bo} = ${ps[3]}`),
+                    L(`${sum(ps, 'en')} = ${n(a * b, 'en')}`, `${sum(ps, 'ru')} = ${n(a * b, 'ru')}`),
+                ], visual: { kind: 'area', a: b, b: a } },
+                { kind: 'example', title: L('A story: Barb exercises', 'Задача: Барб занимается спортом'), prompt: L('22 hours each week. How many hours in 14 weeks?', '22 часа в неделю. Сколько часов за 14 недель?'), body: [
+                    L('Same amount every week: multiply, 14 × 22.', 'Каждую неделю одинаково: умножаем, 14 × 22.'),
+                    L('10 × 20 = 200, 10 × 2 = 20, 4 × 20 = 80, 4 × 2 = 8', '10 × 20 = 200, 10 × 2 = 20, 4 × 20 = 80, 4 × 2 = 8'),
+                    L('200 + 20 + 80 + 8 = 308 hours.', '200 + 20 + 80 + 8 = 308 часов.'),
+                ] },
+                { kind: 'example', title: L('Find the missing partial products', 'Найди пропущенные частичные произведения'), prompt: L('18 × 32: 16, __, 240, __', '18 × 32: 16, __, 240, __'), body: [
+                    L('Multiply each part of 32 by each part of 18: 2 × 8 = 16, 2 × 10 = 20, 30 × 8 = 240, 30 × 10 = 300', 'Умножь каждую часть 32 на каждую часть 18: 2 × 8 = 16, 2 × 10 = 20, 30 × 8 = 240, 30 × 10 = 300'),
+                    L('The missing ones are 20 and 300.', 'Пропущены 20 и 300.'),
+                    L('16 + 20 + 240 + 300 = 576', '16 + 20 + 240 + 300 = 576'),
+                ] },
+                { kind: 'example', title: L('Find the missing factor', 'Найди пропущенный множитель'), prompt: L('18 × __ = 918', '18 × __ = 918'), body: [
+                    L('18 is about 20. 20 × 50 = 1,000, close to 918. So try a number near 50.', '18 - это примерно 20. 20 × 50 = 1 000, близко к 918. Пробуй число рядом с 50.'),
+                    L('The ones: 8 × 1 = 8, and 918 ends in 8. Try 51.', 'Единицы: 8 × 1 = 8, и 918 оканчивается на 8. Пробуем 51.'),
+                    L('18 × 51 = 918 ✓', '18 × 51 = 918 ✓'),
+                ] },
+                { kind: 'example', title: L('Is the answer reasonable?', 'Ответ разумный?'), prompt: L('Teri\'s answer for 4,296 × 7 is 4,872', 'У Тери 4 296 × 7 получилось 4 872'), body: [
+                    L('Estimate: 4,296 is about 4,000, and 4,000 × 7 = 28,000.', 'Прикидка: 4 296 - это примерно 4 000, а 4 000 × 7 = 28 000.'),
+                    L('4,872 is much smaller than 28,000. Not reasonable!', '4 872 намного меньше 28 000. Не разумно!'),
+                    L('Teri wrote 2,800 for 4,000 × 7. The right way: 42 + 630 + 1,400 + 28,000 = 30,072', 'Тери записала 2 800 вместо 4 000 × 7. Правильно: 42 + 630 + 1 400 + 28 000 = 30 072'),
+                ] },
+                { kind: 'example', title: L('Two kinds of boxes', 'Два вида коробок'), prompt: L('27 boxes at $15 and 35 boxes at $10', '27 коробок по $15 и 35 коробок по $10'), body: [
+                    L('Multiply each kind: 27 × $15 = $405 and 35 × $10 = $350.', 'Умножь каждый вид: 27 × $15 = $405 и 35 × $10 = $350.'),
+                    L('Then add: $405 + $350 = $755.', 'Потом сложи: $405 + $350 = $755.'),
+                ] },
+                { kind: 'warn', title: T.warn, body: [
+                    L('Always 4 partial products for 2-digit × 2-digit. Only 2? You forgot a piece!', 'Для двузначного × двузначное всегда 4 частичных произведения. Только 2? Ты потеряла кусочек!'),
+                    L(`Keep the zeros: ${at} × ${bt} = ${n(ps[0], 'en')}, not ${(at / 10) * (bt / 10)}.`, `Не теряй нули: ${at} × ${bt} = ${n(ps[0], 'ru')}, а не ${(at / 10) * (bt / 10)}.`),
+                    L('Check with an estimate: round both factors to tens. Your answer should be close.', 'Проверь прикидкой: округли оба множителя до десятков. Ответ должен быть близко.'),
+                ] },
+                { kind: 'trick', title: T.trick, body: [
+                    L('Tens × tens, tens × ones, ones × tens, ones × ones: 4 pieces of chocolate, then eat them all together (add)!', 'Десятки × десятки, десятки × единицы, единицы × десятки, единицы × единицы: 4 кусочка шоколадки, а потом съешь их все вместе (сложи)!'),
+                ] },
+            ],
+        };
+    },
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
     ...strategyBuilders,
     ...wordBuilders,
     ...topic3Builders,
     ...topic4Builders,
     ...topic4EstBuilders,
+    ...topic4ArrBuilders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
         const skip = Array.from({ length: q }, (_, i) => (i + 1) * d);
@@ -974,6 +1055,7 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'sci-words': [], 'mult-mental': ['mult-tens', 'mult-dist'], 'mult-expr': ['mult-dist', 'mult-partial'], 'mult-word': ['compare', 'mult-standard'],
     'mult-2x10': ['mult-tens', 'mult-area'],
     'est-2x2': ['est-product'],
+    'mult-2x2': ['mult-area', 'mult-partial'],
 };
 
 // every building block in learning order: a skill comes after everything it needs
