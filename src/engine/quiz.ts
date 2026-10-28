@@ -62,6 +62,8 @@ const concepts: Partial<Record<SkillId, (rng: Rng) => Problem[]>> = {
     'mult-2x10': rng => [makeProblem('mult-2x10', rng, 'compare')],
     // greater or less than the actual product, and rounding or compatible numbers: the choice tasks of the lesson
     'est-2x2': rng => [makeProblem('est-2x2', rng, pick(rng, ['sense', 'think']))],
+    // is the answer reasonable: the only choice task of Lesson 4-4
+    'mult-2x2': rng => [makeProblem('mult-2x2', rng, 'reason')],
     'mult-tens': rng => {
         const [m, d] = pick(rng, [[5, 2], [5, 4], [5, 6], [5, 8], [2, 5], [4, 5], [6, 5], [8, 5]]);
         const z = int(rng, 2, 3), b = d * 10 ** z, p = m * b;
