@@ -649,10 +649,107 @@ const topic4ArrBuilders: Record<'mult-2x2', (rng: Rng) => { hook: L10n[]; sectio
                 { kind: 'warn', title: T.warn, body: [
                     L('Always 4 partial products for 2-digit × 2-digit. Only 2? You forgot a piece!', 'Для двузначного × двузначное всегда 4 частичных произведения. Только 2? Ты потеряла кусочек!'),
                     L(`Keep the zeros: ${at} × ${bt} = ${n(ps[0], 'en')}, not ${(at / 10) * (bt / 10)}.`, `Не теряй нули: ${at} × ${bt} = ${n(ps[0], 'ru')}, а не ${(at / 10) * (bt / 10)}.`),
+                    L('When the basic fact already ends in 0, it still gets its 2 zeros: 20 × 50 → 2 × 5 = 10 → 1,000, not 100.', 'Если табличный пример уже оканчивается на 0, ему всё равно положены 2 нуля: 20 × 50 -> 2 × 5 = 10 -> 1 000, а не 100.'),
+                    L('Add the 4 pieces in a column and carry: 100 + 90 + 40 + 36 = 266 (the tens make 16 tens).', 'Складывай 4 кусочка столбиком с переносом: 100 + 90 + 40 + 36 = 266 (десятков набирается 16).'),
                     L('Check with an estimate: round both factors to tens. Your answer should be close.', 'Проверь прикидкой: округли оба множителя до десятков. Ответ должен быть близко.'),
                 ] },
                 { kind: 'trick', title: T.trick, body: [
                     L('Tens × tens, tens × ones, ones × tens, ones × ones: 4 pieces of chocolate, then eat them all together (add)!', 'Десятки × десятки, десятки × единицы, единицы × десятки, единицы × единицы: 4 кусочка шоколадки, а потом съешь их все вместе (сложи)!'),
+                ] },
+            ],
+        };
+    },
+};
+
+// ---------- Topic 4, Lesson 4-5: area models and partial products with the Distributive Property (4.NBT.B.5) ----------
+// for a 9-year-old, built around where she went wrong on her first try of p. 51 (2026-10-29): a lost zero in 20 × 50,
+// 10 × 18 done as (18 × 10) + (18 × 8), and the carry lost when adding 100 + 90 + 40 + 36
+
+const topic4AreaBuilders: Record<'dist-2x2', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'dist-2x2': rng => {
+        const [x, y] = pick(rng, [[2, 5], [4, 5], [6, 5], [8, 5]]);
+        const a = 10 * x + int(rng, 1, 4), b = 10 * y + int(rng, 1, 4);
+        const [at, ao, bt, bo] = [x * 10, a % 10, y * 10, b % 10];
+        const ps = [at * bt, ao * bt, at * bo, ao * bo];
+        const n = (v: number, lang: 'en' | 'ru') => fmt(v, lang);
+        const sum = (xs: number[], lang: 'en' | 'ru') => xs.map(v => n(v, lang)).join(' + ');
+        return {
+            hook: [
+                L('A garden is 23 steps long and 18 steps wide. Pip splits it into 4 flower beds with easy sides: 20 and 3, 10 and 8. Four small beds are easy to count!',
+                    'Сад длиной 23 шага и шириной 18 шагов. Пип делит его на 4 грядки с удобными сторонами: 20 и 3, 10 и 8. Четыре маленькие грядки посчитать легко!'),
+                L(`Lina has ${a} boxes of ${b} stickers. That looks hard, but it is just 4 easy pieces added together.`,
+                    `У Лины ${a} ${ruPlural(a, 'коробка', 'коробки', 'коробок')} по ${b} наклеек. Выглядит трудно, но это просто 4 лёгких кусочка, сложенных вместе.`),
+            ],
+            sections: [
+                { kind: 'idea', title: T.idea, body: [
+                    L('An area model is a rectangle. One factor is the side, the other is the top.', 'Модель площади - это прямоугольник. Один множитель - сбоку, другой - сверху.'),
+                    L('Break each factor into tens and ones. Each box = side × top.', 'Разбей каждый множитель на десятки и единицы. Каждая клетка = бок × верх.'),
+                    L('The Distributive Property: every part of one factor is multiplied by every part of the other.', 'Распределительное свойство: каждая часть одного множителя умножается на каждую часть другого.'),
+                    L('Add all the boxes. That is the product.', 'Сложи все клетки. Это и есть произведение.'),
+                ] },
+                { kind: 'steps', title: T.how, body: [
+                    L(`1. Estimate first: ${a} × ${b} is about ${roundTo(a, 10)} × ${roundTo(b, 10)} = ${n(roundTo(a, 10) * roundTo(b, 10), 'en')}. Remember this number.`, `1. Сначала прикинь: ${a} × ${b} - это примерно ${roundTo(a, 10)} × ${roundTo(b, 10)} = ${n(roundTo(a, 10) * roundTo(b, 10), 'ru')}. Запомни это число.`),
+                    L(`2. Break apart: ${a} = ${at} + ${ao}, ${b} = ${bt} + ${bo}.`, `2. Разбей: ${a} = ${at} + ${ao}, ${b} = ${bt} + ${bo}.`),
+                    L(`3. The big box: ${at} × ${bt}. Basic fact ${x} × ${y} = ${x * y}, then write 2 zeros: ${n(ps[0], 'en')}.`, `3. Большая клетка: ${at} × ${bt}. Табличный пример ${x} × ${y} = ${x * y}, потом допиши 2 нуля: ${n(ps[0], 'ru')}.`),
+                    L(`4. The other boxes: ${ao} × ${bt} = ${ps[1]}, ${at} × ${bo} = ${ps[2]}, ${ao} × ${bo} = ${ps[3]}.`, `4. Остальные клетки: ${ao} × ${bt} = ${ps[1]}, ${at} × ${bo} = ${ps[2]}, ${ao} × ${bo} = ${ps[3]}.`),
+                    L(`5. Add in a column: ${sum(ps, 'en')} = ${n(a * b, 'en')}.`, `5. Сложи столбиком: ${sum(ps, 'ru')} = ${n(a * b, 'ru')}.`),
+                    L('6. Is the answer close to your estimate? Yes? Great!', '6. Ответ близко к прикидке? Да? Отлично!'),
+                ] },
+                { kind: 'example', title: L('Another Look: 23 × 18', 'Ещё раз: 23 × 18'), prompt: L('23 × 18 = (20 + 3) × (10 + 8)', '23 × 18 = (20 + 3) × (10 + 8)'), body: [
+                    L('(20 × 10) + (3 × 10) + (20 × 8) + (3 × 8)', '(20 × 10) + (3 × 10) + (20 × 8) + (3 × 8)'),
+                    L('200 + 30 + 160 + 24 = 414', '200 + 30 + 160 + 24 = 414'),
+                    L('Estimate: 20 × 20 = 400. 414 is close ✓', 'Прикидка: 20 × 20 = 400. 414 близко ✓'),
+                ], visual: { kind: 'area', a: 18, b: 23 } },
+                { kind: 'example', title: L('Tricky spot 1: when the basic fact already ends in 0', 'Ловушка 1: когда табличный пример уже оканчивается на 0'), prompt: L('21 × 51', '21 × 51'), body: [
+                    L('The big box is 20 × 50. Basic fact: 2 × 5 = 10.', 'Большая клетка - 20 × 50. Табличный пример: 2 × 5 = 10.'),
+                    L('Now count the zeros of 20 and 50: one, two. Write them after 10: 1,000.', 'Теперь посчитай нули в 20 и 50: один, два. Допиши их после 10: 1 000.'),
+                    L('20 × 50 = 1,000, not 100! The 0 of 10 belongs to the basic fact, it is not one of the two zeros.', '20 × 50 = 1 000, а не 100! Ноль в 10 - часть табличного примера, он не из двух нулей.'),
+                    L('1,000 + 50 + 20 + 1 = 1,071. Estimate: 20 × 50 = 1,000 ✓', '1 000 + 50 + 20 + 1 = 1 071. Прикидка: 20 × 50 = 1 000 ✓'),
+                ], visual: { kind: 'area', a: 51, b: 21 } },
+                { kind: 'example', title: L('More zero traps', 'Ещё ловушки с нулями'), prompt: L('Basic fact, then the zeros', 'Табличный пример, потом нули'), body: [
+                    L('40 × 50: 4 × 5 = 20, plus 2 zeros: 2,000', '40 × 50: 4 × 5 = 20, плюс 2 нуля: 2 000'),
+                    L('60 × 50: 6 × 5 = 30, plus 2 zeros: 3,000', '60 × 50: 6 × 5 = 30, плюс 2 нуля: 3 000'),
+                    L(`${at} × ${bt}: ${x} × ${y} = ${x * y}, plus 2 zeros: ${n(ps[0], 'en')}`, `${at} × ${bt}: ${x} × ${y} = ${x * y}, плюс 2 нуля: ${n(ps[0], 'ru')}`),
+                ] },
+                { kind: 'example', title: L('Tricky spot 2: break ONE factor, keep the OTHER whole', 'Ловушка 2: разбей ОДИН множитель, другой оставь ЦЕЛЫМ'), prompt: L('10 × 18', '10 × 18'), body: [
+                    L('Break 18 into 10 + 8. Multiply each part by 10, the OTHER factor.', 'Разбей 18 на 10 + 8. Умножь каждую часть на 10, на ДРУГОЙ множитель.'),
+                    L('10 × 18 = (10 × 10) + (10 × 8) = 100 + 80 = 180', '10 × 18 = (10 × 10) + (10 × 8) = 100 + 80 = 180'),
+                    L('Not (18 × 10) + (18 × 8): that multiplies 18 by its own pieces, and that is 18 × 18.', 'Не (18 × 10) + (18 × 8): так 18 умножается на свои же кусочки, а это 18 × 18.'),
+                    L('Even faster: 10 × 18 just gets a zero, 180.', 'Ещё быстрее: к 18 просто приписываем ноль, 180.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 3: adding four partial products', 'Ловушка 3: сложение четырёх частичных произведений'), prompt: L('14 × 19: 100, 90, 40, 36', '14 × 19: 100, 90, 40, 36'), body: [
+                    L('Write them in a column: ones under ones, tens under tens.', 'Запиши их столбиком: единицы под единицами, десятки под десятками.'),
+                    L('Ones: 0 + 0 + 0 + 6 = 6.', 'Единицы: 0 + 0 + 0 + 6 = 6.'),
+                    L('Tens: 0 + 9 + 4 + 3 = 16 tens. Write 6, carry 1 to the hundreds!', 'Десятки: 0 + 9 + 4 + 3 = 16 десятков. Пишем 6, 1 переносим в сотни!'),
+                    L('Hundreds: 1 + 1 = 2. So 100 + 90 + 40 + 36 = 266, not 206.', 'Сотни: 1 + 1 = 2. Значит, 100 + 90 + 40 + 36 = 266, а не 206.'),
+                    L('Check: 14 × 20 = 280, and 266 is close ✓', 'Проверка: 14 × 20 = 280, и 266 близко ✓'),
+                ], visual: { kind: 'area', a: 19, b: 14 } },
+                { kind: 'example', title: L('Tricky spot 4: a piece is still too big', 'Ловушка 4: кусочек всё ещё слишком большой'), prompt: L('28 × 38', '28 × 38'), body: [
+                    L('(28 × 30) + (28 × 8) is right, but 28 × 30 is still hard to do in your head.', '(28 × 30) + (28 × 8) - верно, но 28 × 30 всё ещё трудно посчитать в уме.'),
+                    L('Break BOTH: 28 = 20 + 8, 38 = 30 + 8. Four easy boxes:', 'Разбей ОБА: 28 = 20 + 8, 38 = 30 + 8. Четыре лёгкие клетки:'),
+                    L('20 × 30 = 600, 8 × 30 = 240, 20 × 8 = 160, 8 × 8 = 64', '20 × 30 = 600, 8 × 30 = 240, 20 × 8 = 160, 8 × 8 = 64'),
+                    L('600 + 240 + 160 + 64 = 1,064. Estimate: 30 × 40 = 1,200 ✓', '600 + 240 + 160 + 64 = 1 064. Прикидка: 30 × 40 = 1 200 ✓'),
+                ], visual: { kind: 'area', a: 38, b: 28 } },
+                { kind: 'example', title: L('Select all the ways', 'Выбери все способы'), prompt: L('45 × 18', '45 × 18'), body: [
+                    L('(40 × 18) + (5 × 18): break 45, keep 18 whole ✓', '(40 × 18) + (5 × 18): разбили 45, 18 целое ✓'),
+                    L('(40 × 10) + (40 × 8) + (5 × 10) + (5 × 8): four boxes ✓', '(40 × 10) + (40 × 8) + (5 × 10) + (5 × 8): четыре клетки ✓'),
+                    L('45 × (20 − 2): 18 is 20 − 2, that works too ✓', '45 × (20 − 2): 18 - это 20 − 2, так тоже можно ✓'),
+                    L('(40 × 10) + (5 × 8): only 2 boxes, two are missing ✗', '(40 × 10) + (5 × 8): только 2 клетки, двух не хватает ✗'),
+                ] },
+                { kind: 'example', title: L('Is it enough?', 'Хватит ли?'), prompt: L('27 students write 63 words each. 1,500 cards?', '27 учеников пишут по 63 слова. Хватит 1 500 карточек?'),
+                    body: [
+                        L('27 × 63: 20 × 60 = 1,200, 7 × 60 = 420, 20 × 3 = 60, 7 × 3 = 21', '27 × 63: 20 × 60 = 1 200, 7 × 60 = 420, 20 × 3 = 60, 7 × 3 = 21'),
+                        L('1,200 + 420 + 60 + 21 = 1,701 cards are needed', '1 200 + 420 + 60 + 21 = 1 701 карточка нужна'),
+                        L('1,701 is more than 1,500: not enough!', '1 701 больше 1 500: не хватит!'),
+                    ] },
+                { kind: 'warn', title: T.warn, body: [
+                    L('2-digit × 2-digit: always 4 boxes (unless a factor ends in 0).', 'Двузначное × двузначное: всегда 4 клетки (если только множитель не оканчивается на 0).'),
+                    L('Count zeros AFTER the basic fact: 20 × 50 → 2 × 5 = 10 → 1,000.', 'Нули считай ПОСЛЕ табличного примера: 20 × 50 -> 2 × 5 = 10 -> 1 000.'),
+                    L('Each part is multiplied by the OTHER factor, never by its own number.', 'Каждая часть умножается на ДРУГОЙ множитель, а не на своё же число.'),
+                    L('Add the boxes in a column and carry. Then compare with your estimate.', 'Складывай клетки столбиком с переносом. Потом сравни с прикидкой.'),
+                ] },
+                { kind: 'trick', title: T.trick, body: [
+                    L('Fact, zeros, column, check: 4 little words for 4 little boxes.', 'Пример, нули, столбик, проверка: 4 маленьких слова для 4 маленьких клеток.'),
                 ] },
             ],
         };
@@ -666,6 +763,7 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
     ...topic4Builders,
     ...topic4EstBuilders,
     ...topic4ArrBuilders,
+    ...topic4AreaBuilders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
         const skip = Array.from({ length: q }, (_, i) => (i + 1) * d);
@@ -1056,6 +1154,7 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'mult-2x10': ['mult-tens', 'mult-area'],
     'est-2x2': ['est-product'],
     'mult-2x2': ['mult-area', 'mult-partial'],
+    'dist-2x2': ['mult-2x2', 'mult-dist'],
 };
 
 // every building block in learning order: a skill comes after everything it needs
