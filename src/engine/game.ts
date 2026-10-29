@@ -6,6 +6,7 @@ import { type LoggedMistake, type ReworkItem, reworkId } from './mistakes';
 import { IDEA_KIND } from './science';
 import { answerText } from './theory';
 import { KINDS_4_2 } from './topic4';
+import { KINDS_4_5 } from './topic4area';
 import { KINDS_4_4 } from './topic4arr';
 import { KINDS_4_3 } from './topic4est';
 
@@ -140,7 +141,7 @@ export const kindOf = (p: Problem): string => {
     if (p.skill === 'speed-trip') return p.id.split(':')[1];
     if (p.skill === 'sci-words') return String(p.data.style);
     if (p.skill === 'est-product') return ({ t: 'tens', b: 'big', r: 'reasonable' } as Record<string, string>)[p.id.split(':')[1]] ?? 'all';
-    if (['mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2'].includes(p.skill)) return String(p.data.style);
+    if (['mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2'].includes(p.skill)) return String(p.data.style);
     return 'all';
 };
 
@@ -168,6 +169,8 @@ export const LESSON_4_2_PLAN: [SkillId, string[]][] = [['mult-2x10', Array.from(
 export const LESSON_4_3_PLAN: [SkillId, string[]][] = [['est-2x2', Array.from(KINDS_4_3)]];
 // Topic 4, Lesson 4-4 (Additional Practice 4-4, p. 49-50, homework of 2026-10-28): every kind of task on the two pages
 export const LESSON_4_4_PLAN: [SkillId, string[]][] = [['mult-2x2', Array.from(KINDS_4_4)]];
+// Topic 4, Lesson 4-5 (Additional Practice 4-5, p. 51-52, homework of 2026-10-29): every kind of task on the two pages
+export const LESSON_4_5_PLAN: [SkillId, string[]][] = [['dist-2x2', Array.from(KINDS_4_5)]];
 
 // A homework: the kinds of tasks on its photos, the day it was given and the last day of its repeats (the test date
 // of the settings when it has none). While a homework is current the daily goal is its plan: `first` right answers
@@ -193,6 +196,11 @@ export const HOMEWORKS: Homework[] = [
         id: 'lesson-4-4', given: '2026-10-28', until: '2026-10-30', first: 3, again: 1, plan: LESSON_4_4_PLAN,
         title: L('Homework: Lesson 4-4, arrays and partial products', 'Домашка: урок 4-4, массивы и частичные произведения'),
         sub: L('12 × 24 as four small rectangles, Barb\'s 14 weeks, Teri\'s answer, Nolan\'s store, missing partial products and factors. Theory first, then tasks', '12 × 24 как четыре маленьких прямоугольника, 14 недель Барб, ответ Тери, магазин Нолана, пропущенные частичные произведения и множители. Сначала теория, потом задания'),
+    },
+    {
+        id: 'lesson-4-5', given: '2026-10-29', until: '2026-10-30', first: 3, again: 1, plan: LESSON_4_5_PLAN,
+        title: L('Homework: Lesson 4-5, area models and partial products', 'Домашка: урок 4-5, модели площади и частичные произведения'),
+        sub: L('23 × 18 = (20 + 3) × (10 + 8), 21 × 51, 10 × 18, Ms. Langley\'s class, the ferry, Mr. Buckham\'s index cards, select all. Theory first, then tasks', '23 × 18 = (20 + 3) × (10 + 8), 21 × 51, 10 × 18, класс миссис Лэнгли, паром, карточки мистера Бакхэма, выбери все. Сначала теория, потом задания'),
     },
 ];
 const lastDay = (h: Homework, state: GameState) => h.until ?? state.testDate;
@@ -272,7 +280,7 @@ export const LADDER: Record<Topic, SkillId[]> = {
     // Topic 3 test (2026-10-23): multiplying by multiples of 10, estimating products, the four strategies, mental math,
     // matching expressions and word problems; comparison and extra information (Lesson 3-8) stay early too
     estimation: ['round', 'mult-tens', 'est-product', 'compare', 'word-steps', 'mult-area', 'mult-partial', 'mult-dist', 'mult-standard',
-        'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'est-sum', 'multiply'],
+        'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'est-sum', 'multiply'],
 };
 
 export const unlocked = (state: GameState, topic: Topic): SkillId[] => {
@@ -458,11 +466,11 @@ export const addTime = (prev: GameState, topic: Topic, sec: number, day: string)
 
 // Practice test like the ones at school: 6 division, 5 science (Chapter 2: speed, trips, velocity, forces, words),
 // 5 of the Topic 3 assessment (multiples of 10, estimating, mental math, expressions, word problems),
-// 1 of Lesson 4-2 (2-digit numbers by multiples of 10), 1 of Lesson 4-3 (estimating products), 1 of Lesson 4-4 (partial products), plus 2 different multiplication strategies
+// 1 of Lesson 4-2 (2-digit numbers by multiples of 10), 1 of Lesson 4-3 (estimating products), 1 of Lesson 4-4 (partial products), 1 of Lesson 4-5 (area models), plus 2 different multiplication strategies
 export const TEST_PLAN: SkillId[] = [
     'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word',
     'speed-basic', 'speed-trip', 'motion-ideas', 'forces', 'sci-words',
-    'mult-tens', 'est-product', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2',
+    'mult-tens', 'est-product', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2',
 ];
 
 export const STRATEGIES: SkillId[] = ['mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];

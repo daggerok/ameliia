@@ -1,6 +1,7 @@
 /// <reference lib="esnext" />
 import { type L10n, type SkillId, L } from './core';
 import { KINDS_4_2 } from './topic4';
+import { KINDS_4_5 } from './topic4area';
 import { KINDS_4_4 } from './topic4arr';
 import { KINDS_4_3 } from './topic4est';
 
@@ -104,6 +105,17 @@ const NAMES: Partial<Record<SkillId, Record<string, L10n>>> = {
         missing: L('Insert the missing partial products', 'Впиши пропущенные частичные произведения'),
         factor: L('Insert the missing factor', 'Впиши пропущенный множитель'),
     },
+    'dist-2x2': {
+        area: L('Fill in a drawn area model (14 × 19, 21 × 51)', 'Заполни готовую модель площади (14 × 19, 21 × 51)'),
+        dist: L('23 × 18 = (20 + 3) × (10 + 8): four products', '23 × 18 = (20 + 3) × (10 + 8): четыре произведения'),
+        product: L('Draw an area model, find the product (10 × 18 ... 29 × 64)', 'Нарисуй модель площади, найди произведение (10 × 18 ... 29 × 64)'),
+        story: L('Ms. Langley\'s class: problems for every student', 'Класс миссис Лэнгли: задачи каждому ученику'),
+        add: L('Concert and rodeo: add 5-digit numbers', 'Концерт и родео: сложи пятизначные числа'),
+        ferry: L('Ferry: about how much money', 'Паром: примерно сколько денег'),
+        enough: L('Mr. Buckham: enough index cards?', 'Мистер Бакхэм: хватит ли карточек?'),
+        partials: L('Select all the partial products of 17 × 28', 'Выбери все наборы частичных произведений 17 × 28'),
+        ways: L('Select all the ways to break apart 45 × 18', 'Выбери все способы разбить 45 × 18'),
+    },
 };
 
 export const KINDS_OF = (skill: SkillId): string[] => Object.keys(NAMES[skill] ?? { all: 0 });
@@ -112,3 +124,4 @@ export const kindName = (skill: SkillId, kind: string): L10n => NAMES[skill]?.[k
 export const LESSON_4_2_KINDS: readonly string[] = KINDS_4_2;
 export const LESSON_4_3_KINDS: readonly string[] = KINDS_4_3;
 export const LESSON_4_4_KINDS: readonly string[] = KINDS_4_4;
+export const LESSON_4_5_KINDS: readonly string[] = KINDS_4_5;
