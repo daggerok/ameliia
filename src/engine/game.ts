@@ -6,6 +6,7 @@ import { type LoggedMistake, type ReworkItem, reworkId } from './mistakes';
 import { IDEA_KIND } from './science';
 import { answerText } from './theory';
 import { KINDS_4_2 } from './topic4';
+import { factKey, factWeight, makeFact, makeFacts, pickFact } from './facts';
 import { KINDS_4_5 } from './topic4area';
 import { KINDS_4_4 } from './topic4arr';
 import { KINDS_4_3 } from './topic4est';
@@ -50,6 +51,8 @@ export type GameState = {
     dailyKinds: Record<string, Record<string, number>>;            // right answers per day and kind of task, "mult-expr:partials"
     mistakeLog: LoggedMistake[];          // wrong answers in the app, waiting to be reworked
     sinceRework: number;                  // tasks since a mistake was last mixed into practice
+    sinceFact: number;                    // tasks since the last memory check of a multiplication fact
+    factMiss: Record<string, number>;     // how much each fact ("7x8") still needs practice: +2 when wrong, -1 when right
     homeworkFixed: string[];              // ids of the homework mistakes she has already reworked
     sinceHint: number;                    // tasks answered since the last hint
     hintPause: number;                    // tasks without a hint before the next one (adapts to how she uses hints)
@@ -80,6 +83,8 @@ export const newState = (): GameState => ({
     dailyKinds: {},
     mistakeLog: [],
     sinceRework: 0,
+    sinceFact: 0,
+    factMiss: {},
     homeworkFixed: [],
     sinceHint: HINT_PAUSE,
     hintPause: HINT_PAUSE,
@@ -103,6 +108,8 @@ export const normalize = (raw: unknown): GameState => {
     const rawSkills = (raw as Partial<GameState>).skills ?? {};
     for (const k of ALL_SKILLS) s.skills[k] = { ...emptyStat(), ...(rawSkills as Record<string, SkillStat>)[k] };
     s.painting = { ...base.painting, ...(s.painting ?? {}) };
+    s.sinceFact = s.sinceFact ?? 0;
+    s.factMiss = s.factMiss ?? {};
     // an older build kept no right answers per day: rebuild them from the history, so today's progress is not lost
     if (!(raw as Partial<GameState>).dailySkills) for (const h of s.history) if (h.ok) countRight(s, dayOf(new Date(h.t)), h.skill, 1);
     return s;
@@ -141,7 +148,7 @@ export const kindOf = (p: Problem): string => {
     if (p.skill === 'speed-trip') return p.id.split(':')[1];
     if (p.skill === 'sci-words') return String(p.data.style);
     if (p.skill === 'est-product') return ({ t: 'tens', b: 'big', r: 'reasonable' } as Record<string, string>)[p.id.split(':')[1]] ?? 'all';
-    if (['mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2'].includes(p.skill)) return String(p.data.style);
+    if (['mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'mult-facts'].includes(p.skill)) return String(p.data.style);
     return 'all';
 };
 
@@ -370,6 +377,16 @@ export const logMistake = (prev: GameState, problem: Problem, given: string, t: 
 
 // Mistakes come back by themselves inside normal practice: the longer the list, the more often
 // (1-3 waiting: every 5th task, 4-10: every 4th, more: every 3rd), so they never push out new topics
+// A memory check of a multiplication fact every few tasks in Play and the homework (owner, 2026-10-29: "check here
+// periodically, we are testing memory, it is not for paper"); a missed fact is picked more often until she gets it right
+export const FACT_EVERY = 4;
+export const factDue = (state: GameState) => state.sinceFact + 1 >= FACT_EVERY;
+export const nextFact = (state: GameState, rng: Rng): Problem => {
+    if (rng() < 0.2) return makeFacts(rng, 'ten');
+    const [a, b] = pickFact(rng, (x, y) => factWeight(x, y, state.factMiss[factKey(x, y)] ?? 0), new Set(state.recent.slice(-10)));
+    return makeFact(a, b);
+};
+
 export const reworkEvery = (waiting: number) => (waiting <= 0 ? Infinity : waiting <= 3 ? 5 : waiting <= 10 ? 4 : 3);
 export const reworkDue = (state: GameState, waiting: number) => state.sinceRework + 1 >= reworkEvery(waiting);
 export const startedRework = (prev: GameState): GameState => ({ ...prev, sinceRework: 0 });
@@ -415,6 +432,11 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
     state.answered++;
     afterHintChoice(state, opts.hint);
     state.sinceRework++;
+    state.sinceFact = p.skill === 'mult-facts' ? 0 : state.sinceFact + 1;
+    if (p.skill === 'mult-facts' && p.data.style === 'fact') {
+        const key = factKey(Number(p.data.a), Number(p.data.b)), m = (state.factMiss[key] ?? 0) + (ok ? -1 : 2);
+        if (m > 0) state.factMiss[key] = m; else delete state.factMiss[key];
+    }
     for (const s of ALL_SKILLS) if (state.skills[s].reviewIn > 0) state.skills[s].reviewIn--;
     remember(state, p.id);
     let stars = 0;
@@ -429,7 +451,8 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
         if (opts.day) { countRight(state, opts.day, p.skill, 1, kindOf(p)); reviewRight(st, opts.day); }
     } else {
         st.rightStreak = 0;
-        st.needsTheory = true;
+        // a missed memory fact is not sent to theory and a quiz: it just comes back more often (factMiss)
+        st.needsTheory = p.skill !== 'mult-facts';
         state.streak = 0;
         if (opts.day) reviewWrong(st, opts.day);
     }

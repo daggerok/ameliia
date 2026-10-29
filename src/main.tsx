@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type FillAnswer, type FillPart, type Given, type L10n, type Lang, type Problem, type SkillId, type Topic, L, SKILL_NAME, TOPIC_ICON, TOPIC_NAME, TOPIC_OF, TOPIC_TARGET, fillMarks, fmt, makeRng, sameAnswer } from './engine/core';
 import {
-    type GameState, type HistoryFrom, ALL_SKILLS, HISTORY_MAX, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, currentHomework, dailyGoal, testPlan, dayOf, fixRework, grade, hintOpen, kindOf, logMistake, missedRework, reworkDue, startedRework, newState, nextProblem, prepPicks, totalTime,
+    type GameState, type HistoryFrom, ALL_SKILLS, HISTORY_MAX, addPaintStars, addTime, chooseNextPainting, applyAnswer, applyQuiz, applyTest, applyTheoryRead, buildTest, currentHomework, dailyGoal, testPlan, dayOf, factDue, nextFact, fixRework, grade, hintOpen, kindOf, logMistake, missedRework, reworkDue, startedRework, newState, nextProblem, prepPicks, totalTime,
 } from './engine/game';
 import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
 import { QUIZ_PASS, buildQuiz } from './engine/quiz';
@@ -466,7 +466,8 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
                     </>)}
                 </div>
             )}
-            <button type="button" data-testid="notepad-open" onClick={() => setPad(true)} className={`${secondary} w-full py-3`}>✏️ {t.notepadOpen}{strokes.length ? ` · ${strokes.length} ${t.notepadHas}` : ''}</button>
+            {/* a memory check is answered from her head, so there is no notepad */}
+            {problem.skill !== 'mult-facts' && <button type="button" data-testid="notepad-open" onClick={() => setPad(true)} className={`${secondary} w-full py-3`}>✏️ {t.notepadOpen}{strokes.length ? ` · ${strokes.length} ${t.notepadHas}` : ''}</button>}
             <button type="submit" data-testid="check" className={`${primary} w-full py-4 text-xl`}>{t.check}</button>
             {pad && <Notepad strokes={strokes} setStrokes={setStrokes} view={view} setView={setView} prompt={tr(problem.prompt, lang)} onClose={() => setPad(false)} tour={padTour} labels={{ done: t.notepadDone, clear: t.notepadClear, undo: t.notepadUndo, eraser: t.notepadEraser, title: t.notepad, move: t.notepadMove, zoomIn: t.notepadZoomIn, zoomOut: t.notepadZoomOut, zoomReset: t.notepadZoomReset }} />}
         </form>
@@ -767,7 +768,8 @@ export const App: React.FC = () => {
         }
         const open = prepPicks(g, today());
         const [skill, kind] = f === 'prep' ? open[Math.floor(rng() * open.length)] : [undefined, undefined];
-        const p = nextProblem(g, rng, FORCED_SKILL ?? skill, { kind: FORCED_SKILL ? undefined : kind, day: today() });
+        // every few tasks a multiplication fact from memory, in Play and in the homework alike
+        const p = !FORCED_SKILL && factDue(g) ? nextFact(g, rng) : nextProblem(g, rng, FORCED_SKILL ?? skill, { kind: FORCED_SKILL ? undefined : kind, day: today() });
         const st = g.skills[p.skill];
         if (st.needsTheory || (f === 'prep' && st.theoryReads === 0)) { setProblem(p); setAttempt({ hint: false, wrong: false, afterLearn: true, start: Date.now(), result: null }); if (st.needsTheory) setBanner({ en: UI.en.reviewFirst, ru: UI.ru.reviewFirst }); openTheory(p.skill, 'due'); return; }
         startProblem(p);

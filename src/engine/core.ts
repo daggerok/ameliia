@@ -13,7 +13,8 @@ export type SkillId =
     | 'mult-area' | 'mult-dist' | 'mult-partial' | 'mult-standard'
     | 'compare' | 'word-steps'
     | 'mult-tens' | 'mult-mental' | 'mult-expr' | 'mult-word'
-    | 'mult-2x10' | 'est-2x2' | 'mult-2x2' | 'dist-2x2';
+    | 'mult-2x10' | 'est-2x2' | 'mult-2x2' | 'dist-2x2'
+    | 'mult-facts';
 
 export type Answer =
     | { kind: 'number'; value: number }
@@ -155,14 +156,14 @@ export const TOPIC_OF: Record<SkillId, Topic> = {
     'mult-area': 'estimation', 'mult-dist': 'estimation', 'mult-partial': 'estimation', 'mult-standard': 'estimation',
     'compare': 'estimation', 'word-steps': 'estimation',
     'mult-tens': 'estimation', 'mult-mental': 'estimation', 'mult-expr': 'estimation', 'mult-word': 'estimation',
-    'mult-2x10': 'estimation', 'est-2x2': 'estimation', 'mult-2x2': 'estimation', 'dist-2x2': 'estimation',
+    'mult-2x10': 'estimation', 'est-2x2': 'estimation', 'mult-2x2': 'estimation', 'dist-2x2': 'estimation', 'mult-facts': 'estimation',
 };
 
 export const SKILLS_OF: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
     science: ['speed-basic', 'speed-find', 'speed-trip', 'speed-units', 'motion-ideas', 'forces', 'sci-words'],
     estimation: ['round', 'est-sum', 'est-product', 'multiply', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard', 'compare', 'word-steps',
-        'mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2'],
+        'mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'mult-facts'],
 };
 
 // share of learning time the owner asked for
@@ -202,6 +203,7 @@ export const SKILL_NAME: Record<SkillId, L10n> = {
     'est-2x2': L('Estimate products: rounding or compatible numbers', 'Прикидка произведения: округление или удобные числа'),
     'mult-2x2': L('Arrays and partial products: 2-digit × 2-digit', 'Массивы и частичные произведения: двузначное × двузначное'),
     'dist-2x2': L('Area models and the Distributive Property: 2-digit × 2-digit', 'Модели площади и распределительное свойство: двузначное × двузначное'),
+    'mult-facts': L('Memory check: multiplication facts 0 × 0 to 9 × 9, × 10 and × 100', 'Проверка памяти: таблица умножения от 0 × 0 до 9 × 9, × 10 и × 100'),
 };
 
 export const TOPIC_NAME: Record<Topic, L10n> = {
