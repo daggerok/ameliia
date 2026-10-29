@@ -1,6 +1,7 @@
 /// <reference lib="esnext" />
 import { type L10n, type SkillId, L } from './core';
 import { KINDS_4_2 } from './topic4';
+import { KINDS_FACTS } from './facts';
 import { KINDS_4_5 } from './topic4area';
 import { KINDS_4_4 } from './topic4arr';
 import { KINDS_4_3 } from './topic4est';
@@ -105,6 +106,10 @@ const NAMES: Partial<Record<SkillId, Record<string, L10n>>> = {
         missing: L('Insert the missing partial products', 'Впиши пропущенные частичные произведения'),
         factor: L('Insert the missing factor', 'Впиши пропущенный множитель'),
     },
+    'mult-facts': {
+        fact: L('Multiplication facts 0 × 0 to 9 × 9 from memory', 'Таблица умножения от 0 × 0 до 9 × 9 по памяти'),
+        ten: L('× 10, × 100, × 1,000: just write the zeros', '× 10, × 100, × 1 000: просто припиши нули'),
+    },
     'dist-2x2': {
         area: L('Fill in a drawn area model (14 × 19, 21 × 51)', 'Заполни готовую модель площади (14 × 19, 21 × 51)'),
         dist: L('23 × 18 = (20 + 3) × (10 + 8): four products', '23 × 18 = (20 + 3) × (10 + 8): четыре произведения'),
@@ -125,3 +130,4 @@ export const LESSON_4_2_KINDS: readonly string[] = KINDS_4_2;
 export const LESSON_4_3_KINDS: readonly string[] = KINDS_4_3;
 export const LESSON_4_4_KINDS: readonly string[] = KINDS_4_4;
 export const LESSON_4_5_KINDS: readonly string[] = KINDS_4_5;
+export const MEMORY_KINDS: readonly string[] = KINDS_FACTS;

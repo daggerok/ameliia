@@ -3,9 +3,10 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, DAILY_RIGHT, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
+import { ALL_SKILLS, DAILY_RIGHT, FACT_EVERY, factDue, nextFact, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
 import { KINDS_4_2 } from '../src/engine/topic4';
 import { KINDS_4_5 } from '../src/engine/topic4area';
+import { factKey, makeFact } from '../src/engine/facts';
 import { KINDS_4_4, partials } from '../src/engine/topic4arr';
 import { KINDS_4_3 } from '../src/engine/topic4est';
 import { makeFreshProblem, makeProblem } from '../src/engine';
@@ -134,6 +135,8 @@ const expected = (p: Problem): number | { q: number; r: number } | 'choice' => {
         case 'est-2x2': return p.answer.kind === 'number' ? roundTo(n('a'), 10) * roundTo(n('b'), 10) : 'choice';
         // the story is a × b, the sales add two products, the missing factor is the product divided by the given factor
         // the product, the class story and the sum of the two days at the arena
+        // a fact a × b and a number × 10, 100 or 1,000
+        case 'mult-facts': return n('a') * n('b');
         case 'dist-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'add' ? n('x') + n('y') : n('a') * n('b');
         case 'mult-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'sales' ? n('c1') * n('p1') + n('c2') * n('p2') : p.data.style === 'factor' ? n('p') / n('a') : n('a') * n('b');
         default: return 'choice';
@@ -710,6 +713,52 @@ describe('Lesson 4-5 homework: area models and partial products', () => {
     });
 });
 
+describe('memory checks: multiplication facts 0 × 0 to 9 × 9 and × 10, × 100', () => {
+    test('every fact from 0 × 0 to 9 × 9 can come, with a true trick, and the hard ones come more often', () => {
+        for (let a = 0; a <= 9; a++) for (let b = 0; b <= 9; b++) {
+            const p = makeFact(a, b);
+            expect(p.answer).toEqual({ kind: 'number', value: a * b });
+            checkMath([p.prompt, p.hint, ...p.steps].map(t => t.en), p.id);
+            checkMath([p.prompt, p.hint, ...p.steps].map(t => t.ru), p.id);
+            expect(p.prompt.en).toContain('Memory check');
+        }
+        const s = newState(), count: Record<string, number> = {};
+        const rng = makeRng(3);
+        for (let i = 0; i < 4000; i++) { const p = nextFact(s, rng); count[p.data.style === 'ten' ? 'ten' : factKey(Number(p.data.a), Number(p.data.b))] = (count[p.data.style === 'ten' ? 'ten' : factKey(Number(p.data.a), Number(p.data.b))] ?? 0) + 1; }
+        expect(Object.keys(count).length).toBe(56);
+        expect(count['7x8']).toBeGreaterThan(count['2x3']);
+        expect(count['2x3']).toBeGreaterThan(count['0x1']);
+        expect(count.ten).toBeGreaterThan(600);
+    });
+    test('a fact comes every 4th task; a missed fact comes back more often until she gets it right', () => {
+        let s = newState();
+        const day = '2026-11-02', rng = makeRng(1);
+        const answer = (st: typeof s, p: Problem, ok: boolean) => applyAnswer(st, p, ok, { firstTry: true, hint: false, sec: 3, day }).state;
+        expect(FACT_EVERY).toBe(4);
+        for (let i = 0; i < 3; i++) { expect(factDue(s)).toBe(false); s = answer(s, makeProblem('div-2d', rng), true); }
+        expect(factDue(s)).toBe(true);
+        s = answer(s, makeFact(7, 8), false);
+        expect(factDue(s)).toBe(false);
+        expect(s.factMiss['7x8']).toBe(2);
+        expect(s.skills['mult-facts'].needsTheory).toBe(false);
+        const hits = (st: typeof s) => { let k = 0; const r = makeRng(9); for (let i = 0; i < 2000; i++) { const p = nextFact({ ...st, recent: [] }, r); if (p.data.style === 'fact' && factKey(Number(p.data.a), Number(p.data.b)) === '7x8') k++; } return k; };
+        expect(hits(s)).toBeGreaterThan(2 * hits(newState()));
+        // 8 × 7 is the same fact; two right answers clear it
+        s = answer(s, makeFact(8, 7), true);
+        expect(s.factMiss['7x8']).toBe(1);
+        s = answer(s, makeFact(7, 8), true);
+        expect(s.factMiss['7x8']).toBeUndefined();
+        // the last few facts are not asked again at once
+        const r2 = makeRng(4);
+        const recent = { ...s, recent: ['mult-facts:fact:7:8'] };
+        for (let i = 0; i < 300; i++) expect(nextFact(recent, r2).id).not.toBe('mult-facts:fact:7:8');
+        // an old save without the fields gets them
+        const old = normalize({ ...newState(), sinceFact: undefined, factMiss: undefined });
+        expect(old.sinceFact).toBe(0);
+        expect(old.factMiss).toEqual({});
+    });
+});
+
 describe('spaced review: old skills come back on a ladder of 1, 2, 3, 4 ... days', () => {
     const right = (s: ReturnType<typeof newState>, skill: SkillId, day: string, ok = true, kind?: string) => applyAnswer(s, makeProblem(skill, makeRng(day.length + skill.length), kind), ok, { firstTry: true, hint: false, sec: 5, day }).state;
     test('a right answer on the due day climbs one step, a wrong answer drops to the bottom', () => {
@@ -1090,8 +1139,8 @@ describe('game flow', () => {
         expect(Math.abs(s.time.division / total - 0.5)).toBeLessThan(0.05);
         expect(Math.abs(s.time.science / total - 0.25)).toBeLessThan(0.05);
         expect(Math.abs(s.time.estimation / total - 0.25)).toBeLessThan(0.05);
-        // every skill was reached in the end
-        for (const k of ALL_SKILLS) expect(s.skills[k].seen).toBeGreaterThan(0);
+        // every skill was reached in the end; the memory checks come by FACT_EVERY in the app, not by the ladder
+        for (const k of ALL_SKILLS) if (k !== 'mult-facts') expect(s.skills[k].seen).toBeGreaterThan(0);
     });
     test('a failed skill comes back after the quiz', () => {
         let s = newState();

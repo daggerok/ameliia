@@ -756,6 +756,54 @@ const topic4AreaBuilders: Record<'dist-2x2', (rng: Rng) => { hook: L10n[]; secti
     },
 };
 
+// ---------- memory checks: multiplication facts 0 × 0 to 9 × 9 and × 10, × 100 (owner, 2026-10-29) ----------
+
+const factsBuilders: Record<'mult-facts', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'mult-facts': rng => {
+        const n = int(rng, 12, 89);
+        return {
+            hook: [
+                L('You do not count to know your name. 7 × 8 can be like that too: you just know it is 56.', 'Ты не считаешь, чтобы вспомнить своё имя. С 7 × 8 может быть так же: ты просто знаешь, что это 56.'),
+                L('Pip remembers where every carrot is hidden. He does not dig everywhere: it is in his memory!', 'Пип помнит, где спрятана каждая морковка. Он не копает везде: это у него в памяти!'),
+            ],
+            sections: [
+                { kind: 'idea', title: T.idea, body: [
+                    L('A memory check tests your memory, not your paper work.', 'Проверка памяти проверяет память, а не счёт на бумаге.'),
+                    L('No notepad, no counting on fingers: just say the answer.', 'Без блокнота и без пальцев: просто скажи ответ.'),
+                    L('Every fact from 0 × 0 to 9 × 9 should live in your head. The more often you answer, the faster it comes.', 'Каждый факт от 0 × 0 до 9 × 9 должен жить в голове. Чем чаще отвечаешь, тем быстрее он приходит.'),
+                    L('A miss is fine: that fact comes back more often until it sticks.', 'Ошибка - не страшно: этот факт будет приходить чаще, пока не запомнится.'),
+                ] },
+                { kind: 'steps', title: L('Tricks while a fact is still new', 'Приёмы, пока факт ещё новый'), body: [
+                    L('× 0: always 0. 9 × 0 = 0', '× 0: всегда 0. 9 × 0 = 0'),
+                    L('× 1: the same number. 8 × 1 = 8', '× 1: то же число. 8 × 1 = 8'),
+                    L('× 2: double it. 7 × 2 = 7 + 7 = 14', '× 2: удвой. 7 × 2 = 7 + 7 = 14'),
+                    L('× 5: half of × 10. 6 × 10 = 60, half is 30, so 6 × 5 = 30', '× 5: половина от × 10. 6 × 10 = 60, половина - 30, значит 6 × 5 = 30'),
+                    L('× 9: × 10, then take one away. 7 × 10 = 70, 70 − 7 = 63', '× 9: × 10 и отними одно. 7 × 10 = 70, 70 − 7 = 63'),
+                    L('Turn it around: 3 × 8 = 8 × 3 = 24. Half of the table you already know!', 'Переверни: 3 × 8 = 8 × 3 = 24. Половину таблицы ты уже знаешь!'),
+                ] },
+                { kind: 'example', title: L('The hardest ones, say them out loud', 'Самые трудные, скажи их вслух'), prompt: L('6, 7, 8, 9', '6, 7, 8, 9'), body: [
+                    L('6 × 6 = 36, 6 × 7 = 42, 6 × 8 = 48, 6 × 9 = 54', '6 × 6 = 36, 6 × 7 = 42, 6 × 8 = 48, 6 × 9 = 54'),
+                    L('7 × 7 = 49, 7 × 8 = 56, 7 × 9 = 63', '7 × 7 = 49, 7 × 8 = 56, 7 × 9 = 63'),
+                    L('8 × 8 = 64, 8 × 9 = 72, 9 × 9 = 81', '8 × 8 = 64, 8 × 9 = 72, 9 × 9 = 81'),
+                    L('5, 6, 7, 8: 56 = 7 × 8', '5, 6, 7, 8: 56 = 7 × 8'),
+                ] },
+                { kind: 'example', title: L('× 10 and × 100: the easiest of all', '× 10 и × 100: проще всего'), prompt: L(`${n} × 10, ${n} × 100`, `${n} × 10, ${n} × 100`), body: [
+                    L(`× 10: write one zero at the end. ${n} × 10 = ${fmt(n * 10, 'en')}`, `× 10: припиши в конце один ноль. ${n} × 10 = ${fmt(n * 10, 'ru')}`),
+                    L(`× 100: two zeros. ${n} × 100 = ${fmt(n * 100, 'en')}`, `× 100: два нуля. ${n} × 100 = ${fmt(n * 100, 'ru')}`),
+                    L(`× 1,000: three zeros. ${n} × 1,000 = ${fmt(n * 1000, 'en')}`, `× 1 000: три нуля. ${n} × 1 000 = ${fmt(n * 1000, 'ru')}`),
+                    L('So 30 × 40 is just 3 × 4 = 12 with two zeros: 1,200. The facts and the zeros together do every big product!', 'Значит, 30 × 40 - это просто 3 × 4 = 12 и два нуля: 1 200. Таблица и нули вместе решают любое большое произведение!'),
+                ] },
+                { kind: 'warn', title: T.warn, body: [
+                    L('Do not count on your fingers every time. If a fact does not come, use the trick once, then say the fact three times.', 'Не считай каждый раз на пальцах. Если факт не вспоминается, один раз используй приём, а потом скажи факт три раза.'),
+                ] },
+                { kind: 'trick', title: T.trick, body: [
+                    L('A little every day beats a lot once: a few facts in every game, and in a week they are yours.', 'Понемногу каждый день лучше, чем много один раз: несколько фактов в каждой игре - и через неделю они твои.'),
+                ] },
+            ],
+        };
+    },
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
     ...strategyBuilders,
     ...wordBuilders,
@@ -764,6 +812,7 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
     ...topic4EstBuilders,
     ...topic4ArrBuilders,
     ...topic4AreaBuilders,
+    ...factsBuilders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
         const skip = Array.from({ length: q }, (_, i) => (i + 1) * d);
@@ -1155,6 +1204,7 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'est-2x2': ['est-product'],
     'mult-2x2': ['mult-area', 'mult-partial'],
     'dist-2x2': ['mult-2x2', 'mult-dist'],
+    'mult-facts': [],
 };
 
 // every building block in learning order: a skill comes after everything it needs
