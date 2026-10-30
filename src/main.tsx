@@ -27,7 +27,7 @@ import { type Attention, type Step, IDLE_MS, TICK_MS, attention, shuffleWith } f
 // ========================================
 const UI = {
     en: {
-        title: 'Math Quest', subtitle: 'with Lina and Pip', play: 'Play', playSub: 'Learn by playing', test: 'Practice test', testSub: (n: number) => `${n} tasks of the new material, like at school`,
+        title: 'Math Quest', subtitle: 'with Lina and Pip', play: 'Play', playSub: 'Learn by playing', test: 'Practice test', testSub: (n: number) => `${n} tasks: every kind of this week's homework once, like at school`,
         story: 'Story book', gallery: 'My paintings', progress: 'Progress', settings: 'Settings', home: 'Home', check: 'Check', hint: 'Hint', hintRest: 'You cannot use a hint right now. Tap "Read the theory first": the answer to your question is there!', next: 'Next task',
         learn: 'Let\'s learn it with Lina', learnFirst: 'Read the theory first', readDone: 'I read it! Quiz time', notRead: 'You have not read the theory yet. Read it carefully, every example, and the quiz opens.', quiz: 'Mini quiz', question: 'Question', of: 'of',
         quizPassed: 'Quiz passed!', quizFailed: 'Not yet, let\'s read it once more', tryNew: 'Try a new task', backToTask: 'Back to my task', readAgain: 'Read again with new examples',
@@ -80,7 +80,7 @@ const UI = {
         nextQ: 'Next question', finishQuiz: 'Finish the quiz', youAnswered: 'You answered', testIn: (n: number) => n === 0 ? 'The test is today! You are ready!' : n === 1 ? 'The test is tomorrow!' : `The test is in ${n} days`, testDate: 'School test date', almost: '2 of 3, almost perfect! Great learning.', earned: 'stars earned',
     },
     ru: {
-        title: 'Математический квест', subtitle: 'с Линой и Пип', play: 'Играть', playSub: 'Учимся, играя', test: 'Пробный тест', testSub: (n: number) => `${n} заданий по новому материалу, как в школе`,
+        title: 'Математический квест', subtitle: 'с Линой и Пип', play: 'Играть', playSub: 'Учимся, играя', test: 'Пробный тест', testSub: (n: number) => `${n} заданий: каждый вид из домашек недели по одному разу, как в школе`,
         story: 'Книжка-история', gallery: 'Мои картины', progress: 'Прогресс', settings: 'Настройки', home: 'Домой', check: 'Проверить', hint: 'Подсказка', hintRest: 'Подсказку пока нельзя взять. Нажми «Сначала прочитать теорию»: там есть ответ на твой вопрос!', next: 'Следующее задание',
         learn: 'Разберёмся вместе с Линой', learnFirst: 'Сначала прочитать теорию', readDone: 'Прочитала! К викторине', notRead: 'Ты ещё не прочитала теорию. Прочитай внимательно, каждый пример, и тогда откроется викторина.', quiz: 'Мини-викторина', question: 'Вопрос', of: 'из',
         quizPassed: 'Викторина пройдена!', quizFailed: 'Пока не получилось, прочитаем ещё раз', tryNew: 'Новое задание', backToTask: 'Вернуться к заданию', readAgain: 'Прочитать ещё раз с новыми примерами',

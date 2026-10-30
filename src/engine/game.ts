@@ -519,18 +519,23 @@ export const TEST_PLAN: SkillId[] = [
 
 export const STRATEGIES: SkillId[] = ['mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];
 
-// The practice test follows the new material (owner, 2026-10-26, "update our test with new material unless I ask something else"):
-// two different tasks of every kind of the current homework (one each when the homework has more than 10 kinds, at most 20 in all)
-// plus one task of every old skill due for a review that day, at most 5. Without a day: the old fixed mix of TEST_PLAN
-export const TEST_PER_KIND = 2;
-export const TEST_MAX = 20;
+// The practice test (the same test as the end-of-the-day one) follows the new material: every kind of task of every homework
+// of the week, each exactly once (owner, 2026-10-29: "the test must include all tasks, each task once"); on a day without
+// homework the homeworks of the last week. Plus one task of every old skill due for a review that day, at most 5.
+// Without a day: the old fixed mix of TEST_PLAN
 export const TEST_REVIEWS = 5;
 export type TestRow = { skill: SkillId; kind?: string };
+export const testHomeworks = (state: GameState, day: string): Homework[] => {
+    const active = activeHomework(state, day);
+    if (active.length) return active;
+    const last = currentHomework(state, day);
+    return HOMEWORKS.filter(h => h.given <= day && lastDay(h, state) === lastDay(last, state));
+};
 export const testPlan = (state: GameState, day: string): TestRow[] => {
-    const kinds: TestRow[] = currentHomework(state, day).plan.flatMap(([skill, ks]) => ks.map(kind => ({ skill, kind })));
-    const per = kinds.length * TEST_PER_KIND <= TEST_MAX ? TEST_PER_KIND : 1;
-    const hw = kinds.flatMap(k => Array.from({ length: per }, () => k)).slice(0, TEST_MAX);
-    const reviews = reviewsDue(state, day).filter(s => !kinds.some(k => k.skill === s)).slice(0, TEST_REVIEWS).map(skill => ({ skill }));
+    const seen = new Set<string>();
+    const hw: TestRow[] = testHomeworks(state, day).flatMap(h => h.plan.flatMap(([skill, ks]) => ks.map(kind => ({ skill, kind }))))
+        .filter(r => (seen.has(`${r.skill}:${r.kind}`) ? false : (seen.add(`${r.skill}:${r.kind}`), true)));
+    const reviews = reviewsDue(state, day).filter(s => !hw.some(k => k.skill === s)).slice(0, TEST_REVIEWS).map(skill => ({ skill }));
     return [...hw, ...reviews];
 };
 
