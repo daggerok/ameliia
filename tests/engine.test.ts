@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, DAILY_RIGHT, FACT_EVERY, logQuizResult, logTheoryRead, minReadSec, factDue, nextFact, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
+import { AGAIN, ALL_SKILLS, DAILY_RIGHT, FACT_EVERY, logQuizResult, logTheoryRead, minReadSec, factDue, nextFact, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
 import { KINDS_4_2 } from '../src/engine/topic4';
 import { KINDS_4_5 } from '../src/engine/topic4area';
 import { factKey, makeFact } from '../src/engine/facts';
@@ -459,13 +459,15 @@ describe('Lesson 4-2 homework: 2-digit numbers times multiples of 10', () => {
         expect(activeHomework(s, '2026-10-25')).toEqual([]);
         expect(dailyGoal(s, '2026-10-25').total).toBe(DAILY_RIGHT);
         expect(dailyGoal(s, '2026-10-26').total).toBe(3 * n);
-        // Lesson 4-3 joins on 2026-10-27 with three per kind, then one per kind
-        expect(dailyGoal(s, '2026-10-27').total).toBe(n + 3 * KINDS_4_3.length);
-        // Lesson 4-4 joins on 2026-10-28 with three per kind, then one per kind
-        expect(dailyGoal(s, '2026-10-28').total).toBe(n + KINDS_4_3.length + 3 * KINDS_4_4.length);
+        // two right answers per kind on every repeat day (owner, 2026-10-29)
+        expect(AGAIN).toBe(2);
+        // Lesson 4-3 joins on 2026-10-27 with three per kind, then two per kind
+        expect(dailyGoal(s, '2026-10-27').total).toBe(AGAIN * n + 3 * KINDS_4_3.length);
+        // Lesson 4-4 joins on 2026-10-28 with three per kind, then two per kind
+        expect(dailyGoal(s, '2026-10-28').total).toBe(AGAIN * (n + KINDS_4_3.length) + 3 * KINDS_4_4.length);
         // Lesson 4-5 joins on 2026-10-29 with three per kind
-        expect(dailyGoal(s, '2026-10-29').total).toBe(n + KINDS_4_3.length + KINDS_4_4.length + 3 * KINDS_4_5.length);
-        expect(dailyGoal(s, '2026-10-30').total).toBe(n + KINDS_4_3.length + KINDS_4_4.length + KINDS_4_5.length);
+        expect(dailyGoal(s, '2026-10-29').total).toBe(AGAIN * (n + KINDS_4_3.length + KINDS_4_4.length) + 3 * KINDS_4_5.length);
+        expect(dailyGoal(s, '2026-10-30').total).toBe(AGAIN * (n + KINDS_4_3.length + KINDS_4_4.length + KINDS_4_5.length));
         expect(dailyGoal(s, '2026-10-31').total).toBe(DAILY_RIGHT);
         expect(uncovered(s, '2026-10-31')).toEqual([]);
         expect(currentHomework(s, '2026-10-22').id).toBe('topic3');
@@ -561,7 +563,7 @@ describe('Lesson 4-3 homework: estimate with rounding or compatible numbers', ()
     test('the homework of 2026-10-27 comes first: three right answers per kind that day, then Lesson 4-2 of the same week', () => {
         const s = newState(), day = '2026-10-27';
         expect(activeHomework(s, day).map(h => h.id)).toEqual(['lesson-4-2', 'lesson-4-3']);
-        expect(dailyGoal(s, day).total).toBe(3 * KINDS_4_3.length + KINDS_4_2.length);
+        expect(dailyGoal(s, day).total).toBe(3 * KINDS_4_3.length + AGAIN * KINDS_4_2.length);
         expect(currentHomework(s, day).id).toBe('lesson-4-3');
         for (let i = 0; i < 100; i++) expect(nextSkill(s, makeRng(i + 1), day)).toBe('est-2x2');
         expect(prepPicks(s, day).every(([skill]) => skill === 'est-2x2')).toBe(true);
@@ -619,7 +621,7 @@ describe('Lesson 4-4 homework: arrays and partial products', () => {
     test('the homework of 2026-10-28 comes first: three right answers per kind that day, then Lessons 4-3 and 4-2', () => {
         const s = newState(), day = '2026-10-28';
         expect(activeHomework(s, day).map(h => h.id)).toEqual(['lesson-4-2', 'lesson-4-3', 'lesson-4-4']);
-        expect(dailyGoal(s, day).total).toBe(3 * KINDS_4_4.length + KINDS_4_3.length + KINDS_4_2.length);
+        expect(dailyGoal(s, day).total).toBe(3 * KINDS_4_4.length + AGAIN * (KINDS_4_3.length + KINDS_4_2.length));
         expect(currentHomework(s, day).id).toBe('lesson-4-4');
         for (let i = 0; i < 100; i++) expect(nextSkill(s, makeRng(i + 1), day)).toBe('mult-2x2');
         expect(prepPicks(s, day).length).toBe(KINDS_4_4.length);
@@ -694,7 +696,7 @@ describe('Lesson 4-5 homework: area models and partial products', () => {
     test('the homework of 2026-10-29 comes first: three right answers per kind that day, then Lessons 4-4, 4-3 and 4-2', () => {
         const s = newState(), day = '2026-10-29';
         expect(activeHomework(s, day).map(h => h.id)).toEqual(['lesson-4-2', 'lesson-4-3', 'lesson-4-4', 'lesson-4-5']);
-        expect(dailyGoal(s, day).total).toBe(3 * KINDS_4_5.length + KINDS_4_4.length + KINDS_4_3.length + KINDS_4_2.length);
+        expect(dailyGoal(s, day).total).toBe(3 * KINDS_4_5.length + AGAIN * (KINDS_4_4.length + KINDS_4_3.length + KINDS_4_2.length));
         expect(currentHomework(s, day).id).toBe('lesson-4-5');
         for (let i = 0; i < 100; i++) expect(nextSkill(s, makeRng(i + 1), day)).toBe('dist-2x2');
         expect(prepPicks(s, day).length).toBe(KINDS_4_5.length);
@@ -867,10 +869,10 @@ describe('spaced review: old skills come back on a ladder of 1, 2, 3, 4 ... days
         let c = s;
         for (const k of KINDS_4_4) for (let j = 0; j < 3; j++) c = right(c, 'mult-2x2', hwDay, true, k);
         for (let i = 0; i < 50; i++) expect(nextSkill(c, makeRng(i + 1), hwDay)).toBe('est-2x2');
-        for (const k of KINDS_4_3) c = right(c, 'est-2x2', hwDay, true, k);
+        for (const k of KINDS_4_3) for (let j = 0; j < AGAIN; j++) c = right(c, 'est-2x2', hwDay, true, k);
         for (let i = 0; i < 50; i++) expect(nextSkill(c, makeRng(i + 1), hwDay)).toBe('mult-2x10');
         // homework covered: the review, every time, until it is done
-        for (const k of KINDS_4_2) c = right(c, 'mult-2x10', hwDay, true, k);
+        for (const k of KINDS_4_2) for (let j = 0; j < AGAIN; j++) c = right(c, 'mult-2x10', hwDay, true, k);
         expect(uncovered(c, hwDay)).toEqual([]);
         for (let i = 0; i < 50; i++) expect(nextSkill(c, makeRng(i + 1), hwDay)).toBe('div-4d');
         c = right(c, 'div-4d', hwDay);
@@ -878,14 +880,14 @@ describe('spaced review: old skills come back on a ladder of 1, 2, 3, 4 ... days
         for (let i = 0; i < 50; i++) expect(nextSkill(c, makeRng(i + 1), hwDay)).not.toBe('div-4d');
         // a failed skill comes before the review due
         let f = right(s, 'round', hwDay, false);
-        for (const k of KINDS_4_2) f = right(f, 'mult-2x10', hwDay, true, k);
-        for (const k of KINDS_4_3) f = right(f, 'est-2x2', hwDay, true, k);
+        for (const k of KINDS_4_2) for (let j = 0; j < AGAIN; j++) f = right(f, 'mult-2x10', hwDay, true, k);
+        for (const k of KINDS_4_3) for (let j = 0; j < AGAIN; j++) f = right(f, 'est-2x2', hwDay, true, k);
         for (const k of KINDS_4_4) for (let j = 0; j < 3; j++) f = right(f, 'mult-2x2', hwDay, true, k);
         for (let i = 0; i < 50; i++) expect(nextSkill(f, makeRng(i + 1), hwDay)).toBe('round');
         // without a day the reviews are not used (tests of the old flow)
         for (let i = 0; i < 50; i++) expect(nextSkill(s, makeRng(i + 1))).not.toBe('div-4d');
         // the day's goal: the homework rows plus one for the review; the row stays once she did it
-        expect(dailyGoal(s, hwDay)).toMatchObject({ total: KINDS_4_2.length + KINDS_4_3.length + 3 * KINDS_4_4.length + 1, done: 0, homework: true });
+        expect(dailyGoal(s, hwDay)).toMatchObject({ total: AGAIN * (KINDS_4_2.length + KINDS_4_3.length) + 3 * KINDS_4_4.length + 1, done: 0, homework: true });
         expect(dailyGoal(s, hwDay).rows.find(r => r.skill === 'div-4d')).toMatchObject({ need: 1, done: 0, review: true });
         const d = right(s, 'div-4d', hwDay);
         expect(dailyGoal(d, hwDay).rows.find(r => r.skill === 'div-4d')).toMatchObject({ need: 1, done: 1, review: true });

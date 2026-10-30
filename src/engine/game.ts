@@ -185,6 +185,10 @@ export const LESSON_4_4_PLAN: [SkillId, string[]][] = [['mult-2x2', Array.from(K
 // Topic 4, Lesson 4-5 (Additional Practice 4-5, p. 51-52, homework of 2026-10-29): every kind of task on the two pages
 export const LESSON_4_5_PLAN: [SkillId, string[]][] = [['dist-2x2', Array.from(KINDS_4_5)]];
 
+// right answers per kind on each repeat day of a homework (owner, 2026-10-29: "daily goals include two right tasks done";
+// the first day stays 3 per kind, the owner's choice of 2026-10-26)
+export const AGAIN = 2;
+
 // A homework: the kinds of tasks on its photos, the day it was given and the last day of its repeats (the test date
 // of the settings when it has none). While a homework is current the daily goal is its plan: `first` right answers
 // per kind on the day it was given, `again` on each later day, so the lesson comes back a few times in its week.
@@ -196,22 +200,22 @@ export const HOMEWORKS: Homework[] = [
         sub: L('Multiplying by 1-digit numbers, mental math, select all, word problems, forces and speed. Theory first, then tasks', 'Умножение на однозначное, устный счёт, «выбери все», задачи, силы и скорость. Сначала теория, потом задания'),
     },
     {
-        id: 'lesson-4-2', given: '2026-10-26', until: '2026-10-30', first: 3, again: 1, plan: LESSON_4_2_PLAN,
+        id: 'lesson-4-2', given: '2026-10-26', until: '2026-10-30', first: 3, again: AGAIN, plan: LESSON_4_2_PLAN,
         title: L('Homework: Lesson 4-2, 2-digit numbers × multiples of 10', 'Домашка: урок 4-2, двузначные × круглые десятки'),
         sub: L('Arrays and area models, 50 × 15, a building of 30 floors, Greg and Marta, the dentist\'s boxes, which product is greater. Theory first, then tasks', 'Массивы и модели площади, 50 × 15, дом в 30 этажей, Грег и Марта, коробки стоматолога, какое произведение больше. Сначала теория, потом задания'),
     },
     {
-        id: 'lesson-4-3', given: '2026-10-27', until: '2026-10-30', first: 3, again: 1, plan: LESSON_4_3_PLAN,
+        id: 'lesson-4-3', given: '2026-10-27', until: '2026-10-30', first: 3, again: AGAIN, plan: LESSON_4_3_PLAN,
         title: L('Homework: Lesson 4-3, estimate with rounding or compatible numbers', 'Домашка: урок 4-3, прикидка округлением или удобными числами'),
         sub: L('23 × 12 is about 25 × 10, estimate each product, the bathtub, gadgets in 4 weeks, Nathan\'s estimate, the tour guide\'s box. Theory first, then tasks', '23 × 12 - это примерно 25 × 10, прикидки произведений, ванна, гаджеты за 4 недели, прикидка Натана, рамка экскурсовода. Сначала теория, потом задания'),
     },
     {
-        id: 'lesson-4-4', given: '2026-10-28', until: '2026-10-30', first: 3, again: 1, plan: LESSON_4_4_PLAN,
+        id: 'lesson-4-4', given: '2026-10-28', until: '2026-10-30', first: 3, again: AGAIN, plan: LESSON_4_4_PLAN,
         title: L('Homework: Lesson 4-4, arrays and partial products', 'Домашка: урок 4-4, массивы и частичные произведения'),
         sub: L('12 × 24 as four small rectangles, Barb\'s 14 weeks, Teri\'s answer, Nolan\'s store, missing partial products and factors. Theory first, then tasks', '12 × 24 как четыре маленьких прямоугольника, 14 недель Барб, ответ Тери, магазин Нолана, пропущенные частичные произведения и множители. Сначала теория, потом задания'),
     },
     {
-        id: 'lesson-4-5', given: '2026-10-29', until: '2026-10-30', first: 3, again: 1, plan: LESSON_4_5_PLAN,
+        id: 'lesson-4-5', given: '2026-10-29', until: '2026-10-30', first: 3, again: AGAIN, plan: LESSON_4_5_PLAN,
         title: L('Homework: Lesson 4-5, area models and partial products', 'Домашка: урок 4-5, модели площади и частичные произведения'),
         sub: L('23 × 18 = (20 + 3) × (10 + 8), 21 × 51, 10 × 18, Ms. Langley\'s class, the ferry, Mr. Buckham\'s index cards, select all. Theory first, then tasks', '23 × 18 = (20 + 3) × (10 + 8), 21 × 51, 10 × 18, класс миссис Лэнгли, паром, карточки мистера Бакхэма, выбери все. Сначала теория, потом задания'),
     },
