@@ -111,9 +111,9 @@ describe('progress rollups', () => {
         expect(r.asked).toBe(2);
         expect(r.planned).toBe(true);
         const array = r.kinds.find(k => k.kind === 'array')!;
-        expect(array).toMatchObject({ asked: 2, right: 1, wrong: 1, last: DAY, need: 1, done: 1 });
+        expect(array).toMatchObject({ asked: 2, right: 1, wrong: 1, last: DAY, need: 2, done: 1 });
         const compare = r.kinds.find(k => k.kind === 'compare')!;
-        expect(compare).toMatchObject({ asked: 0, right: 0, wrong: 0, last: '', need: 1, done: 0 });
+        expect(compare).toMatchObject({ asked: 0, right: 0, wrong: 0, last: '', need: 2, done: 0 });
         expect(r.kinds.map(k => k.kind)).toEqual(KINDS_OF('mult-2x10'));
         const week = skillRows(s, DAY, 'week').find(x => x.skill === 'mult-2x10')!;
         expect(week.kinds.find(k => k.kind === 'product')).toMatchObject({ asked: 1, right: 1, last: addDays(DAY, -3) });
