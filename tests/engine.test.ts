@@ -1194,33 +1194,30 @@ describe('game flow', () => {
         s = applyAnswer(s, makeProblem('div-3d', rng), true, { firstTry: true, hint: false, sec: 5 }).state;
         expect(s.skills['div-3d'].reviewPending).toBe(false);
     });
-    test('the practice test follows the new material: two tasks of every homework kind plus the reviews due', () => {
+    test('the practice test: every kind of every homework of the week exactly once, plus the reviews due', () => {
         const day = '2026-10-28', s = newState();
-        // on 2026-10-26 the current homework is Lesson 4-2, on 2026-10-27 Lesson 4-3, from 2026-10-28 Lesson 4-4
-        const t0 = buildTest(s, makeRng(9), '2026-10-26');
-        expect(t0.length).toBe(2 * KINDS_4_2.length);
-        expect(t0.every(p => p.skill === 'mult-2x10')).toBe(true);
-        for (const k of KINDS_4_2) expect(t0.filter(p => kindOf(p) === k).length).toBe(2);
-        const t27 = buildTest(s, makeRng(9), '2026-10-27');
-        expect(t27.every(p => p.skill === 'est-2x2')).toBe(true);
-        for (const k of KINDS_4_3) expect(t27.filter(p => kindOf(p) === k).length).toBe(2);
-        const t1 = buildTest(s, makeRng(9), day);
-        expect(t1.length).toBe(2 * KINDS_4_4.length);
-        expect(t1.every(p => p.skill === 'mult-2x2')).toBe(true);
-        expect(new Set(t1.map(p => p.id)).size).toBe(t1.length);
-        for (const k of KINDS_4_4) expect(t1.filter(p => kindOf(p) === k).length).toBe(2);
-        // an old skill due for a review that day gets one task, Lesson 4-3 of yesterday too; a homework skill due is not doubled
+        const once = (t: Problem[], kinds: [SkillId, readonly string[]][]) => {
+            expect(t.length).toBe(kinds.reduce((n, [, ks]) => n + ks.length, 0));
+            for (const [skill, ks] of kinds) for (const k of ks) expect(t.filter(p => p.skill === skill && kindOf(p) === k).length).toBe(1);
+            expect(new Set(t.map(p => p.id)).size).toBe(t.length);
+        };
+        // the week grows day by day: Lesson 4-2 on 2026-10-26, 4-3 joins on 2026-10-27, 4-4 on 2026-10-28, 4-5 on 2026-10-29
+        once(buildTest(s, makeRng(9), '2026-10-26'), [['mult-2x10', KINDS_4_2]]);
+        once(buildTest(s, makeRng(9), '2026-10-27'), [['mult-2x10', KINDS_4_2], ['est-2x2', KINDS_4_3]]);
+        once(buildTest(s, makeRng(9), day), [['mult-2x10', KINDS_4_2], ['est-2x2', KINDS_4_3], ['mult-2x2', KINDS_4_4]]);
+        const week: [SkillId, readonly string[]][] = [['mult-2x10', KINDS_4_2], ['est-2x2', KINDS_4_3], ['mult-2x2', KINDS_4_4], ['dist-2x2', KINDS_4_5]];
+        once(buildTest(s, makeRng(9), '2026-10-29'), week);
+        // a day without a homework tests the whole last week
+        once(buildTest(s, makeRng(9), '2026-11-02'), week);
+        // an old skill due for a review gets one task; a homework skill due is not added again
         let r = applyAnswer(s, makeProblem('div-4d', makeRng(1)), true, { firstTry: true, hint: false, sec: 5, day: '2026-10-27' }).state;
         r = applyAnswer(r, makeProblem('est-2x2', makeRng(2), 'round'), true, { firstTry: true, hint: false, sec: 5, day: '2026-10-27' }).state;
-        r = applyAnswer(r, makeProblem('mult-2x2', makeRng(3), 'array'), true, { firstTry: true, hint: false, sec: 5, day: '2026-10-27' }).state;
-        expect(reviewsDue(r, day)).toEqual(['div-4d', 'est-2x2', 'mult-2x2']);
+        expect(reviewsDue(r, day)).toEqual(['div-4d', 'est-2x2']);
         const t2 = buildTest(r, makeRng(9), day);
-        expect(t2.length).toBe(2 * KINDS_4_4.length + 2);
-        expect(t2.filter(p => p.skill === 'est-2x2').length).toBe(1);
+        expect(t2.length).toBe(KINDS_4_2.length + KINDS_4_3.length + KINDS_4_4.length + 1);
+        expect(t2.filter(p => p.skill === 'est-2x2').length).toBe(KINDS_4_3.length);
         expect(t2.filter(p => p.skill === 'div-4d').length).toBe(1);
         expect(testPlan(r, day).length).toBe(t2.length);
-        // a day without a homework still tests the last one given
-        expect(buildTest(s, makeRng(9), '2026-11-02').every(p => p.skill === 'dist-2x2')).toBe(true);
     });
     test('the practice test without a day: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2, 1 of Lesson 4-3, 1 of Lesson 4-4, 1 of Lesson 4-5 and 2 different multiplication strategies', () => {
         const test1 = buildTest(newState(), makeRng(9));
