@@ -402,7 +402,10 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     // notes belong to this task only: a new task remounts the input and starts a clean page
     const [strokes, setStrokes] = useState<Stroke[]>([]);
     const [view, setView] = useState<View>(START_VIEW);
-    const [pad, setPad] = useState(false);
+    // open, then closing while the sheet slides away, then gone
+    const [pad, setPad] = useState<'open' | 'closing' | null>(null);
+    const closePad = React.useCallback(() => setPad(p => (p === 'open' ? 'closing' : p)), []);
+    useEffect(() => { if (pad !== 'closing') return; const id = setTimeout(() => setPad(null), 220); return () => clearTimeout(id); }, [pad]);
     const padTour = React.useContext(PadTourContext);
     const [v, setV] = useState('');
     const [r, setR] = useState('');
@@ -427,7 +430,16 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
     };
     const box = 'p-3 md:p-4 text-center border-[3px] border-indigo-500 rounded-2xl text-2xl md:text-3xl font-black bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 shadow-md';
     return (
-        <form onSubmit={submit} className="space-y-3" data-testid="answer-form">
+        <form onSubmit={submit} data-testid="answer-form">
+          {/* the answers step back while the pad is open; the pad itself stays outside this transform, or its fixed box
+              would be clipped to the form */}
+          <div className={`space-y-3 transition-all duration-300 ${pad === 'open' ? 'scale-[0.98] opacity-60' : ''}`}>
+            {/* the notepad is for thinking before the answer, so its button sits above the answers, far from Check; a memory check has none */}
+            {problem.skill !== 'mult-facts' && (
+                <div className="flex justify-end">
+                    <button type="button" data-testid="notepad-open" onClick={() => setPad('open')} className={`${secondary} min-h-11 px-4 py-2 text-sm`}>✏️ {t.notepadOpen}{strokes.length ? ` · ${strokes.length} ${t.notepadHas}` : ''}</button>
+                </div>
+            )}
             {warn && <div className="text-center text-rose-500 font-bold animate-bounce-in">⚠️ {a.kind === 'choice' || a.kind === 'multi' ? t.pick : a.kind === 'fill' ? t.fillAll : t.empty}</div>}
             {a.kind === 'fill' ? (
                 <FillSheet answer={a} lang={lang} values={blanks} setValue={(i, x) => setBlanks(bs => bs.map((y, k) => (k === i ? x : y)))} />
@@ -468,10 +480,13 @@ const AnswerInput: React.FC<{ problem: Problem; lang: Lang; t: UIText; onSubmit:
                     </>)}
                 </div>
             )}
-            {/* a memory check is answered from her head, so there is no notepad */}
-            {problem.skill !== 'mult-facts' && <button type="button" data-testid="notepad-open" onClick={() => setPad(true)} className={`${secondary} w-full py-3`}>✏️ {t.notepadOpen}{strokes.length ? ` · ${strokes.length} ${t.notepadHas}` : ''}</button>}
-            <button type="submit" data-testid="check" className={`${primary} w-full py-4 text-xl`}>{t.check}</button>
-            {pad && <Notepad strokes={strokes} setStrokes={setStrokes} view={view} setView={setView} prompt={tr(problem.prompt, lang)} onClose={() => setPad(false)} tour={padTour} labels={{ done: t.notepadDone, clear: t.notepadClear, undo: t.notepadUndo, eraser: t.notepadEraser, title: t.notepad, move: t.notepadMove, zoomIn: t.notepadZoomIn, zoomOut: t.notepadZoomOut, zoomReset: t.notepadZoomReset }} />}
+            {/* Check is the one primary action: narrower than the answers above it and set apart by a gap, so a tap meant
+                for the last option or the notepad never lands on it (owner, 2026-10-29) */}
+            <div className="flex justify-center pt-3">
+                <button type="submit" data-testid="check" className={`${primary} min-w-48 px-10 py-4 text-xl`}>{t.check}</button>
+            </div>
+          </div>
+            {pad && <Notepad strokes={strokes} setStrokes={setStrokes} view={view} setView={setView} prompt={tr(problem.prompt, lang)} onClose={closePad} closing={pad === 'closing'} tour={padTour} labels={{ done: t.notepadDone, clear: t.notepadClear, undo: t.notepadUndo, eraser: t.notepadEraser, title: t.notepad, move: t.notepadMove, zoomIn: t.notepadZoomIn, zoomOut: t.notepadZoomOut, zoomReset: t.notepadZoomReset }} />}
         </form>
     );
 };
@@ -508,7 +523,7 @@ const SectionView: React.FC<{ s: Section; lang: Lang }> = ({ s, lang }) => {
 // labels: the rework page leads to a new task (not a quiz) and back home
 // notice: said right above the quiz button when she pressed it before reading the page
 const TheoryView: React.FC<{ theory: Theory; lang: Lang; t: UIText; onDone: () => void; onSkip?: () => void; labels?: { kicker: string; done: string; skip: string }; notice?: string }> = ({ theory, lang, t, onDone, onSkip, labels, notice }) => (
-    <div className={`${card} space-y-4 animate-slide-up`} data-testid="theory">
+    <div className={`${card} space-y-4`} data-testid="theory">
         <div className="flex items-center gap-3">
             <Lina mood="happy" size={64} />
             <div>
@@ -545,7 +560,7 @@ const QuizView: React.FC<{ items: Problem[]; lang: Lang; t: UIText; sound: boole
         setI(i + 1); setShown(null);
     };
     return (
-        <div className={`${card} space-y-4 animate-slide-up`} data-testid="quiz" data-selftest-answer={SELFTEST ? JSON.stringify(p.answer) : undefined}>
+        <div className={`${card} space-y-4`} data-testid="quiz" data-selftest-answer={SELFTEST ? JSON.stringify(p.answer) : undefined}>
             <div className="flex justify-between items-center">
                 <h2 className="text-xl md:text-2xl font-black text-violet-600 dark:text-violet-400">📝 {t.quiz}</h2>
                 <span className="text-sm font-black text-slate-400" data-testid="quiz-progress">{t.question} {i + 1} {t.of} {items.length}</span>
@@ -569,6 +584,8 @@ const QuizView: React.FC<{ items: Problem[]; lang: Lang; t: UIText; sound: boole
 // ========================================
 // APP
 // ========================================
+// side pages open over the flow (up) and close back into it (down); everything else is a step forward, home a step back
+const SIDE_SCREENS: Screen[] = ['stats', 'story', 'gallery', 'settings', 'reworkList'];
 type Screen = 'home' | 'play' | 'theory' | 'review' | 'reworkList' | 'quiz' | 'quizResult' | 'test' | 'testResult' | 'stats' | 'story' | 'gallery' | 'settings';
 // opened, need, min, early: the reading clock of the page (the quiz opens after min seconds; need is a full read)
 type Learn = { skill: SkillId; failed?: Problem; mode: 'failed' | 'first' | 'due'; theory: Theory; quiz: Problem[]; quizScore: number; opened: number; need: number; min: number; early: number };
@@ -586,6 +603,12 @@ export const App: React.FC = () => {
     const [g, setG] = useState<GameState>(() => firstLocal?.state ?? newState());
     const [paintDone, setPaintDone] = useState<number | null>(null);
     const [screen, setScreen] = useState<Screen>('home');
+    // the direction of a screen change: forward from the right, back from the left, a side page up and down
+    // (kept until the next change, so a re-render of the same screen never cuts the motion short)
+    const prevScreen = useRef<Screen>('home'), pageAnimRef = useRef('');
+    if (screen !== prevScreen.current) pageAnimRef.current = SIDE_SCREENS.includes(screen) ? 'animate-page-up' : SIDE_SCREENS.includes(prevScreen.current) ? 'animate-page-down' : screen === 'home' ? 'animate-page-back' : 'animate-page-forward';
+    const pageAnim = pageAnimRef.current;
+    useEffect(() => { prevScreen.current = screen; }, [screen]);
     const [problem, setProblem] = useState<Problem | null>(null);
     const [attempt, setAttempt] = useState<Attempt>({ hint: false, wrong: false, afterLearn: false, start: Date.now(), result: null });
     const [learn, setLearn] = useState<Learn | null>(null);
@@ -940,6 +963,7 @@ export const App: React.FC = () => {
                 )}
                 {banner && <div className="mb-3 animate-bounce-in" onClick={() => setBanner(null)}><Guide mood="cheer">{tr(banner, lang)}</Guide></div>}
                 <main className="w-full pb-8">
+                  <div key={screen} className={pageAnim} data-testid="page" data-anim={pageAnim}>
                     {screen === 'home' && <Home g={g} t={t} lang={lang} greeting={greeting[0]} chaptersOpen={chaptersOpen} onPlay={play} onHomework={playHomework} onRework={playRework} onTest={startTest} onStory={() => { setChapter(null); go('story'); }} onGallery={() => go('gallery')} onStats={() => go('stats')} />}
                     {screen === 'play' && problem && (
                         <PlayView problem={problem} attempt={attempt} lang={lang} t={t} nextChapter={nextChapter(g.stars)} partIn={g.painting.choosing ? 0 : (STARS_PER_PART - (g.painting.filled % STARS_PER_PART)) % STARS_PER_PART}
@@ -970,6 +994,7 @@ export const App: React.FC = () => {
                     {screen === 'story' && <StoryView open={chaptersOpen} chapter={chapter} setChapter={i => { setChapter(i); if (i !== null && !g.chaptersRead.includes(i)) setG(s => ({ ...s, chaptersRead: [...s.chaptersRead, i] })); }} lang={lang} t={t} stars={g.stars} />}
                     {screen === 'gallery' && <GalleryView g={g} t={t} lang={lang} />}
                     {screen === 'settings' && <SettingsView g={g} setG={setG} t={t} />}
+                  </div>
                 </main>
             </div>
         </div>
@@ -985,7 +1010,7 @@ const ReworkList: React.FC<{ queue: ReworkItem[]; lang: Lang; t: UIText; onStart
     const [open, setOpen] = useState<SkillId | null>(null);
     const label = (r: ReworkItem) => (r.from === 'homework' ? `${tr(r.m.where, lang)}: ${tr(r.m.task, lang)}` : tr(r.e.problem.prompt, lang));
     return (
-        <div className={`${card} space-y-3 animate-slide-up`} data-testid="rework-list">
+        <div className={`${card} space-y-3`} data-testid="rework-list">
             <h2 className="text-2xl font-black text-indigo-600 dark:text-indigo-400">🩹 {t.rework(queue.length)}</h2>
             <button data-testid="rework-random" onClick={() => onStart({ random: true })} className={`${primary} w-full py-4 text-lg`}>🎲 {t.reworkRandom}</button>
             <p className="text-sm font-bold text-slate-400">{t.reworkChoose}</p>
@@ -1021,7 +1046,7 @@ const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chap
     const done = goal.done >= goal.total;
     const p = PAINTINGS[g.painting.index];
     return (
-        <div className="space-y-4 animate-slide-up" data-testid="home">
+        <div className="space-y-4" data-testid="home">
             <Guide mood="happy" pip>{lang === 'en' ? 'Hi Ameliia! ' : 'Привет, Амелия! '}{tr(greeting, lang)}</Guide>
             {(() => { const days = Math.round((Date.parse(g.testDate) - Date.parse(today())) / 86_400_000); return days >= 0 ? <div className="text-center font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl py-2" data-testid="countdown">📅 {t.testIn(days)}</div> : null; })()}
             <button data-testid="play" onClick={onPlay} className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-3xl p-5 md:p-6 shadow-2xl shadow-indigo-500/30 active:scale-[0.98] transition-all text-left flex items-center gap-4">
@@ -1084,7 +1109,7 @@ const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UI
     useEffect(() => { setNoHint(false); }, [problem.id]);
     const res = attempt.result;
     return (
-        <div className={`${card} space-y-4 ${res && !res.ok ? 'animate-shake' : 'animate-slide-up'}`} data-testid="play-card" data-skill={problem.skill} data-selftest-answer={SELFTEST ? JSON.stringify(problem.answer) : undefined}>
+        <div className={`${card} space-y-4 ${res && !res.ok ? 'animate-shake' : ''}`} data-testid="play-card" data-skill={problem.skill} data-selftest-answer={SELFTEST ? JSON.stringify(problem.answer) : undefined}>
             <div className="flex flex-wrap items-center gap-2 text-xs font-black tracking-wider uppercase">
                 <span className="bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-lg">{TOPIC_ICON[problem.topic]} {tr(TOPIC_NAME[problem.topic], lang)}</span>
                 <span className="text-slate-400 normal-case italic">{tr(SKILL_NAME[problem.skill], lang)}</span>
@@ -1137,7 +1162,7 @@ const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UI
 const TestView: React.FC<{ run: TestRun; lang: Lang; t: UIText; onAnswer: (g: Given) => void }> = ({ run, lang, t, onAnswer }) => {
     const p = run.problems[run.idx];
     return (
-        <div className={`${card} space-y-4 animate-slide-up`} data-testid="test-card" data-selftest-answer={SELFTEST ? JSON.stringify(p.answer) : undefined}>
+        <div className={`${card} space-y-4`} data-testid="test-card" data-selftest-answer={SELFTEST ? JSON.stringify(p.answer) : undefined}>
             {run.idx === 0 && <Guide mood="happy">{t.testIntro}</Guide>}
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-black text-indigo-600 dark:text-indigo-400">📝 {t.test}</h2>
@@ -1162,7 +1187,7 @@ const TestResult: React.FC<{ run: TestRun; lang: Lang; t: UIText; onPractice: ()
     const score = results.filter(Boolean).length;
     const sec = Math.round((Date.now() - run.start) / 1000);
     return (
-        <div className="space-y-4 animate-slide-up" data-testid="test-result" data-score={score}>
+        <div className="space-y-4" data-testid="test-result" data-score={score}>
             <div className={`${card} text-center space-y-2`}>
                 <Lina mood={score === results.length ? 'cheer' : 'happy'} size={100} className="mx-auto" />
                 <h2 className="text-2xl font-black">{score === results.length ? `🏆 ${t.perfect}` : t.result}</h2>
@@ -1227,7 +1252,7 @@ const StatsView: React.FC<{ g: GameState; t: UIText; lang: Lang }> = ({ g, t, la
     };
     let lastDay = '';
     return (
-        <div className="space-y-4 animate-slide-up" data-testid="stats">
+        <div className="space-y-4" data-testid="stats">
             <div className={card}>
                 <div className="flex gap-2 mb-3" data-testid="period">
                     {PERIODS.map(p => <button key={p} data-testid={`period-${p}`} data-active={String(p === period)} onClick={() => { setPeriod(p); setShown(30); }} className={`${p === period ? primary : secondary} flex-1 min-h-11 py-2 text-sm md:text-base`}>{t.period[p]}</button>)}
@@ -1397,7 +1422,7 @@ const StoryView: React.FC<{ open: number; chapter: number | null; setChapter: (i
         );
     }
     return (
-        <div className="space-y-3 animate-slide-up" data-testid="story-list">
+        <div className="space-y-3" data-testid="story-list">
             {CHAPTERS.map((c, i) => i < open ? (
                 <button key={i} onClick={() => setChapter(i)} className={`${card} !p-4 text-left flex items-center gap-3 active:scale-[0.98]`}><span className="text-3xl">{c.icon}</span><span><span className="block text-xs font-black text-amber-500">{t.chapter} {i + 1}</span><span className="block font-black text-lg font-serif">{tr(c.title, lang)}</span></span></button>
             ) : (
@@ -1410,7 +1435,7 @@ const StoryView: React.FC<{ open: number; chapter: number | null; setChapter: (i
 const GalleryView: React.FC<{ g: GameState; t: UIText; lang: Lang }> = ({ g, t, lang }) => {
     const p = PAINTINGS[g.painting.index];
     return (
-        <div className="space-y-4 animate-slide-up" data-testid="gallery-view">
+        <div className="space-y-4" data-testid="gallery-view">
             <div className={card}>
                 <h2 className="text-xl font-black mb-2">🎨 {tr(p.name, lang)} · {Math.floor(g.painting.filled / STARS_PER_PART)}/{p.regions.length}</h2>
                 <PaintingView painting={p} filled={Math.floor(g.painting.filled / STARS_PER_PART)} half={!g.painting.choosing && g.painting.filled % STARS_PER_PART > 0} />
@@ -1465,7 +1490,7 @@ const PaintingChoice: React.FC<{ g: GameState; t: UIText; lang: Lang; justDone: 
 const SettingsView: React.FC<{ g: GameState; setG: React.Dispatch<React.SetStateAction<GameState>>; t: UIText }> = ({ g, setG, t }) => {
     const opt = (active: boolean) => `p-3 rounded-2xl font-bold border text-sm transition-all ${active ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200'}`;
     return (
-        <div className={`${card} space-y-5 animate-slide-up`} data-testid="settings">
+        <div className={`${card} space-y-5`} data-testid="settings">
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.language}</div><div className="grid grid-cols-2 gap-2">{(['en', 'ru'] as Lang[]).map(l => <button key={l} onClick={() => setG(s => ({ ...s, lang: l }))} className={opt(g.lang === l)}>{l === 'en' ? '🇺🇸 English' : '🇷🇺 Русский'}</button>)}</div></div>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.theme}</div><div className="grid grid-cols-3 gap-2">{(['light', 'dark', 'system'] as const).map(m => <button key={m} onClick={() => setG(s => ({ ...s, theme: m }))} className={opt(g.theme === m)}>{m === 'light' ? `☀️ ${t.light}` : m === 'dark' ? `🌙 ${t.dark}` : `🌓 ${t.system}`}</button>)}</div></div>
             <div><div className="text-xs font-black uppercase text-slate-400 mb-1.5">{t.sound}</div><button onClick={() => setG(s => ({ ...s, sound: !s.sound }))} className={`${opt(g.sound)} w-full`}>{g.sound ? `🔊 ${t.on}` : `🔇 ${t.off}`}</button></div>
