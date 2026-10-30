@@ -1199,7 +1199,8 @@ describe('game flow', () => {
         expect(Math.abs(s.time.estimation / total - 0.25)).toBeLessThan(0.05);
         // every skill was reached in the end; the memory checks come by FACT_EVERY in the app, not by the ladder
         for (const k of ALL_SKILLS) if (k !== 'mult-facts') expect(s.skills[k].seen).toBeGreaterThan(0);
-    });
+    }, 20_000);
+    // 1,500 tasks take 2-3 s on a laptop and over 5 s on a slow GitHub runner (two CI failures on 2026-10-28 and 2026-10-29): a longer timeout, not a smaller run
     test('a failed skill comes back after the quiz', () => {
         let s = newState();
         const rng = makeRng(3);
