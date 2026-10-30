@@ -1240,6 +1240,20 @@ export const answerLine = (p: Problem): L10n => {
     return L(`Answer: ${a.en}`, `Ответ: ${a.ru}`);
 };
 
+// How long a careful full read of the page takes a 4th grader: about 90 words a minute for math with numbers, the folded
+// building blocks not counted (she opens them only when she needs them)
+export const READ_WPM = 90;
+export const readSeconds = (theory: Theory, lang: 'en' | 'ru' = 'en'): number => {
+    const texts = theory.sections.flatMap((s): L10n[] => {
+        if (s.kind === 'prereq') return [];
+        if (s.kind === 'story' || s.kind === 'life' || s.kind === 'love') return [s.body];
+        if (s.kind === 'example') return [s.title, s.prompt, ...s.body];
+        return [s.title, ...s.body];
+    });
+    const words = texts.reduce((n, x) => n + x[lang].split(/\s+/).filter(Boolean).length, 0);
+    return Math.round((words / READ_WPM) * 60);
+};
+
 export const buildTheory = (skill: SkillId, rng: Rng, failed?: Problem): Theory => {
     const { hook, sections } = builders[skill](rng);
     const out: Section[] = [{ kind: 'story', body: pick(rng, hook) }];
