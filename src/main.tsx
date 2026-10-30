@@ -10,7 +10,7 @@ import { ENCOURAGE, KIND, LOVE, PRAISE, WHY_MATH } from './engine/messages';
 import { QUIZ_PASS, buildQuiz } from './engine/quiz';
 import { CHAPTERS, STARS_PER_CHAPTER } from './engine/story';
 import { type Section, type Theory, answerLine, buildTheory, readSeconds } from './engine/theory';
-import { type ReworkItem, reworkId, reworkQueue, reworkSkill, reworkTheory } from './engine/mistakes';
+import { type ReworkItem, type ReworkPick, reworkGroups, reworkId, reworkNext, reworkQueue, reworkSkill, reworkTheory } from './engine/mistakes';
 import { safeDiagnose } from './engine/diagnose';
 import { type Period, type SkillRow, PERIODS, activeSkills, dayRows, itemsOf, skillRows, summarize, testsOf, theoryOf, theoryRows } from './engine/progress';
 import { kindName } from './engine/kinds';
@@ -48,7 +48,7 @@ const UI = {
         congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', nextRewards: 'Your next rewards', partIn: (n: number) => `${n} ${n === 1 ? 'star' : 'stars'} to a new color in your picture: what will it be?`, chapterIn: (n: number, ch: number) => `${n} more ${n === 1 ? 'star' : 'stars'} to open chapter ${ch} of the story`, newColor: 'Your picture got a new color! Solve more to see what comes next', surprise: 'The colors are a surprise!', magicLocked: (done: number, all: number, more: number) => `${more} magic pictures open when you have painted all the first ${all}: ${done} of ${all} done`, storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
         dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', pickAll: 'Select all that apply', wordLabel: 'Type the missing word', attHere: 'Ameliia, are you here?', attHereSub: 'The study clock is waiting for you.', attYes: 'Yes', attNo: 'No', attDunno: 'I don\'t know',
         attBack: 'Welcome back!', attBackSub: 'The study clock stopped while you were away.', attContinue: 'Continue', attStop: 'Stop', attPaused: 'The study clock is paused',
-        byeTitle: 'Your progress is saved', byeBody: 'Everything is saved on this iPad. You can close the app now. See you soon!', byeBack: 'I am here, let\'s go on', rework: (n: number) => `Fix my mistakes: ${n} left`, reworkSub: 'Homework and app mistakes: first the right way, then a new task of the same kind', reworkDone: 'All mistakes are fixed! Great work!', reworkRemember: 'Remember this mistake? Let\'s fix it, then we go on!', reworkKicker: (n: number) => `Fix my mistakes · ${n} left`, reworkGo: 'Solve a new task of this kind', howToPlay: 'How to play (the welcome tour)',
+        byeTitle: 'Your progress is saved', byeBody: 'Everything is saved on this iPad. You can close the app now. See you soon!', byeBack: 'I am here, let\'s go on', rework: (n: number) => `Fix my mistakes: ${n} left`, reworkSub: 'Homework and app mistakes: first the right way, then a new task of the same kind', reworkRandom: 'Start: all mistakes in random order', reworkChoose: 'Or choose a topic you have just learned and fix all its mistakes at once, or open a topic and pick one mistake to fix first.', reworkTopic: (n: number) => `Fix all ${n}`, reworkTopicDone: 'All mistakes of this topic are fixed! Choose the next one.', reworkDone: 'All mistakes are fixed! Great work!', reworkRemember: 'Remember this mistake? Let\'s fix it, then we go on!', reworkKicker: (n: number) => `Fix my mistakes · ${n} left`, reworkGo: 'Solve a new task of this kind', howToPlay: 'How to play (the welcome tour)',
         tourNext: 'Next', tourBack: 'Back', tourSkip: 'Skip', tourStart: 'Let\'s start!', tourGo: 'Got it!',
         notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadMove: 'Move the page', notepadZoomIn: 'Zoom in', notepadZoomOut: 'Zoom out', notepadZoomReset: 'Back to 100%', notepadHas: 'notes',
         intro: [
@@ -101,7 +101,7 @@ const UI = {
         congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', nextRewards: 'Твои следующие награды', partIn: (n: number) => `${n} ${n === 1 ? 'звезда' : 'звезды'} до нового цвета в картине: какой он будет?`, chapterIn: (n: number, ch: number) => `Ещё ${n} ${n % 10 === 1 && n % 100 !== 11 ? 'звезда' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'звезды' : 'звёзд'} до ${ch}-й главы истории`, newColor: 'В твоей картине появился новый цвет! Решай дальше, чтобы увидеть, что будет', surprise: 'Цвета - это сюрприз!', magicLocked: (done: number, all: number, more: number) => `${more} волшебных картин откроются, когда раскрасишь все первые ${all}: готово ${done} из ${all}`, storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
         dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', pickAll: 'Выбери все подходящие ответы', wordLabel: 'Впиши пропущенное слово', attHere: 'Амелия, ты здесь?', attHereSub: 'Часы учёбы ждут тебя.', attYes: 'Да', attNo: 'Нет', attDunno: 'Не знаю',
         attBack: 'С возвращением!', attBackSub: 'Пока тебя не было, часы учёбы стояли.', attContinue: 'Продолжить', attStop: 'Прекратить', attPaused: 'Часы учёбы на паузе',
-        byeTitle: 'Прогресс сохранён', byeBody: 'Всё сохранено на этом iPad. Теперь можно закрыть приложение. До скорой встречи!', byeBack: 'Я здесь, продолжим', rework: (n: number) => `Работа над ошибками: ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkSub: 'Ошибки из домашки и из приложения: сначала как правильно, потом новое задание того же вида', reworkDone: 'Все ошибки исправлены! Отличная работа!', reworkRemember: 'Помнишь эту ошибку? Исправим её и пойдём дальше!', reworkKicker: (n: number) => `Работа над ошибками · ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkGo: 'Решить новое задание такого вида', howToPlay: 'Как играть (знакомство с игрой)',
+        byeTitle: 'Прогресс сохранён', byeBody: 'Всё сохранено на этом iPad. Теперь можно закрыть приложение. До скорой встречи!', byeBack: 'Я здесь, продолжим', rework: (n: number) => `Работа над ошибками: ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkSub: 'Ошибки из домашки и из приложения: сначала как правильно, потом новое задание того же вида', reworkRandom: 'Начать: все ошибки в случайном порядке', reworkChoose: 'Или выбери тему, которую только что разобрала, и исправь все её ошибки сразу, или открой тему и выбери, какую ошибку исправить первой.', reworkTopic: (n: number) => `Исправить все ${n}`, reworkTopicDone: 'Все ошибки этой темы исправлены! Выбери следующую.', reworkDone: 'Все ошибки исправлены! Отличная работа!', reworkRemember: 'Помнишь эту ошибку? Исправим её и пойдём дальше!', reworkKicker: (n: number) => `Работа над ошибками · ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkGo: 'Решить новое задание такого вида', howToPlay: 'Как играть (знакомство с игрой)',
         tourNext: 'Дальше', tourBack: 'Назад', tourSkip: 'Пропустить', tourStart: 'Поехали!', tourGo: 'Понятно!',
         notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadMove: 'Двигать лист', notepadZoomIn: 'Увеличить', notepadZoomOut: 'Уменьшить', notepadZoomReset: 'Вернуть 100%', notepadHas: 'записей',
         intro: [
@@ -569,7 +569,7 @@ const QuizView: React.FC<{ items: Problem[]; lang: Lang; t: UIText; sound: boole
 // ========================================
 // APP
 // ========================================
-type Screen = 'home' | 'play' | 'theory' | 'review' | 'quiz' | 'quizResult' | 'test' | 'testResult' | 'stats' | 'story' | 'gallery' | 'settings';
+type Screen = 'home' | 'play' | 'theory' | 'review' | 'reworkList' | 'quiz' | 'quizResult' | 'test' | 'testResult' | 'stats' | 'story' | 'gallery' | 'settings';
 // opened, need, min, early: the reading clock of the page (the quiz opens after min seconds; need is a full read)
 type Learn = { skill: SkillId; failed?: Problem; mode: 'failed' | 'first' | 'due'; theory: Theory; quiz: Problem[]; quizScore: number; opened: number; need: number; min: number; early: number };
 // newPart: this right answer painted a new part of the picture: [picture, parts painted now]
@@ -594,6 +594,8 @@ export const App: React.FC = () => {
     const [learnStage, setLearnStage] = useState<'theory' | 'quiz' | null>(null);
     // the mistake being reworked: its review page first, then new tasks of its kind until one is right
     const [rework, setRework] = useState<ReworkItem | null>(null);
+    // how the rework list goes on: one topic only (skill) or all, at random or in order
+    const [reworkPick, setReworkPick] = useState<ReworkPick>({ random: true });
     const [test, setTest] = useState<TestRun | null>(null);
     const [chapter, setChapter] = useState<number | null>(null);
     const [confetti, setConfetti] = useState(false);
@@ -754,11 +756,20 @@ export const App: React.FC = () => {
         setScreen(learnStage);
         return true;
     };
-    const openRework = () => {
+    const openRework = (pick: ReworkPick = reworkPick) => {
         const queue = reworkQueue(g.homeworkFixed, g.mistakeLog);
         if (!queue.length) { setRework(null); setFocus('free'); setScreen('home'); setBanner({ en: UI.en.reworkDone, ru: UI.ru.reworkDone }); return; }
-        setRework(queue[0]);
+        const next = reworkNext(queue, pick, rng());
+        // the chosen topic is fixed: back to the list to choose again
+        if (!next) { setRework(null); setReworkPick({ random: true }); setScreen('reworkList'); setBanner({ en: UI.en.reworkTopicDone, ru: UI.ru.reworkTopicDone }); return; }
+        setRework(next);
         setScreen('review');
+    };
+    // from the list: a whole topic, one mistake first (then the rest at random), or all at random
+    const startRework = (pick: ReworkPick, first?: ReworkItem) => {
+        setBanner(null); setReworkBack(null); setFocus('rework'); setReworkPick(pick);
+        if (first) { setRework(first); setScreen('review'); return; }
+        openRework(pick);
     };
     const nextTask = (f: Mode) => {
         if (f === 'rework' && reworkBack) {
@@ -800,7 +811,12 @@ export const App: React.FC = () => {
         nextTask('free');
     };
     const playHomework = () => { if (backToLearn()) return; setFocus('prep'); nextTask('prep'); };
-    const playRework = () => { if (backToLearn()) return; setReworkBack(null); setFocus('rework'); setRework(null); openRework(); };
+    const playRework = () => {
+        if (backToLearn()) return;
+        setReworkBack(null); setRework(null);
+        if (!reworkQueue(g.homeworkFixed, g.mistakeLog).length) { setFocus('free'); setBanner({ en: UI.en.reworkDone, ru: UI.ru.reworkDone }); setScreen('home'); return; }
+        setScreen('reworkList');
+    };
 
     const submit = (given: Given) => {
         if (!problem) return;
@@ -933,6 +949,7 @@ export const App: React.FC = () => {
                             onLearn={() => { setBanner(null); openTheory(problem.skill, 'failed', problem); }}
                             onNext={() => { setBanner(null); nextTask(focus); }} />
                     )}
+                    {screen === 'reworkList' && <ReworkList queue={reworkQueue(g.homeworkFixed, g.mistakeLog)} lang={lang} t={t} onStart={startRework} />}
                     {screen === 'review' && rework && <TheoryView theory={reworkTheory(rework)} lang={lang} t={t} labels={{ kicker: t.reworkKicker(reworkQueue(g.homeworkFixed, g.mistakeLog).length), done: t.reworkGo, skip: t.home }} onDone={() => { setBanner(null); reworkTask(rework); }} onSkip={() => { setReworkBack(null); setFocus('free'); go('home'); }} />}
                     {screen === 'theory' && learn && <TheoryView key={learn.opened} theory={learn.theory} lang={lang} t={t} notice={learn.early ? t.notRead : undefined} onDone={() => { setBanner(null); theoryDone(); }} />}
                     {screen === 'quiz' && learn && <QuizView key={learn.quiz.map(q => q.id).join()} items={learn.quiz} lang={lang} t={t} sound={g.sound} onDone={quizDone} />}
@@ -963,6 +980,37 @@ export const App: React.FC = () => {
 // ========================================
 // SCREENS
 // ========================================
+// Fix my mistakes: all of them at random, one topic at once, or one mistake first (owner, 2026-10-29)
+const ReworkList: React.FC<{ queue: ReworkItem[]; lang: Lang; t: UIText; onStart: (pick: ReworkPick, first?: ReworkItem) => void }> = ({ queue, lang, t, onStart }) => {
+    const [open, setOpen] = useState<SkillId | null>(null);
+    const label = (r: ReworkItem) => (r.from === 'homework' ? `${tr(r.m.where, lang)}: ${tr(r.m.task, lang)}` : tr(r.e.problem.prompt, lang));
+    return (
+        <div className={`${card} space-y-3 animate-slide-up`} data-testid="rework-list">
+            <h2 className="text-2xl font-black text-indigo-600 dark:text-indigo-400">🩹 {t.rework(queue.length)}</h2>
+            <button data-testid="rework-random" onClick={() => onStart({ random: true })} className={`${primary} w-full py-4 text-lg`}>🎲 {t.reworkRandom}</button>
+            <p className="text-sm font-bold text-slate-400">{t.reworkChoose}</p>
+            {reworkGroups(queue).map(gr => (
+                <div key={gr.skill} className="border-t border-slate-100 dark:border-slate-700 pt-2" data-testid="rework-group" data-skill={gr.skill}>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setOpen(o => (o === gr.skill ? null : gr.skill))} className="flex-1 min-h-11 text-left font-black">
+                            <span className="text-slate-400 text-xs mr-1">{open === gr.skill ? '▾' : '▸'}</span>{TOPIC_ICON[TOPIC_OF[gr.skill]]} {tr(SKILL_NAME[gr.skill], lang)} <span className="text-rose-600 dark:text-rose-400">· {gr.items.length}</span>
+                        </button>
+                        <button data-testid="rework-topic" onClick={() => onStart({ skill: gr.skill, random: false })} className={`${secondary} min-h-11 px-3 text-sm whitespace-nowrap`}>{t.reworkTopic(gr.items.length)}</button>
+                    </div>
+                    {open === gr.skill && <div className="mt-1 space-y-1">
+                        {gr.items.map(r => (
+                            <button key={reworkId(r)} data-testid="rework-item" onClick={() => onStart({ random: true }, r)} className="w-full min-h-11 text-left text-sm font-medium p-2 rounded-xl bg-slate-50 dark:bg-slate-700/50 active:scale-[0.99]">
+                                <span className="line-clamp-2 whitespace-pre-line">{label(r)}</span>
+                                {r.from === 'app' && (r.e.times ?? 1) > 1 && <span className="text-xs font-black text-rose-600 dark:text-rose-400">✗ {r.e.times}</span>}
+                            </button>
+                        ))}
+                    </div>}
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const Home: React.FC<{ g: GameState; t: UIText; lang: Lang; greeting: L10n; chaptersOpen: number; onPlay: () => void; onHomework: () => void; onRework: () => void; onTest: () => void; onStory: () => void; onGallery: () => void; onStats: () => void }> = ({ g, t, lang, greeting, chaptersOpen, onPlay, onHomework, onRework, onTest, onStory, onGallery, onStats }) => {
     const toRework = reworkQueue(g.homeworkFixed, g.mistakeLog).length;
     const mins = Math.floor((g.daily[today()] ?? 0) / 60);

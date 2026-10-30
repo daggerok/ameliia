@@ -206,6 +206,21 @@ export const reworkQueue = (fixed: string[], log: LoggedMistake[]): ReworkItem[]
     ...[...log].sort((a, b) => (b.times ?? 1) - (a.times ?? 1) || a.t - b.t).map(e => ({ from: 'app' as const, e })),
 ];
 
+// The rework list by topic (owner, 2026-10-29): she may pick one mistake to fix first, or a whole topic she has just
+// learned, or let the app take them in random order. Groups: the skill with the most mistakes first
+export const reworkGroups = (queue: ReworkItem[]): { skill: SkillId; items: ReworkItem[] }[] => {
+    const by = new Map<SkillId, ReworkItem[]>();
+    queue.forEach(r => by.set(reworkSkill(r), [...(by.get(reworkSkill(r)) ?? []), r]));
+    return Array.from(by.entries()).map(([skill, items]) => ({ skill, items })).sort((a, b) => b.items.length - a.items.length);
+};
+export type ReworkPick = { skill?: SkillId; random: boolean };
+// the next mistake: of the chosen topic only while it has any, at random or in the list order
+export const reworkNext = (queue: ReworkItem[], pick: ReworkPick, r: number): ReworkItem | null => {
+    const pool = pick.skill ? queue.filter(x => reworkSkill(x) === pick.skill) : queue;
+    if (!pool.length) return null;
+    return pick.random ? pool[Math.min(pool.length - 1, Math.floor(r * pool.length))] : pool[0];
+};
+
 export const reworkId = (r: ReworkItem) => (r.from === 'homework' ? `homework:${r.m.id}` : `app:${r.e.problem.id}`);
 export const reworkSkill = (r: ReworkItem): SkillId => (r.from === 'homework' ? r.m.skill : r.e.problem.skill);
 
