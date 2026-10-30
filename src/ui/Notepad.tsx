@@ -19,7 +19,7 @@ const HAND = 'hand';
 const GRID = 28;
 const ZMIN = 0.5, ZMAX = 3, ZSTEP = 1.25;
 
-export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) => void; view: View; setView: (v: View) => void; prompt: string; onClose: () => void; tour?: PadTour; labels: { done: string; clear: string; undo: string; eraser: string; title: string; move: string; zoomIn: string; zoomOut: string; zoomReset: string } }> = ({ strokes, setStrokes, view, setView, prompt, onClose, tour, labels }) => {
+export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) => void; view: View; setView: (v: View) => void; prompt: string; onClose: () => void; closing?: boolean; tour?: PadTour; labels: { done: string; clear: string; undo: string; eraser: string; title: string; move: string; zoomIn: string; zoomOut: string; zoomReset: string } }> = ({ strokes, setStrokes, view, setView, prompt, onClose, closing, tour, labels }) => {
     const canvas = useRef<HTMLCanvasElement>(null);
     const box = useRef<HTMLDivElement>(null);
     const [pen, setPen] = useState(PENS[0]);
@@ -68,6 +68,12 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
         return () => window.removeEventListener('resize', fit);
     }, []);
     useEffect(() => { redraw(strokes); }, [strokes, size, view]);
+    // Esc closes the pad like the Done button (owner, 2026-10-29)
+    useEffect(() => {
+        const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
+        window.addEventListener('keydown', key);
+        return () => window.removeEventListener('keydown', key);
+    }, [onClose]);
 
     // no text selection or long-press menu anywhere while the notepad is open
     useEffect(() => {
@@ -130,7 +136,8 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
 
     const tool = (active: boolean) => `w-11 h-11 rounded-xl border-2 flex items-center justify-center text-lg font-black ${active ? 'border-indigo-500 ring-4 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-600'}`;
     return (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 flex flex-col p-2 md:p-4 select-none" style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }} data-testid="notepad" data-view={`${Math.round(view.x)},${Math.round(view.y)},${view.z.toFixed(2)}`}>
+        <div className={`fixed inset-0 z-50 bg-slate-900/70 flex flex-col p-2 md:p-4 select-none ${closing ? 'animate-backdrop-out' : 'animate-backdrop-in'}`} style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }} data-testid="notepad" data-closing={String(!!closing)} data-view={`${Math.round(view.x)},${Math.round(view.y)},${view.z.toFixed(2)}`}>
+            <div className={`flex flex-col flex-1 min-h-0 ${closing ? 'animate-pad-out' : 'animate-pad-in'}`}>
             <div className="bg-white dark:bg-slate-800 rounded-t-3xl p-3 flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-700">
                 <span className="font-black text-indigo-600 dark:text-indigo-400 mr-1">✏️ {labels.title}</span>
                 <span className="flex gap-2" data-testid="notepad-pens">{PENS.map(c => <button key={c} aria-label={c} onClick={() => setPen(c)} className={tool(pen === c)}><span className="w-6 h-6 rounded-full" style={{ background: c }} /></button>)}</span>
@@ -151,6 +158,7 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
             <div ref={box} className="relative flex-1 bg-white rounded-b-3xl overflow-hidden" style={{ backgroundImage: 'linear-gradient(#e0e7ff 1px, transparent 1px), linear-gradient(90deg, #e0e7ff 1px, transparent 1px)', backgroundSize: `${GRID * view.z}px ${GRID * view.z}px`, backgroundPosition: `${view.x}px ${view.y}px` }}>
                 <canvas ref={canvas} data-testid="notepad-canvas" data-strokes={strokes.length} className={`absolute inset-0 touch-none ${pen === HAND ? 'cursor-grab' : 'cursor-crosshair'}`} style={{ touchAction: 'none' }}
                     onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} onLostPointerCapture={up} />
+            </div>
             </div>
             {tour && <Coach testId="padtour" steps={tour.steps} labels={tour.labels} onDone={tour.onDone} />}
         </div>

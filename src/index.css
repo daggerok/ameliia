@@ -17,6 +17,17 @@
     --animate-wiggle: wiggle 0.5s ease-in-out;
     --animate-correct-flash: correctFlash 0.6s ease-out;
     --animate-sparkle: sparkle 0.7s ease-out forwards;
+    /* screen changes (owner, 2026-10-29): a step forward comes in from the right, a step back from the left,
+       a side page (progress, story, gallery, settings, the mistakes list) rises from below and sinks back */
+    --animate-page-forward: pageForward 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    --animate-page-back: pageBack 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    --animate-page-up: pageUp 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    --animate-page-down: pageDown 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    /* the notepad is a sheet: the backdrop fades, the pad rises from the bottom and sinks back on close */
+    --animate-pad-in: padIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    --animate-pad-out: padOut 0.22s ease-in forwards;
+    --animate-backdrop-in: backdropIn 0.3s ease-out;
+    --animate-backdrop-out: backdropOut 0.22s ease-in forwards;
 
     @keyframes shake {
         0%, 100% { transform: translateX(0); }
@@ -85,9 +96,54 @@
         100% { background-color: transparent; }
     }
 
+    @keyframes pageForward {
+        from { opacity: 0; transform: translateX(36px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes pageBack {
+        from { opacity: 0; transform: translateX(-36px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes pageUp {
+        from { opacity: 0; transform: translateY(28px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pageDown {
+        from { opacity: 0; transform: translateY(-22px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes padIn {
+        from { opacity: 0; transform: translateY(40px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes padOut {
+        from { opacity: 1; transform: translateY(0) scale(1); }
+        to { opacity: 0; transform: translateY(40px) scale(0.97); }
+    }
+
+    @keyframes backdropIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes backdropOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+
     @keyframes sparkle {
         0% { transform: scale(0) rotate(0deg); opacity: 1; }
         50% { transform: scale(1.2) rotate(180deg); opacity: 0.8; }
         100% { transform: scale(0) rotate(360deg); opacity: 0; }
     }
+}
+
+/* motion is a nicety, never a need: whoever asked the system for less motion gets none */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
