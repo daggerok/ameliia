@@ -10,7 +10,7 @@ import { factKey, makeFact } from '../src/engine/facts';
 import { KINDS_4_4, partials } from '../src/engine/topic4arr';
 import { KINDS_4_3 } from '../src/engine/topic4est';
 import { makeFreshProblem, makeProblem } from '../src/engine';
-import { HOMEWORK_MISTAKES, reworkQueue, reworkTheory } from '../src/engine/mistakes';
+import { HOMEWORK_MISTAKES, reworkGroups, reworkNext, reworkQueue, reworkSkill, reworkTheory } from '../src/engine/mistakes';
 import { buildQuiz } from '../src/engine/quiz';
 import { buildTheory, chainOf, readSeconds } from '../src/engine/theory';
 import { theoryRows } from '../src/engine/progress';
@@ -748,6 +748,24 @@ describe('theory before the quiz: a reading clock and a log for Mom and Dad', ()
         expect(rows[0]).toMatchObject({ skill: 'dist-2x2', reads: 2, sec: 39, early: 2, passed: 1, failed: 0 });
         expect(theoryRows(s, '2026-10-31', 'today').find(r => r.skill === 'dist-2x2')?.reads).toBe(0);
         expect(normalize({ ...newState(), theoryLog: undefined }).theoryLog).toEqual([]);
+    });
+});
+
+describe('fix my mistakes: pick a topic or one mistake, or go at random', () => {
+    test('groups by topic, the biggest first; a topic goes in order until it is empty; random picks any', () => {
+        let s = newState();
+        const rng = makeRng(2);
+        for (let i = 0; i < 3; i++) s = logMistake(s, makeProblem('dist-2x2', rng, 'area'), '1', 1000 + i);
+        s = logMistake(s, makeProblem('div-2d', rng), '1', 2000);
+        const queue = reworkQueue(HOMEWORK_MISTAKES.map(m => m.id), s.mistakeLog);
+        expect(queue.length).toBe(4);
+        const groups = reworkGroups(queue);
+        expect(groups.map(g => [g.skill, g.items.length])).toEqual([['dist-2x2', 3], ['div-2d', 1]]);
+        expect(reworkSkill(reworkNext(queue, { skill: 'div-2d', random: false }, 0.9)!)).toBe('div-2d');
+        expect(reworkNext(queue, { skill: 'dist-2x2', random: false }, 0.9)).toBe(groups[0].items[0]);
+        expect(reworkNext(queue, { skill: 'mult-2x2', random: false }, 0.5)).toBeNull();
+        expect(new Set([0, 0.3, 0.6, 0.99].map(r => reworkNext(queue, { random: true }, r)))).toEqual(new Set(queue));
+        expect(reworkNext([], { random: true }, 0.5)).toBeNull();
     });
 });
 
