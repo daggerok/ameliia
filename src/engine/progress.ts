@@ -2,7 +2,7 @@
 // The Progress screen for Mom and Dad: what was done today, this week or in all, which kinds of tasks she solves,
 // which she gets wrong and which were never asked. Pure functions over the saved state, so tests can check them.
 import { type SkillId, TOPIC_OF } from './core';
-import { type GameState, type HistoryItem, type TestResult, ALL_SKILLS, addDays, dayOf, dayPlan, starsFor } from './game';
+import { type GameState, type HistoryItem, type TestResult, type TheoryRead, ALL_SKILLS, addDays, dayOf, dayPlan, starsFor } from './game';
 import { KINDS_OF } from './kinds';
 
 export type Period = 'today' | 'week' | 'all';
@@ -15,6 +15,25 @@ export const dayOfItem = (t: number) => dayOf(new Date(t));
 export const inPeriod = (t: number, day: string, period: Period) => { const d = dayOfItem(t); return d >= periodStart(day, period) && d <= day; };
 export const itemsOf = (state: GameState, day: string, period: Period): HistoryItem[] => state.history.filter(h => inPeriod(h.t, day, period));
 export const testsOf = (state: GameState, day: string, period: Period): TestResult[] => state.tests.filter(x => inPeriod(x.t, day, period));
+export const theoryOf = (state: GameState, day: string, period: Period): TheoryRead[] => state.theoryLog.filter(x => inPeriod(x.t, day, period));
+
+// every theory of the app with its reads and quizzes: in the period from the log, and all time from the skill counters
+export type TheoryRow = { skill: SkillId; reads: number; sec: number; early: number; passed: number; failed: number; readsAll: number; passedAll: number; failedAll: number; last: number };
+export const theoryRows = (state: GameState, day: string, period: Period): TheoryRow[] => {
+    const log = theoryOf(state, day, period);
+    return ALL_SKILLS.map(skill => {
+        const mine = log.filter(x => x.skill === skill), st = state.skills[skill];
+        return {
+            skill, reads: mine.length,
+            sec: mine.length ? Math.round(mine.reduce((s, x) => s + x.sec, 0) / mine.length) : 0,
+            early: mine.reduce((s, x) => s + x.early, 0),
+            passed: mine.filter(x => x.quiz?.passed).length, failed: mine.filter(x => x.quiz && !x.quiz.passed).length,
+            readsAll: st.theoryReads, passedAll: st.quizPasses, failedAll: st.quizFails,
+            last: mine.length ? mine[mine.length - 1].t : 0,
+        };
+    }).sort((a, b) => b.last - a.last || b.readsAll - a.readsAll);
+};
+
 export const starsOf = (h: HistoryItem) => (h.ok ? (h.from === 'test' ? 1 : starsFor(h.firstTry, h.hint)) : 0);
 
 export type Summary = { minutes: number; asked: number; right: number; wrong: number; hints: number; stars: number; days: number };

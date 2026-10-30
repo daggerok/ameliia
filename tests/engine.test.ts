@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { ALL_SKILLS, DAILY_RIGHT, FACT_EVERY, factDue, nextFact, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
+import { ALL_SKILLS, DAILY_RIGHT, FACT_EVERY, logQuizResult, logTheoryRead, minReadSec, factDue, nextFact, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
 import { KINDS_4_2 } from '../src/engine/topic4';
 import { KINDS_4_5 } from '../src/engine/topic4area';
 import { factKey, makeFact } from '../src/engine/facts';
@@ -12,7 +12,8 @@ import { KINDS_4_3 } from '../src/engine/topic4est';
 import { makeFreshProblem, makeProblem } from '../src/engine';
 import { HOMEWORK_MISTAKES, reworkQueue, reworkTheory } from '../src/engine/mistakes';
 import { buildQuiz } from '../src/engine/quiz';
-import { buildTheory, chainOf } from '../src/engine/theory';
+import { buildTheory, chainOf, readSeconds } from '../src/engine/theory';
+import { theoryRows } from '../src/engine/progress';
 import { placeParts, standardRows } from '../src/engine/strategies';
 
 const N = 1500;
@@ -710,6 +711,43 @@ describe('Lesson 4-5 homework: area models and partial products', () => {
             for (let k = 1; k <= 4; k++) expect(titles.some(x => x.startsWith(`Tricky spot ${k}`))).toBe(true);
             expect(titles.length).toBeGreaterThanOrEqual(8);
         }
+    });
+});
+
+describe('theory before the quiz: a reading clock and a log for Mom and Dad', () => {
+    test('the time asked before the quiz is random, never a couple of seconds, never more than 90 seconds', () => {
+        for (const need of [10, 60, 120, 300, 900]) for (const reads of [1, 2, 5]) {
+            const all = Array.from({ length: 50 }, (_, i) => minReadSec(need, reads, i / 50));
+            for (const m of all) { expect(m).toBeGreaterThanOrEqual(reads > 1 ? 15 : 20); expect(m).toBeLessThanOrEqual(90); }
+            if (need >= 120 && need <= 300) expect(new Set(all).size).toBeGreaterThan(5);
+        }
+        // a page read before asks for less time than the first read
+        expect(minReadSec(200, 2, 0.5)).toBeLessThan(minReadSec(200, 1, 0.5));
+    });
+    test('every theory page takes a real read: its full read is estimated from its words', () => {
+        for (const skill of ALL_SKILLS) {
+            const th = buildTheory(skill, makeRng(5));
+            const sec = readSeconds(th);
+            expect(sec).toBeGreaterThan(20);
+            // the homework theories written for her are long pages, the clock is capped at 90 seconds anyway
+            expect(minReadSec(sec, 1, 0)).toBeGreaterThanOrEqual(20);
+        }
+        expect(readSeconds(buildTheory('dist-2x2', makeRng(1)))).toBeGreaterThan(readSeconds(buildTheory('mult-facts', makeRng(1))));
+    });
+    test('each read is logged with its time, early presses and the quiz that followed; every theory shows up', () => {
+        let s = newState();
+        s = logTheoryRead(s, { t: Date.parse('2026-10-29T15:00:00'), skill: 'dist-2x2', mode: 'due', sec: 8, need: 200, min: 45, early: 2 });
+        s = logTheoryRead(s, { t: Date.parse('2026-10-29T15:05:00'), skill: 'dist-2x2', mode: 'due', sec: 70, need: 200, min: 45, early: 0 });
+        s = logQuizResult(s, 'dist-2x2', 2, 3, true);
+        expect(s.theoryLog[0].quiz).toBeUndefined();
+        expect(s.theoryLog[1].quiz).toEqual({ score: 2, of: 3, passed: true });
+        // a quiz with no read waiting changes nothing
+        expect(logQuizResult(s, 'div-2d', 3, 3, true)).toBe(s);
+        const rows = theoryRows(s, '2026-10-29', 'today');
+        expect(rows.length).toBe(ALL_SKILLS.length);
+        expect(rows[0]).toMatchObject({ skill: 'dist-2x2', reads: 2, sec: 39, early: 2, passed: 1, failed: 0 });
+        expect(theoryRows(s, '2026-10-31', 'today').find(r => r.skill === 'dist-2x2')?.reads).toBe(0);
+        expect(normalize({ ...newState(), theoryLog: undefined }).theoryLog).toEqual([]);
     });
 });
 

@@ -34,6 +34,10 @@ export type HistoryItem = {
 // the log keeps this many tasks (about three weeks of practice)
 export const HISTORY_MAX = 1000;
 export type TestResult = { t: number; score: number; total: number; sec: number; wrong: SkillId[] };
+// One opening of a theory page (owner, 2026-10-29): how long she read it before the quiz (sec, from opening to the start
+// of the quiz), how long a full read takes (need), the least time asked before the quiz opens (min, random so she cannot
+// learn it), how many times she pressed for the quiz too early, and the quiz that followed
+export type TheoryRead = { t: number; skill: SkillId; mode: string; sec: number; need: number; min: number; early: number; quiz?: { score: number; of: number; passed: boolean } };
 
 export type GameState = {
     version: 1;
@@ -60,6 +64,7 @@ export type GameState = {
     recent: string[];                     // ids of recent tasks, never repeated
     history: HistoryItem[];
     tests: TestResult[];
+    theoryLog: TheoryRead[];              // every theory read and its quiz, newest last (THEORY_LOG_MAX)
     // filled counts stars; choosing = a picture is finished and she picks the next one
     painting: { index: number; filled: number; done: number[]; choosing: boolean };
     chaptersRead: number[];
@@ -89,7 +94,7 @@ export const newState = (): GameState => ({
     sinceHint: HINT_PAUSE,
     hintPause: HINT_PAUSE,
     skills: Object.fromEntries(ALL_SKILLS.map(s => [s, emptyStat()])) as Record<SkillId, SkillStat>,
-    recent: [], history: [], tests: [],
+    recent: [], history: [], tests: [], theoryLog: [],
     painting: { index: 0, filled: 0, done: [], choosing: false },
     chaptersRead: [], lastLoveAt: 0,
     testDate: '2026-10-23',
@@ -110,6 +115,7 @@ export const normalize = (raw: unknown): GameState => {
     s.painting = { ...base.painting, ...(s.painting ?? {}) };
     s.sinceFact = s.sinceFact ?? 0;
     s.factMiss = s.factMiss ?? {};
+    s.theoryLog = s.theoryLog ?? [];
     // an older build kept no right answers per day: rebuild them from the history, so today's progress is not lost
     if (!(raw as Partial<GameState>).dailySkills) for (const h of s.history) if (h.ok) countRight(s, dayOf(new Date(h.t)), h.skill, 1);
     return s;
@@ -458,6 +464,21 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
     }
     state.history = [...state.history, { t: Date.now(), skill: p.skill, ok, firstTry: opts.firstTry, hint: opts.hint, sec: Math.round(opts.sec), id: p.id, kind: kindOf(p), from: opts.from ?? 'play', prompt: p.prompt, given: opts.given, answer: answerText(p) }].slice(-HISTORY_MAX);
     return { state, stars };
+};
+
+// The least reading time before the quiz opens: part of a full read (a theory she has read before goes faster), shifted
+// at random so she never learns the exact number, never a couple of seconds and never more than a minute and a half
+export const THEORY_LOG_MAX = 300;
+export const minReadSec = (needSec: number, reads: number, r: number): number => {
+    const again = reads > 1;
+    return Math.round(Math.min(90, Math.max(again ? 15 : 20, needSec * (again ? 0.2 : 0.3) * (0.8 + 0.5 * r))));
+};
+export const logTheoryRead = (prev: GameState, read: TheoryRead): GameState => ({ ...prev, theoryLog: [...prev.theoryLog, read].slice(-THEORY_LOG_MAX) });
+// the quiz result goes to the last read of that skill that has none yet
+export const logQuizResult = (prev: GameState, skill: SkillId, score: number, of: number, passed: boolean): GameState => {
+    const i = prev.theoryLog.map(r => r.skill === skill && !r.quiz).lastIndexOf(true);
+    if (i < 0) return prev;
+    return { ...prev, theoryLog: prev.theoryLog.map((r, k) => (k === i ? { ...r, quiz: { score, of, passed } } : r)) };
 };
 
 export const applyTheoryRead = (prev: GameState, skill: SkillId): GameState => {
