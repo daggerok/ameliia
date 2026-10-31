@@ -62,11 +62,11 @@ export const Coach: React.FC<{ steps: CoachStep[]; testId: string; labels: { nex
                     {i === 0 && extra}
                     <div className="grid grid-cols-2 gap-2">
                         {i > 0
-                            ? <button onClick={() => setI(i - 1)} className="py-3 rounded-2xl font-black bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">◀ {labels.back}</button>
-                            : <button data-testid={`${testId}-skip`} onClick={onDone} className="py-3 rounded-2xl font-black bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">{labels.skip}</button>}
+                            ? <button type="button" onClick={() => setI(i - 1)} className="py-3 rounded-2xl font-black bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">◀ {labels.back}</button>
+                            : <button type="button" data-testid={`${testId}-skip`} onClick={onDone} className="py-3 rounded-2xl font-black bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">{labels.skip}</button>}
                         {last
-                            ? <button data-testid={`${testId}-start`} onClick={onDone} className="py-3 rounded-2xl font-black bg-indigo-600 text-white text-lg active:scale-95">{labels.start} 🚀</button>
-                            : <button data-testid={`${testId}-next`} onClick={() => setI(i + 1)} className="py-3 rounded-2xl font-black bg-indigo-600 text-white text-lg active:scale-95">{labels.next} ▶</button>}
+                            ? <button type="button" data-testid={`${testId}-start`} onClick={onDone} className="py-3 rounded-2xl font-black bg-indigo-600 text-white text-lg active:scale-95">{labels.start} 🚀</button>
+                            : <button type="button" data-testid={`${testId}-next`} onClick={() => setI(i + 1)} className="py-3 rounded-2xl font-black bg-indigo-600 text-white text-lg active:scale-95">{labels.next} ▶</button>}
                     </div>
                 </div>
             </div>
