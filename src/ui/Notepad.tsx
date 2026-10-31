@@ -68,6 +68,8 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
         return () => window.removeEventListener('resize', fit);
     }, []);
     useEffect(() => { redraw(strokes); }, [strokes, size, view]);
+    // every button here is type="button": the pad lives inside the answer form, and a submit button would send the answer
+    // or raise "fill in all the boxes" on Done (owner, 2026-10-30)
     // Esc closes the pad like the Done button (owner, 2026-10-29)
     useEffect(() => {
         const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
@@ -140,19 +142,19 @@ export const Notepad: React.FC<{ strokes: Stroke[]; setStrokes: (s: Stroke[]) =>
             <div className={`flex flex-col flex-1 min-h-0 ${closing ? 'animate-pad-out' : 'animate-pad-in'}`}>
             <div className="bg-white dark:bg-slate-800 rounded-t-3xl p-3 flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-700">
                 <span className="font-black text-indigo-600 dark:text-indigo-400 mr-1">✏️ {labels.title}</span>
-                <span className="flex gap-2" data-testid="notepad-pens">{PENS.map(c => <button key={c} aria-label={c} onClick={() => setPen(c)} className={tool(pen === c)}><span className="w-6 h-6 rounded-full" style={{ background: c }} /></button>)}</span>
-                <button data-testid="notepad-eraser" aria-label={labels.eraser} onClick={() => setPen(ERASER)} className={tool(pen === ERASER)}>🧽</button>
-                <button data-testid="notepad-hand" aria-label={labels.move} title={labels.move} onClick={() => setPen(HAND)} className={tool(pen === HAND)}>✋</button>
+                <span className="flex gap-2" data-testid="notepad-pens">{PENS.map(c => <button type="button" key={c} aria-label={c} onClick={() => setPen(c)} className={tool(pen === c)}><span className="w-6 h-6 rounded-full" style={{ background: c }} /></button>)}</span>
+                <button type="button" data-testid="notepad-eraser" aria-label={labels.eraser} onClick={() => setPen(ERASER)} className={tool(pen === ERASER)}>🧽</button>
+                <button type="button" data-testid="notepad-hand" aria-label={labels.move} title={labels.move} onClick={() => setPen(HAND)} className={tool(pen === HAND)}>✋</button>
                 <span className="flex gap-2" data-testid="notepad-zooms">
-                <button data-testid="notepad-zoom-out" aria-label={labels.zoomOut} onClick={() => zoom(1 / ZSTEP)} disabled={view.z <= ZMIN} className={`${tool(false)} disabled:opacity-30`}>−</button>
-                <button data-testid="notepad-zoom-reset" aria-label={labels.zoomReset} onClick={() => setView(START_VIEW)} className={`${tool(false)} !w-auto px-2 text-sm`}>{Math.round(view.z * 100)}%</button>
-                <button data-testid="notepad-zoom-in" aria-label={labels.zoomIn} onClick={() => zoom(ZSTEP)} disabled={view.z >= ZMAX} className={`${tool(false)} disabled:opacity-30`}>+</button>
+                <button type="button" data-testid="notepad-zoom-out" aria-label={labels.zoomOut} onClick={() => zoom(1 / ZSTEP)} disabled={view.z <= ZMIN} className={`${tool(false)} disabled:opacity-30`}>−</button>
+                <button type="button" data-testid="notepad-zoom-reset" aria-label={labels.zoomReset} onClick={() => setView(START_VIEW)} className={`${tool(false)} !w-auto px-2 text-sm`}>{Math.round(view.z * 100)}%</button>
+                <button type="button" data-testid="notepad-zoom-in" aria-label={labels.zoomIn} onClick={() => zoom(ZSTEP)} disabled={view.z >= ZMAX} className={`${tool(false)} disabled:opacity-30`}>+</button>
                 </span>
                 <span className="flex gap-2" data-testid="notepad-edit">
-                <button data-testid="notepad-undo" onClick={() => setStrokes(strokes.slice(0, -1))} disabled={!strokes.length} className={`${tool(false)} disabled:opacity-30`} aria-label={labels.undo}>↩️</button>
-                <button data-testid="notepad-clear" onClick={() => setStrokes([])} disabled={!strokes.length} className={`${tool(false)} disabled:opacity-30`} aria-label={labels.clear}>🗑️</button>
+                <button type="button" data-testid="notepad-undo" onClick={() => setStrokes(strokes.slice(0, -1))} disabled={!strokes.length} className={`${tool(false)} disabled:opacity-30`} aria-label={labels.undo}>↩️</button>
+                <button type="button" data-testid="notepad-clear" onClick={() => setStrokes([])} disabled={!strokes.length} className={`${tool(false)} disabled:opacity-30`} aria-label={labels.clear}>🗑️</button>
                 </span>
-                <button data-testid="notepad-close" onClick={onClose} className="ml-auto px-5 h-11 rounded-xl bg-indigo-600 text-white font-black active:scale-95">{labels.done} ✓</button>
+                <button type="button" data-testid="notepad-close" onClick={onClose} className="ml-auto px-5 h-11 rounded-xl bg-indigo-600 text-white font-black active:scale-95">{labels.done} ✓</button>
             </div>
             <div className="bg-amber-50 dark:bg-slate-900 px-4 py-2 text-sm md:text-base font-bold text-slate-700 dark:text-slate-200 whitespace-pre-line max-h-28 overflow-y-auto border-b border-amber-200 dark:border-slate-700">{prompt}</div>
             <div ref={box} className="relative flex-1 bg-white rounded-b-3xl overflow-hidden" style={{ backgroundImage: 'linear-gradient(#e0e7ff 1px, transparent 1px), linear-gradient(90deg, #e0e7ff 1px, transparent 1px)', backgroundSize: `${GRID * view.z}px ${GRID * view.z}px`, backgroundPosition: `${view.x}px ${view.y}px` }}>
