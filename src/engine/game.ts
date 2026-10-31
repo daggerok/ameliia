@@ -471,11 +471,12 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
 };
 
 // The least reading time before the quiz opens: part of a full read (a theory she has read before goes faster), shifted
-// at random so she never learns the exact number, never a couple of seconds and never more than a minute and a half
+// at random so she never learns the exact number, never a couple of seconds and never more than a minute
+// (owner, 2026-10-30: "reduce a little bit that minimal time", it was 20-90 s)
 export const THEORY_LOG_MAX = 300;
 export const minReadSec = (needSec: number, reads: number, r: number): number => {
     const again = reads > 1;
-    return Math.round(Math.min(90, Math.max(again ? 15 : 20, needSec * (again ? 0.2 : 0.3) * (0.8 + 0.5 * r))));
+    return Math.round(Math.min(60, Math.max(again ? 10 : 15, needSec * (again ? 0.15 : 0.22) * (0.8 + 0.5 * r))));
 };
 export const logTheoryRead = (prev: GameState, read: TheoryRead): GameState => ({ ...prev, theoryLog: [...prev.theoryLog, read].slice(-THEORY_LOG_MAX) });
 // the quiz result goes to the last read of that skill that has none yet

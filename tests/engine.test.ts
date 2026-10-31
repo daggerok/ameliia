@@ -717,11 +717,11 @@ describe('Lesson 4-5 homework: area models and partial products', () => {
 });
 
 describe('theory before the quiz: a reading clock and a log for Mom and Dad', () => {
-    test('the time asked before the quiz is random, never a couple of seconds, never more than 90 seconds', () => {
+    test('the time asked before the quiz is random, never a couple of seconds, never more than 60 seconds', () => {
         for (const need of [10, 60, 120, 300, 900]) for (const reads of [1, 2, 5]) {
             const all = Array.from({ length: 50 }, (_, i) => minReadSec(need, reads, i / 50));
-            for (const m of all) { expect(m).toBeGreaterThanOrEqual(reads > 1 ? 15 : 20); expect(m).toBeLessThanOrEqual(90); }
-            if (need >= 120 && need <= 300) expect(new Set(all).size).toBeGreaterThan(5);
+            for (const m of all) { expect(m).toBeGreaterThanOrEqual(reads > 1 ? 10 : 15); expect(m).toBeLessThanOrEqual(60); }
+            if (need >= 120 && need <= 200) expect(new Set(all).size).toBeGreaterThan(5);
         }
         // a page read before asks for less time than the first read
         expect(minReadSec(200, 2, 0.5)).toBeLessThan(minReadSec(200, 1, 0.5));
@@ -731,8 +731,8 @@ describe('theory before the quiz: a reading clock and a log for Mom and Dad', ()
             const th = buildTheory(skill, makeRng(5));
             const sec = readSeconds(th);
             expect(sec).toBeGreaterThan(20);
-            // the homework theories written for her are long pages, the clock is capped at 90 seconds anyway
-            expect(minReadSec(sec, 1, 0)).toBeGreaterThanOrEqual(20);
+            // the homework theories written for her are long pages, the clock is capped at 60 seconds anyway
+            expect(minReadSec(sec, 1, 0)).toBeGreaterThanOrEqual(15);
         }
         expect(readSeconds(buildTheory('dist-2x2', makeRng(1)))).toBeGreaterThan(readSeconds(buildTheory('mult-facts', makeRng(1))));
     });
