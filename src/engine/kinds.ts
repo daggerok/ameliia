@@ -4,6 +4,7 @@ import { KINDS_4_2 } from './topic4';
 import { KINDS_FACTS } from './facts';
 import { KINDS_4_5 } from './topic4area';
 import { KINDS_4_4 } from './topic4arr';
+import { KINDS_4_6 } from './topic4pp';
 import { KINDS_4_3 } from './topic4est';
 
 // Every kind of task a skill can ask (the `kind` of `kindOf` in game.ts), with a short name for the Progress screen,
@@ -106,6 +107,15 @@ const NAMES: Partial<Record<SkillId, Record<string, L10n>>> = {
         missing: L('Insert the missing partial products', 'Впиши пропущенные частичные произведения'),
         factor: L('Insert the missing factor', 'Впиши пропущенный множитель'),
     },
+    'pp-2x2': {
+        column: L('Estimate, all the partial products in a column, add (16 × 15 ... 82 × 74)', 'Прикидка, все частичные произведения столбиком, сложи (16 × 15 ... 82 × 74)'),
+        reason: L('Why 2 tens × 3 tens is a simpler problem', 'Почему 2 десятка × 3 десятка - простая задача'),
+        mistakes: L('Explain the mistakes in 12 × 13', 'Объясни ошибки в 12 × 13'),
+        graph: L('Movie theater: the $1,200 goal from adult tickets', 'Кинотеатр: цель $1 200 от взрослых билетов'),
+        golf: L('Golf balls: a carton of crates of boxes', 'Мячи для гольфа: упаковка из ящиков с коробками'),
+        missing: L('Which set has the missing partial product and the product', 'В каком наборе пропущенное частичное произведение и итог'),
+        factor: L('Select all equations where 15 is the missing factor', 'Отметь все равенства, где пропущенный множитель 15'),
+    },
     'mult-facts': {
         fact: L('Multiplication facts 0 × 0 to 9 × 9 from memory', 'Таблица умножения от 0 × 0 до 9 × 9 по памяти'),
         ten: L('× 10, × 100, × 1,000: just write the zeros', '× 10, × 100, × 1 000: просто припиши нули'),
@@ -130,4 +140,5 @@ export const LESSON_4_2_KINDS: readonly string[] = KINDS_4_2;
 export const LESSON_4_3_KINDS: readonly string[] = KINDS_4_3;
 export const LESSON_4_4_KINDS: readonly string[] = KINDS_4_4;
 export const LESSON_4_5_KINDS: readonly string[] = KINDS_4_5;
+export const LESSON_4_6_KINDS: readonly string[] = KINDS_4_6;
 export const MEMORY_KINDS: readonly string[] = KINDS_FACTS;

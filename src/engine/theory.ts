@@ -804,6 +804,84 @@ const factsBuilders: Record<'mult-facts', (rng: Rng) => { hook: L10n[]; sections
     },
 };
 
+// ---------- Topic 4, Lesson 4-6: partial products in a column (4.NBT.B.5) ----------
+// for a 9-year-old, built around her first try of p. 53-54 (2026-11-02): the tens × tens partial product when both tens
+// digits are 2 or more (24 × 12 with 100 instead of 200, 23 × 46 with 80 instead of 800), the facts 9 × 4 and 8 × 7,
+// and adding the column (6 + 30 + 100 + 20 came out as 150)
+
+const topic4PPBuilders: Record<'pp-2x2', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'pp-2x2': rng => {
+        const top = 10 * int(rng, 2, 7) + int(rng, 1, 9), bot = 10 * int(rng, 2, 4) + int(rng, 1, 9);
+        const [to, tt, bo, bt] = [top % 10, Math.floor(top / 10) * 10, bot % 10, Math.floor(bot / 10) * 10];
+        const ps = [bo * to, bo * tt, bt * to, bt * tt], p = top * bot;
+        const n = (v: number, lang: 'en' | 'ru') => fmt(v, lang);
+        const sum = (lang: 'en' | 'ru') => ps.map(v => n(v, lang)).join(' + ');
+        return {
+            hook: [
+                L('Golf balls come in a box of 12. How many balls are in 14 boxes? Write it in a column: 4 little multiplications, one addition, done. And estimate first, so you know if 168 makes sense!',
+                    'Мячи для гольфа продают по 12 в коробке. Сколько мячей в 14 коробках? Пиши столбиком: 4 маленьких умножения, одно сложение, готово. И сначала прикинь, чтобы знать, похож ли ответ 168 на правду!'),
+                L(`Pip has ${bot} bags of ${top} carrots. The area model was four boxes; the column is the same four boxes written under each other.`,
+                    `У Пипа ${bot} ${ruPlural(bot, 'мешок', 'мешка', 'мешков')} по ${top} морковок. Модель площади была четырьмя клетками; столбик - те же четыре клетки, записанные друг под другом.`),
+            ],
+            sections: [
+                { kind: 'idea', title: T.idea, body: [
+                    L('Write the second factor under the first. Multiply its ONES by each part of the top number, then its TENS by each part.', 'Запиши второй множитель под первым. Умножь его ЕДИНИЦЫ на каждую часть верхнего числа, потом его ДЕСЯТКИ на каждую часть.'),
+                    L('That gives 4 partial products: the same 4 boxes of the area model.', 'Получится 4 частичных произведения: те же 4 клетки модели площади.'),
+                    L('Add them in a column. The sum is the product.', 'Сложи их столбиком. Сумма - это произведение.'),
+                    L('Estimate BEFORE you start, so you can tell if the answer is reasonable.', 'Прикинь ДО начала, чтобы понять, похож ли ответ на правду.'),
+                ] },
+                { kind: 'steps', title: T.how, body: [
+                    L(`1. Estimate: ${top} × ${bot} is about ${roundTo(top, 10)} × ${roundTo(bot, 10)} = ${n(roundTo(top, 10) * roundTo(bot, 10), 'en')}.`, `1. Прикидка: ${top} × ${bot} - это примерно ${roundTo(top, 10)} × ${roundTo(bot, 10)} = ${n(roundTo(top, 10) * roundTo(bot, 10), 'ru')}.`),
+                    L(`2. Ones × ones: ${bo} × ${to} = ${ps[0]}.`, `2. Единицы × единицы: ${bo} × ${to} = ${ps[0]}.`),
+                    L(`3. Ones × tens: ${bo} × ${tt} = ${ps[1]} (${bo} × ${tt / 10} = ${bo * (tt / 10)}, one zero).`, `3. Единицы × десятки: ${bo} × ${tt} = ${ps[1]} (${bo} × ${tt / 10} = ${bo * (tt / 10)}, один ноль).`),
+                    L(`4. Tens × ones: ${bt} × ${to} = ${ps[2]} (${bt / 10} × ${to} = ${(bt / 10) * to}, one zero).`, `4. Десятки × единицы: ${bt} × ${to} = ${ps[2]} (${bt / 10} × ${to} = ${(bt / 10) * to}, один ноль).`),
+                    L(`5. Tens × tens: ${bt} × ${tt} = ${n(ps[3], 'en')} (${bt / 10} × ${tt / 10} = ${(bt / 10) * (tt / 10)}, TWO zeros).`, `5. Десятки × десятки: ${bt} × ${tt} = ${n(ps[3], 'ru')} (${bt / 10} × ${tt / 10} = ${(bt / 10) * (tt / 10)}, ДВА нуля).`),
+                    L(`6. Add: ${sum('en')} = ${n(p, 'en')}. Close to the estimate? Yes!`, `6. Сложи: ${sum('ru')} = ${n(p, 'ru')}. Близко к прикидке? Да!`),
+                ] },
+                { kind: 'example', title: L('Another Look: 12 × 14', 'Ещё раз: 12 × 14'), prompt: L('12 golf balls in a box, 14 boxes', '12 мячей в коробке, 14 коробок'), body: [
+                    L('Estimate: 10 × 14 = 140, a bit more.', 'Прикидка: 10 × 14 = 140, чуть больше.'),
+                    L('4 × 2 = 8 ones, 4 × 10 = 40, 10 × 2 = 20, 10 × 10 = 100', '4 × 2 = 8 единиц, 4 × 10 = 40, 10 × 2 = 20, 10 × 10 = 100'),
+                    L('8 + 40 + 20 + 100 = 168 golf balls.', '8 + 40 + 20 + 100 = 168 мячей.'),
+                ], visual: { kind: 'area', a: 12, b: 14 } },
+                { kind: 'example', title: L('Tricky spot 1: tens × tens when both tens are 2 or more', 'Ловушка 1: десятки × десятки, когда обе цифры десятков 2 или больше'), prompt: L('24 × 12 and 23 × 46', '24 × 12 и 23 × 46'), body: [
+                    L('24 × 12: the big box is 10 × 20, not 10 × 10. 1 × 2 = 2, two zeros: 200. So 8 + 40 + 40 + 200 = 288, not 228.', '24 × 12: большая клетка - 10 × 20, а не 10 × 10. 1 × 2 = 2, два нуля: 200. Значит 8 + 40 + 40 + 200 = 288, а не 228.'),
+                    L('23 × 46: the big box is 40 × 20. 4 × 2 = 8, two zeros: 800, not 80! 18 + 120 + 120 + 800 = 1,058.', '23 × 46: большая клетка - 40 × 20. 4 × 2 = 8, два нуля: 800, а не 80! 18 + 120 + 120 + 800 = 1 058.'),
+                    L('Say it: "tens times tens: fact, then TWO zeros".', 'Скажи вслух: «десятки на десятки: пример, потом ДВА нуля».'),
+                ], visual: { kind: 'area', a: 23, b: 46 } },
+                { kind: 'example', title: L('Tricky spot 2: the basic fact inside', 'Ловушка 2: табличный пример внутри'), prompt: L('79 × 47 and 82 × 74', '79 × 47 и 82 × 74'), body: [
+                    L('79 × 47: 40 × 9 is the fact 4 × 9 = 36, so 360, not 320. 63 + 490 + 360 + 2,800 = 3,713.', '79 × 47: 40 × 9 - это пример 4 × 9 = 36, значит 360, а не 320. 63 + 490 + 360 + 2 800 = 3 713.'),
+                    L('82 × 74: 70 × 80 is the fact 7 × 8 = 56, so 5,600, not 5,000. 8 + 140 + 320 + 5,600 = 6,068.', '82 × 74: 70 × 80 - это пример 7 × 8 = 56, значит 5 600, а не 5 000. 8 + 140 + 320 + 5 600 = 6 068.'),
+                    L('9 × 4 = 36 and 8 × 7 = 56: say them three times, they come up all the time.', '9 × 4 = 36 и 8 × 7 = 56: скажи их три раза, они встречаются постоянно.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 3: adding the column', 'Ловушка 3: сложение столбика'), prompt: L('12 × 13: 6, 30, 20, 100', '12 × 13: 6, 30, 20, 100'), body: [
+                    L('Ones under ones, tens under tens. Ones: 6. Tens: 3 + 2 = 5. Hundreds: 1.', 'Единицы под единицами, десятки под десятками. Единицы: 6. Десятки: 3 + 2 = 5. Сотни: 1.'),
+                    L('6 + 30 + 20 + 100 = 156, not 150: the 6 ones must not get lost.', '6 + 30 + 20 + 100 = 156, а не 150: 6 единиц не должны потеряться.'),
+                    L('Check with the estimate: 12 × 13 is about 10 × 13 = 130. 156 is close ✓', 'Проверь прикидкой: 12 × 13 - это примерно 10 × 13 = 130. 156 близко ✓'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 4: the estimate catches a wrong answer', 'Ловушка 4: прикидка ловит неверный ответ'), prompt: L('Is 5,468 right for 82 × 74?', 'Верно ли 5 468 для 82 × 74?'), body: [
+                    L('Estimate: 80 × 70 = 5,600. An answer of 5,468 is smaller than the estimate of two rounded-DOWN numbers: impossible!', 'Прикидка: 80 × 70 = 5 600. Ответ 5 468 меньше прикидки из двух округлённых ВНИЗ чисел: так не бывает!'),
+                    L('So look for the mistake: 70 × 80 = 5,600, and the real product is 6,068.', 'Значит ищем ошибку: 70 × 80 = 5 600, а настоящее произведение 6 068.'),
+                ] },
+                { kind: 'example', title: L('Why 2 tens × 3 tens is a simpler problem', 'Почему 2 десятка × 3 десятка - простая задача'), prompt: L('34 × 24', '34 × 24'), body: [
+                    L('4 × 4 = 16. 4 × 3 tens = 12 tens = 120. 2 tens × 4 = 8 tens = 80. 2 tens × 3 tens = 6 hundreds = 600.', '4 × 4 = 16. 4 × 3 десятка = 12 десятков = 120. 2 десятка × 4 = 8 десятков = 80. 2 десятка × 3 десятка = 6 сотен = 600.'),
+                    L('Every piece is a fact from the table plus the place: ones, tens or hundreds. 16 + 120 + 80 + 600 = 816.', 'Каждый кусочек - пример из таблицы плюс разряд: единицы, десятки или сотни. 16 + 120 + 80 + 600 = 816.'),
+                ] },
+                { kind: 'example', title: L('Golf balls in a carton', 'Мячи в упаковке'), prompt: L('245 balls, plus 5 crates of 15 boxes of 12', '245 мячей плюс 5 ящиков по 15 коробок по 12'), body: [
+                    L('A crate: 12 × 15 = 180 balls. A carton: 180 × 5 = 900 balls.', 'Ящик: 12 × 15 = 180 мячей. Упаковка: 180 × 5 = 900 мячей.'),
+                    L('Now: 245 + 900 = 1,145 balls.', 'Теперь: 245 + 900 = 1 145 мячей.'),
+                ] },
+                { kind: 'warn', title: T.warn, body: [
+                    L('Always 4 partial products. Tens × tens gets TWO zeros: 20 × 40 = 800.', 'Всегда 4 частичных произведения. Десятки × десятки получают ДВА нуля: 20 × 40 = 800.'),
+                    L('Ones under ones when you add. Then compare with the estimate: far from it means a mistake.', 'При сложении единицы под единицами. Потом сравни с прикидкой: далеко от неё - значит ошибка.'),
+                ] },
+                { kind: 'trick', title: T.trick, body: [
+                    L('Estimate, four pieces, add, check: EFAC. Easy, Fast, And Correct!', 'Прикинь, четыре кусочка, сложи, проверь. Четыре шага - и всегда верно!'),
+                ] },
+            ],
+        };
+    },
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
     ...strategyBuilders,
     ...wordBuilders,
@@ -812,6 +890,7 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
     ...topic4EstBuilders,
     ...topic4ArrBuilders,
     ...topic4AreaBuilders,
+    ...topic4PPBuilders,
     ...factsBuilders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
@@ -1204,6 +1283,7 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'est-2x2': ['est-product'],
     'mult-2x2': ['mult-area', 'mult-partial'],
     'dist-2x2': ['mult-2x2', 'mult-dist'],
+    'pp-2x2': ['dist-2x2', 'mult-partial'],
     'mult-facts': [],
 };
 
