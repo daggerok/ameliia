@@ -3,11 +3,12 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { AGAIN, ALL_SKILLS, DAILY_RIGHT, FACT_EVERY, logQuizResult, logTheoryRead, minReadSec, factDue, nextFact, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
+import { AGAIN, ALL_SKILLS, DAILY_RIGHT, FACT_EVERY, doneToday, nextPicks, logQuizResult, logTheoryRead, minReadSec, factDue, nextFact, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
 import { KINDS_4_2 } from '../src/engine/topic4';
 import { KINDS_4_5 } from '../src/engine/topic4area';
-import { factKey, makeFact } from '../src/engine/facts';
+import { KNOWN_MISSES, factKey, makeFact } from '../src/engine/facts';
 import { KINDS_4_4, partials } from '../src/engine/topic4arr';
+import { KINDS_4_6, columnPartials } from '../src/engine/topic4pp';
 import { KINDS_4_3 } from '../src/engine/topic4est';
 import { makeFreshProblem, makeProblem } from '../src/engine';
 import { HOMEWORK_MISTAKES, reworkGroups, reworkNext, reworkQueue, reworkSkill, reworkTheory } from '../src/engine/mistakes';
@@ -69,7 +70,7 @@ const checkMath = (texts: string[], where: string) => {
 
 const textsOf = (p: Problem): L10n[] => [p.prompt, p.hint, ...p.steps, ...(p.answer.kind === 'choice' || p.answer.kind === 'multi' ? p.answer.options : []), ...(p.answer.kind === 'fill' && (p.answer.layout === 'lines' || p.answer.layout === 'vertical') ? p.answer.lines.flatMap(l => (l.label ? [l.label] : [])) : [])];
 // "spot the mistake" tasks show a wrong claim in the question on purpose
-const deliberateMistake = (p: Problem) => /^div-check:[zr]:|^est-product:r:/.test(p.id);
+const deliberateMistake = (p: Problem) => /^div-check:[zr]:|^est-product:r:|^pp-2x2:mistakes:/.test(p.id);
 const rightOptions = (p: Problem): L10n[] => {
     const a = p.answer;
     return a.kind === 'choice' ? [a.options[a.correct]] : a.kind === 'multi' ? a.correct.map(i => a.options[i]) : [];
@@ -138,6 +139,8 @@ const expected = (p: Problem): number | { q: number; r: number } | 'choice' => {
         // the product, the class story and the sum of the two days at the arena
         // a fact a × b and a number × 10, 100 or 1,000
         case 'mult-facts': return n('a') * n('b');
+        // the column, the golf carton and the rest: a × b, have + box × boxes × crates, or a choice
+        case 'pp-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'golf' ? n('have') + n('perBox') * n('boxes') * n('crates') : n('a') * n('b');
         case 'dist-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'add' ? n('x') + n('y') : n('a') * n('b');
         case 'mult-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'sales' ? n('c1') * n('p1') + n('c2') * n('p2') : p.data.style === 'factor' ? n('p') / n('a') : n('a') * n('b');
         default: return 'choice';
@@ -476,7 +479,8 @@ describe('Lesson 4-2 homework: 2-digit numbers times multiples of 10', () => {
         expect(currentHomework(s, '2026-10-27').id).toBe('lesson-4-3');
         expect(currentHomework(s, '2026-10-28').id).toBe('lesson-4-4');
         expect(currentHomework(s, '2026-10-29').id).toBe('lesson-4-5');
-        expect(currentHomework(s, '2026-11-05').id).toBe('lesson-4-5');
+        expect(currentHomework(s, '2026-11-01').id).toBe('lesson-4-5');
+        expect(currentHomework(s, '2026-11-05').id).toBe('lesson-4-6');
         // the same kind right three times counts three times on the first day, a fourth time counts no more
         const day = '2026-10-26', rng = makeRng(11);
         const right = (st: typeof s, p: Problem, d: string) => applyAnswer(st, p, true, { firstTry: true, hint: false, sec: 5, day: d }).state;
@@ -771,6 +775,78 @@ describe('fix my mistakes: pick a topic or one mistake, or go at random', () => 
     });
 });
 
+describe('Lesson 4-6 homework: partial products in a column', () => {
+    test('every answer is recomputed: the four partial products, the mistakes, the theater, the golf carton, the missing set, the factor', () => {
+        const kinds = new Set<string>();
+        let bigTens = 0;
+        each('pp-2x2', p => {
+            const d = p.data as Record<string, number>, a = p.answer, style = String(p.data.style);
+            kinds.add(style);
+            if (style === 'column') {
+                if (a.kind !== 'fill' || a.layout !== 'lines') throw new Error(`${p.id}: not a lines sheet`);
+                expect(a.values).toEqual([...columnPartials(d.a, d.b), d.a * d.b]);
+                expect(a.values.slice(0, 4).reduce((x, y) => x + y, 0)).toBe(d.a * d.b);
+                if (d.a >= 20 && d.b >= 20) bigTens++;
+                // 20 × 40 written as 80 is wrong
+                expect(sameAnswer(a, { blanks: a.values.map((v, i) => (i === 3 ? v / 10 : v)) })).toBe(false);
+            }
+            if (style === 'mistakes' || style === 'reason' || style === 'missing' || style === 'graph') { if (a.kind !== 'choice') throw new Error(`${p.id}: not a choice`); }
+            if (style === 'mistakes') expect(a.options[a.correct].en).toContain(`The product is ${(d.a * d.b).toLocaleString('en-US')}`);
+            if (style === 'missing') expect(a.options[a.correct].en).toBe(`${d.miss.toLocaleString('en-US')}; ${(d.a * d.b).toLocaleString('en-US')}`);
+            if (style === 'graph') {
+                expect(d.made).toBe(d.total * d.pa);
+                expect(a.options[a.correct].en.startsWith(d.made >= d.goal ? 'Yes' : 'No')).toBe(true);
+                expect(new Set(a.options.map(o => o.en)).size).toBe(a.options.length);
+            }
+            if (style === 'factor') {
+                if (a.kind !== 'multi') throw new Error(`${p.id}: not a multi`);
+                a.options.forEach((o, i) => { const m = o.en.match(/(\d+)[^=]*= ([\d,]+)/)!; expect(a.correct.includes(i)).toBe(Number(m[1]) * d.f === Number(m[2].replace(/,/g, ''))); });
+                expect(a.correct.length).toBeGreaterThanOrEqual(2);
+            }
+        });
+        expect(Array.from(kinds).sort()).toEqual(Array.from(KINDS_4_6).sort());
+        // the box she gets wrong, both tens digits 2 or more, comes often
+        expect(bigTens).toBeGreaterThan(30);
+    });
+    test('the homework of 2026-11-02: three per kind, one more for the kinds with mistakes on the sheet, two per kind later', () => {
+        const s = newState(), day = '2026-11-02';
+        expect(activeHomework(s, day).map(h => h.id)).toEqual(['lesson-4-6']);
+        expect(currentHomework(s, day).id).toBe('lesson-4-6');
+        const rows = dailyGoal(s, day).rows;
+        expect(rows.length).toBe(1);
+        expect(dailyGoal(s, day).total).toBe(3 * KINDS_4_6.length + 2);
+        expect(dailyGoal(s, '2026-11-04').total).toBe(AGAIN * KINDS_4_6.length + 2);
+        expect(dailyGoal(s, '2026-11-06').total).toBe(AGAIN * KINDS_4_6.length + 2);
+        expect(dailyGoal(s, '2026-11-07').total).toBe(DAILY_RIGHT);
+        for (let i = 0; i < 50; i++) expect(nextSkill(s, makeRng(i + 1), day)).toBe('pp-2x2');
+        expect(chainOf('pp-2x2')).toContain('dist-2x2');
+        // the facts she wrote wrong on paper come more often from the start
+        expect(KNOWN_MISSES['4x9']).toBeGreaterThan(0);
+        expect(KNOWN_MISSES['7x8']).toBeGreaterThan(0);
+    });
+    test('all kinds one by one: the next task is always a kind done the fewest times today, never the same kind three times while another waits', () => {
+        let s = newState();
+        const day = '2026-11-02', rng = makeRng(3);
+        const seen: Record<string, number> = {};
+        for (let i = 0; i < 3 * KINDS_4_6.length; i++) {
+            const picks = nextPicks(s, day);
+            const least = Math.min(...picks.map(([sk, k]) => doneToday(s, day, sk, k)));
+            // every pick is a least-done kind, and no kind is ahead by more than one
+            for (const [sk, k] of picks) expect(doneToday(s, day, sk, k)).toBe(least);
+            const p = nextProblem(s, rng, undefined, { day });
+            const k = kindOf(p);
+            expect(doneToday(s, day, 'pp-2x2', k)).toBe(least);
+            seen[k] = (seen[k] ?? 0) + 1;
+            s = applyAnswer(s, p, true, { firstTry: true, hint: false, sec: 5, day }).state;
+            const counts = KINDS_4_6.map(x => seen[x] ?? 0);
+            expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1);
+        }
+        expect(Object.keys(seen).sort()).toEqual(Array.from(KINDS_4_6).sort());
+        // the kinds with mistakes on the sheet are the only ones left open after 3 of each
+        expect(nextPicks(s, day).map(([, k]) => k).sort()).toEqual(['column', 'mistakes']);
+    });
+});
+
 describe('memory checks: multiplication facts 0 × 0 to 9 × 9 and × 10, × 100', () => {
     test('every fact from 0 × 0 to 9 × 9 can come, with a true trick, and the hard ones come more often', () => {
         for (let a = 0; a <= 9; a++) for (let b = 0; b <= 9; b++) {
@@ -795,21 +871,21 @@ describe('memory checks: multiplication facts 0 × 0 to 9 × 9 and × 10, × 100
         expect(FACT_EVERY).toBe(4);
         for (let i = 0; i < 3; i++) { expect(factDue(s)).toBe(false); s = answer(s, makeProblem('div-2d', rng), true); }
         expect(factDue(s)).toBe(true);
-        s = answer(s, makeFact(7, 8), false);
+        s = answer(s, makeFact(6, 7), false);
         expect(factDue(s)).toBe(false);
-        expect(s.factMiss['7x8']).toBe(2);
+        expect(s.factMiss['6x7']).toBe(2);
         expect(s.skills['mult-facts'].needsTheory).toBe(false);
-        const hits = (st: typeof s) => { let k = 0; const r = makeRng(9); for (let i = 0; i < 2000; i++) { const p = nextFact({ ...st, recent: [] }, r); if (p.data.style === 'fact' && factKey(Number(p.data.a), Number(p.data.b)) === '7x8') k++; } return k; };
+        const hits = (st: typeof s) => { let k = 0; const r = makeRng(9); for (let i = 0; i < 2000; i++) { const p = nextFact({ ...st, recent: [] }, r); if (p.data.style === 'fact' && factKey(Number(p.data.a), Number(p.data.b)) === '6x7') k++; } return k; };
         expect(hits(s)).toBeGreaterThan(2 * hits(newState()));
-        // 8 × 7 is the same fact; two right answers clear it
-        s = answer(s, makeFact(8, 7), true);
-        expect(s.factMiss['7x8']).toBe(1);
-        s = answer(s, makeFact(7, 8), true);
-        expect(s.factMiss['7x8']).toBeUndefined();
+        // 7 × 6 is the same fact; two right answers clear it
+        s = answer(s, makeFact(7, 6), true);
+        expect(s.factMiss['6x7']).toBe(1);
+        s = answer(s, makeFact(6, 7), true);
+        expect(s.factMiss['6x7']).toBeUndefined();
         // the last few facts are not asked again at once
         const r2 = makeRng(4);
-        const recent = { ...s, recent: ['mult-facts:fact:7:8'] };
-        for (let i = 0; i < 300; i++) expect(nextFact(recent, r2).id).not.toBe('mult-facts:fact:7:8');
+        const recent = { ...s, recent: ['mult-facts:fact:6:7'] };
+        for (let i = 0; i < 300; i++) expect(nextFact(recent, r2).id).not.toBe('mult-facts:fact:6:7');
         // an old save without the fields gets them
         const old = normalize({ ...newState(), sinceFact: undefined, factMiss: undefined });
         expect(old.sinceFact).toBe(0);
@@ -859,7 +935,7 @@ describe('spaced review: old skills come back on a ladder of 1, 2, 3, 4 ... days
         expect(reviewsDue(old, '2026-11-02')).toEqual([]);
     });
     test('play order: the homework of the day, then a failed skill, then the reviews due, then free practice', () => {
-        const hwDay = '2026-10-28', free = '2026-11-02';
+        const hwDay = '2026-10-28', free = '2026-10-31';
         let s = newState();
         s = right(s, 'div-4d', '2026-10-27');
         expect(reviewsDue(s, hwDay)).toEqual(['div-4d']);
@@ -1229,7 +1305,9 @@ describe('game flow', () => {
         const week: [SkillId, readonly string[]][] = [['mult-2x10', KINDS_4_2], ['est-2x2', KINDS_4_3], ['mult-2x2', KINDS_4_4], ['dist-2x2', KINDS_4_5]];
         once(buildTest(s, makeRng(9), '2026-10-29'), week);
         // a day without a homework tests the whole last week
-        once(buildTest(s, makeRng(9), '2026-11-02'), week);
+        once(buildTest(s, makeRng(9), '2026-10-31'), week);
+        // a new week: Lesson 4-6 alone
+        once(buildTest(s, makeRng(9), '2026-11-02'), [['pp-2x2', KINDS_4_6]]);
         // an old skill due for a review gets one task; a homework skill due is not added again
         let r = applyAnswer(s, makeProblem('div-4d', makeRng(1)), true, { firstTry: true, hint: false, sec: 5, day: '2026-10-27' }).state;
         r = applyAnswer(r, makeProblem('est-2x2', makeRng(2), 'round'), true, { firstTry: true, hint: false, sec: 5, day: '2026-10-27' }).state;
@@ -1240,17 +1318,18 @@ describe('game flow', () => {
         expect(t2.filter(p => p.skill === 'div-4d').length).toBe(1);
         expect(testPlan(r, day).length).toBe(t2.length);
     });
-    test('the practice test without a day: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2, 1 of Lesson 4-3, 1 of Lesson 4-4, 1 of Lesson 4-5 and 2 different multiplication strategies', () => {
+    test('the practice test without a day: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2, 1 of Lesson 4-3, 1 of Lesson 4-4, 1 of Lesson 4-5, 1 of Lesson 4-6 and 2 different multiplication strategies', () => {
         const test1 = buildTest(newState(), makeRng(9));
-        expect(test1.length).toBe(22);
+        expect(test1.length).toBe(23);
         expect(test1.filter(p => p.skill === 'mult-2x10').length).toBe(1);
         expect(test1.filter(p => p.skill === 'est-2x2').length).toBe(1);
         expect(test1.filter(p => p.skill === 'mult-2x2').length).toBe(1);
         expect(test1.filter(p => p.skill === 'dist-2x2').length).toBe(1);
+        expect(test1.filter(p => p.skill === 'pp-2x2').length).toBe(1);
         expect(test1.filter(p => p.topic === 'division').length).toBe(6);
         expect(test1.filter(p => p.topic === 'science').length).toBe(5);
         expect(test1.some(p => p.skill === 'sci-words')).toBe(true);
-        expect(test1.filter(p => p.topic === 'estimation').length).toBe(11);
+        expect(test1.filter(p => p.topic === 'estimation').length).toBe(12);
         expect(test1.some(p => p.skill === 'forces')).toBe(true);
         const strategies = test1.filter(p => STRATEGIES.includes(p.skill)).map(p => p.skill);
         expect(strategies.length).toBe(2);
