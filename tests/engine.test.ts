@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
-import { AGAIN, ALL_SKILLS, DAILY_RIGHT, FACT_EVERY, doneToday, nextPicks, logQuizResult, logTheoryRead, minReadSec, factDue, nextFact, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
+import { type GameState, AGAIN, ALL_SKILLS, DAILY_RIGHT, FACT_EVERY, doneToday, triedToday, nextPicks, logQuizResult, logTheoryRead, minReadSec, factDue, nextFact, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
 import { KINDS_4_2 } from '../src/engine/topic4';
 import { KINDS_4_5 } from '../src/engine/topic4area';
 import { KNOWN_MISSES, factKey, makeFact } from '../src/engine/facts';
@@ -824,17 +824,18 @@ describe('Lesson 4-6 homework: partial products in a column', () => {
         expect(KNOWN_MISSES['4x9']).toBeGreaterThan(0);
         expect(KNOWN_MISSES['7x8']).toBeGreaterThan(0);
     });
-    test('all kinds one by one: the next task is always a kind done the fewest times today, never the same kind three times while another waits', () => {
+    test('all kinds one by one in rounds: every kind once, in a random order, before any kind comes a second time', () => {
         let s = newState();
         const day = '2026-11-02', rng = makeRng(3);
         const seen: Record<string, number> = {};
         for (let i = 0; i < 3 * KINDS_4_6.length; i++) {
             const picks = nextPicks(s, day);
-            const least = Math.min(...picks.map(([sk, k]) => doneToday(s, day, sk, k)));
-            // every pick is a least-done kind, and no kind is ahead by more than one
-            for (const [sk, k] of picks) expect(doneToday(s, day, sk, k)).toBe(least);
+            const least = Math.min(...picks.map(([sk, k]) => triedToday(s, day, sk, k)));
+            // every pick is a least-tried kind, and no kind is ahead by more than one
+            for (const [sk, k] of picks) expect(triedToday(s, day, sk, k)).toBe(least);
             const p = nextProblem(s, rng, undefined, { day });
             const k = kindOf(p);
+            expect(triedToday(s, day, 'pp-2x2', k)).toBe(least);
             expect(doneToday(s, day, 'pp-2x2', k)).toBe(least);
             seen[k] = (seen[k] ?? 0) + 1;
             s = applyAnswer(s, p, true, { firstTry: true, hint: false, sec: 5, day }).state;
@@ -844,6 +845,38 @@ describe('Lesson 4-6 homework: partial products in a column', () => {
         expect(Object.keys(seen).sort()).toEqual(Array.from(KINDS_4_6).sort());
         // the kinds with mistakes on the sheet are the only ones left open after 3 of each
         expect(nextPicks(s, day).map(([, k]) => k).sort()).toEqual(['column', 'mistakes']);
+        // the order inside a round is random: two days do not start the same way
+        const firsts = new Set(Array.from({ length: 12 }, (_, i) => kindOf(nextProblem(newState(), makeRng(i + 1), undefined, { day }))));
+        expect(firsts.size).toBeGreaterThan(2);
+    });
+    test('a kind she got wrong waits for the next round: it never comes again while another kind of the round is untried', () => {
+        let s = newState();
+        const day = '2026-11-02', rng = makeRng(5);
+        const n = KINDS_4_6.length;
+        // round 1: every answer wrong; round 2: right and wrong by turns; rounds 3 and 4: all right
+        const plan = [...Array(n).fill(false), ...Array.from({ length: n }, (_, i) => i % 2 === 0), ...Array(2 * n).fill(true)];
+        let round: string[] = [];
+        for (const ok of plan) {
+            const picks = nextPicks(s, day);
+            if (!picks.length) break;
+            const p = nextProblem(s, rng, 'pp-2x2', { day });
+            const k = kindOf(p);
+            expect(picks.map(([, x]) => x)).toContain(k);
+            expect(round).not.toContain(k);
+            round.push(k);
+            s = applyAnswer(s, p, ok, { firstTry: true, hint: false, sec: 5, day }).state;
+            // the round is over when every open kind has been tried once more
+            const open = uncovered(s, day).map(([, x]) => x);
+            if (open.every(x => round.includes(x))) round = [];
+        }
+        // a wrong answer never counts for the goal, a right one does; the tries count both
+        const tried = KINDS_4_6.map(k => triedToday(s, day, 'pp-2x2', k));
+        expect(Math.max(...tried) - Math.min(...tried)).toBeLessThanOrEqual(1);
+        expect(KINDS_4_6.reduce((t, k) => t + doneToday(s, day, 'pp-2x2', k), 0)).toBe(plan.filter(Boolean).length);
+        // a save of the previous build (no tries) gets them back from the history, so the round goes on where it was
+        const old = structuredClone(s) as Partial<GameState>;
+        delete old.dailyTried;
+        expect(Object.values(normalize(old).dailyTried)).toEqual([s.dailyTried[day]]);
     });
 });
 

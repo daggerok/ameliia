@@ -1109,7 +1109,7 @@ const PlayView: React.FC<{ problem: Problem; attempt: Attempt; lang: Lang; t: UI
     useEffect(() => { setNoHint(false); }, [problem.id]);
     const res = attempt.result;
     return (
-        <div className={`${card} space-y-4 ${res && !res.ok ? 'animate-shake' : ''}`} data-testid="play-card" data-skill={problem.skill} data-selftest-answer={SELFTEST ? JSON.stringify(problem.answer) : undefined}>
+        <div className={`${card} space-y-4 ${res && !res.ok ? 'animate-shake' : ''}`} data-testid="play-card" data-skill={problem.skill} data-kind={SELFTEST ? kindOf(problem) : undefined} data-selftest-answer={SELFTEST ? JSON.stringify(problem.answer) : undefined}>
             <div className="flex flex-wrap items-center gap-2 text-xs font-black tracking-wider uppercase">
                 <span className="bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-lg">{TOPIC_ICON[problem.topic]} {tr(TOPIC_NAME[problem.topic], lang)}</span>
                 <span className="text-slate-400 normal-case italic">{tr(SKILL_NAME[problem.skill], lang)}</span>
