@@ -54,6 +54,7 @@ export type GameState = {
     daily: Record<string, number>;        // seconds per day (YYYY-MM-DD)
     dailySkills: Record<string, Partial<Record<SkillId, number>>>; // right answers per day and skill (tasks and practice tests)
     dailyKinds: Record<string, Record<string, number>>;            // right answers per day and kind of task, "mult-expr:partials"
+    dailyTried: Record<string, Record<string, number>>;            // tasks tried per day and kind, right or wrong: the rounds of the homework
     mistakeLog: LoggedMistake[];          // wrong answers in the app, waiting to be reworked
     sinceRework: number;                  // tasks since a mistake was last mixed into practice
     sinceFact: number;                    // tasks since the last memory check of a multiplication fact
@@ -87,6 +88,7 @@ export const newState = (): GameState => ({
     daily: {},
     dailySkills: {},
     dailyKinds: {},
+    dailyTried: {},
     mistakeLog: [],
     sinceRework: 0,
     sinceFact: 0,
@@ -117,6 +119,8 @@ export const normalize = (raw: unknown): GameState => {
     s.sinceFact = s.sinceFact ?? 0;
     s.factMiss = s.factMiss ?? {};
     s.theoryLog = s.theoryLog ?? [];
+    // an older build kept no tries per day: rebuild them from the history, so today's round goes on where it was
+    if (!(raw as Partial<GameState>).dailyTried) { s.dailyTried = {}; for (const h of s.history) if (h.kind) countTry(s, dayOf(new Date(h.t)), h.skill, h.kind); }
     // an older build kept no right answers per day: rebuild them from the history, so today's progress is not lost
     if (!(raw as Partial<GameState>).dailySkills) for (const h of s.history) if (h.ok) countRight(s, dayOf(new Date(h.t)), h.skill, 1);
     return s;
@@ -146,6 +150,11 @@ const countRight = (state: GameState, day: string, skill: SkillId, n: number, ki
     const key = `${skill}:${kind}`, k = { ...(state.dailyKinds[day] ?? {}) };
     k[key] = (k[key] ?? 0) + n;
     state.dailyKinds = { ...state.dailyKinds, [day]: k };
+};
+const countTry = (state: GameState, day: string, skill: SkillId, kind: string) => {
+    const key = `${skill}:${kind}`, k = { ...(state.dailyTried[day] ?? {}) };
+    k[key] = (k[key] ?? 0) + 1;
+    state.dailyTried = { ...state.dailyTried, [day]: k };
 };
 
 // the kind of a task inside its skill: the style of a worksheet, the study guide line of a science idea, or "all"
@@ -292,17 +301,19 @@ export const uncoveredFirst = (state: GameState, day: string): [SkillId, string]
     return open;
 };
 
-// all kinds one by one (owner, 2026-11-02: "all of them should be done, not 3 times the same task while another was not done
-// at all"): of the open kinds of the newest homework, only those she has answered right the fewest times today
+// all kinds one by one, in rounds (owner, 2026-11-02: "1 for 1 type, randomly, but all should be taken without repeating
+// until all was completed for the first round"): of the open kinds of the newest homework, only those she has tried the
+// fewest times today, right or wrong; a kind tried and missed waits for the next round like any other
 export const doneToday = (state: GameState, day: string, skill: SkillId, kind: string) => state.dailyKinds[day]?.[`${skill}:${kind}`] ?? 0;
+export const triedToday = (state: GameState, day: string, skill: SkillId, kind: string) => state.dailyTried[day]?.[`${skill}:${kind}`] ?? 0;
 export const nextPicks = (state: GameState, day: string): [SkillId, string][] => {
     const open = uncoveredFirst(state, day);
     if (!open.length) return open;
-    const least = Math.min(...open.map(([s, k]) => doneToday(state, day, s, k)));
-    return open.filter(([s, k]) => doneToday(state, day, s, k) === least);
+    const least = Math.min(...open.map(([s, k]) => triedToday(state, day, s, k)));
+    return open.filter(([s, k]) => triedToday(state, day, s, k) === least);
 };
 
-// the homework button picks a kind of task she has not covered yet today (the newest homework first, the least done kinds first);
+// the homework button picks a kind of task she has not covered yet today (the newest homework first, the least tried kinds first);
 // once all are done, any kind of the current homework
 export const prepPicks = (state: GameState, day: string): [SkillId, string][] => {
     const open = nextPicks(state, day);
@@ -385,8 +396,8 @@ export const nextSkill = (state: GameState, rng: Rng, day?: string): SkillId => 
 export const nextProblem = (state: GameState, rng: Rng, skill?: SkillId, opts: { kind?: string; day?: string } = {}): Problem => {
     const s = skill ?? nextSkill(state, rng, opts.day);
     const seen = new Set(state.recent);
-    // the open kinds of the skill, the least done today first (one by one, never the same kind three times while another waits)
-    const open = opts.day ? shuffle(rng, uncovered(state, opts.day).filter(([k]) => k === s).map(([, k]) => k)).sort((x, y) => doneToday(state, opts.day!, s, x) - doneToday(state, opts.day!, s, y)) : [];
+    // the open kinds of the skill, the least tried today first (rounds: never the same kind again while another waits)
+    const open = opts.day ? shuffle(rng, uncovered(state, opts.day).filter(([k]) => k === s).map(([, k]) => k)).sort((x, y) => triedToday(state, opts.day!, s, x) - triedToday(state, opts.day!, s, y)) : [];
     for (const kind of [...(opts.kind ? [opts.kind] : []), ...open.filter(k => k !== opts.kind)]) {
         const p = makeFreshProblem(s, rng, seen, kind);
         if (!seen.has(p.id)) return p;
@@ -470,6 +481,7 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
     }
     for (const s of ALL_SKILLS) if (state.skills[s].reviewIn > 0) state.skills[s].reviewIn--;
     remember(state, p.id);
+    if (opts.day) countTry(state, opts.day, p.skill, kindOf(p));
     let stars = 0;
     if (ok) {
         st.correct++;
