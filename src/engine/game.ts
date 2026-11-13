@@ -240,8 +240,9 @@ export const HOMEWORKS: Homework[] = [
         title: L('Homework: Lesson 4-6, partial products in a column', 'Домашка: урок 4-6, частичные произведения столбиком'),
         sub: L('12 × 14 in a column, estimate and four partial products, why 2 tens × 3 tens is easy, the mistakes in 12 × 13, the movie theater, golf balls, select all. Theory first, then tasks', '12 × 14 столбиком, прикидка и четыре частичных произведения, почему 2 десятка × 3 десятка - легко, ошибки в 12 × 13, кинотеатр, мячи для гольфа, выбери все. Сначала теория, потом задания'),
     },
+    // two right answers per kind on the first day too (owner, 2026-11-12: "уменьши до 2 задач на вид сегодня")
     {
-        id: 'lesson-5-1-2', given: '2026-11-12', until: '2026-11-13', first: 3, again: AGAIN, plan: LESSON_5_PLAN,
+        id: 'lesson-5-1-2', given: '2026-11-12', until: '2026-11-13', first: 2, again: AGAIN, plan: LESSON_5_PLAN,
         more: ['wrong', 'split', 'select', 'estimate', 'story', 'twostep', 'enough'],
         title: L('Homework: Lessons 5-1 and 5-2, find and estimate quotients mentally', 'Домашка: уроки 5-1 и 5-2, найди и прикинь частное в уме'),
         sub: L('4,200 ÷ 7 with a basic fact, 174 ÷ 9 is about 180 ÷ 9, Barry\'s best sellers, why 1,000 ÷ 5 = 2,000 is wrong, hamburgers and hot dogs, Franny\'s to-do list, Deon\'s bike, Tessa\'s corn bags, select all. Theory first, then tasks', '4 200 ÷ 7 через табличный пример, 174 ÷ 9 - это примерно 180 ÷ 9, книги Барри, почему 1 000 ÷ 5 = 2 000 неверно, гамбургеры и хот-доги, список дел Фрэнни, велосипед Деона, пакеты Тессы, выбери все. Сначала теория, потом задания'),
