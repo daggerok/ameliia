@@ -158,11 +158,88 @@ export const PAINTINGS: Painting[] = [
             R(path('M20 108 Q70 92 120 104'), '#fef08a'),
         ],
     },
+    // the wizard school set (2026-11-12): open from the start, shown with a "New" badge
+    {
+        name: L('The talking sorting hat', 'Говорящая шляпа-распределитель'),
+        regions: [
+            R(rect(0, 0, 200, 140), '#57534e'), R(path('M18 70 L18 34 Q32 16 46 34 L46 70 Z'), '#1e3a8a'), R(path('M154 70 L154 34 Q168 16 182 34 L182 70 Z'), '#1e3a8a'), R(circle(36, 44, 6), '#fef9c3'),
+            R(path('M60 0 L80 0 L80 40 L70 32 L60 40 Z'), '#b91c1c'), R(path('M120 0 L140 0 L140 40 L130 32 L120 40 Z'), '#ca8a04'), R(circle(70, 16, 4), '#facc15'), R(circle(130, 16, 4), '#7f1d1d'),
+            R(rect(0, 112, 200, 28), '#78350f'), R(ellipse(100, 124, 60, 10), '#991b1b'), R(rect(84, 100, 4, 22), '#451a03'), R(rect(112, 100, 4, 22), '#451a03'), R(rect(78, 94, 44, 8, 3), '#92400e'),
+            R(ellipse(100, 90, 40, 7), '#a16207'), R(path('M74 90 Q84 70 92 58 Q96 40 108 26 Q118 20 124 30 Q112 34 110 46 Q118 70 126 90 Z'), '#92400e'),
+            R(path('M88 66 Q94 61 99 66 Q94 69 88 66 Z'), '#451a03'), R(path('M104 64 Q110 59 115 64 Q110 67 104 64 Z'), '#451a03'), R(path('M90 80 Q101 73 112 80 Q101 85 90 80 Z'), '#451a03'), R(rect(104, 44, 8, 8, 1), '#b45309'),
+            R(rect(20, 96, 6, 16), '#fef3c7'), R(path('M23 85 Q28 91 23 95 Q18 91 23 85 Z'), '#f97316'), R(rect(174, 96, 6, 16), '#fef3c7'), R(path('M177 85 Q182 91 177 95 Q172 91 177 85 Z'), '#f97316'),
+            R(circle(150, 52, 2), '#fde047'), R(circle(54, 58, 2), '#fde047'),
+        ],
+    },
+    {
+        name: L('Potions class: bubbling cauldrons', 'Урок зелий: кипящие котлы'),
+        regions: [
+            R(rect(0, 0, 200, 140), '#334155'), R(rect(10, 10, 30, 14, 2), '#475569'), R(rect(56, 20, 30, 14, 2), '#475569'), R(rect(6, 44, 26, 12, 2), '#475569'),
+            R(rect(110, 40, 80, 4), '#78350f'), R(rect(118, 26, 8, 14, 2), '#22c55e'), R(rect(132, 22, 8, 18, 2), '#a855f7'), R(rect(146, 28, 8, 12, 2), '#f43f5e'), R(rect(160, 24, 8, 16, 2), '#38bdf8'),
+            R(rect(0, 110, 200, 30), '#1e293b'), R(ellipse(70, 96, 30, 20), '#111827'), R(ellipse(70, 78, 30, 6), '#374151'), R(ellipse(70, 78, 26, 4), '#4ade80'),
+            R(path('M84 80 L100 50 L103 52 L87 81 Z'), '#a16207'), R(circle(62, 68, 4), '#86efac'), R(circle(76, 62, 5), '#bbf7d0'), R(circle(68, 50, 3), '#dcfce7'),
+            R(path('M46 128 Q52 112 58 128 Q64 110 70 128 Q76 112 82 128 Q88 114 94 128 Z'), '#f97316'), R(path('M58 128 Q64 118 70 128 Q76 118 82 128 Z'), '#fde047'),
+            R(ellipse(152, 104, 20, 13), '#111827'), R(ellipse(152, 92, 20, 4), '#374151'), R(ellipse(152, 92, 17, 3), '#c084fc'), R(circle(150, 83, 3), '#e9d5ff'), R(circle(158, 76, 2), '#f3e8ff'),
+        ],
+    },
+    {
+        name: L('The great hall with floating candles', 'Большой зал с парящими свечами'),
+        regions: [
+            R(rect(0, 0, 200, 90), '#1e1b4b'), R(circle(70, 12, 1.6), '#fde68a'), R(circle(140, 8, 1.6), '#fde68a'), R(circle(112, 60, 1.6), '#fde68a'),
+            R(path('M0 0 L30 0 L30 120 L0 140 Z'), '#57534e'), R(path('M200 0 L170 0 L170 120 L200 140 Z'), '#57534e'), R(rect(9, 24, 12, 36, 6), '#fde68a'), R(rect(179, 24, 12, 36, 6), '#fde68a'),
+            R(path('M30 90 L170 90 L200 140 L0 140 Z'), '#78716c'), R(path('M50 96 L80 96 L66 140 L22 140 Z'), '#92400e'), R(path('M120 96 L150 96 L178 140 L134 140 Z'), '#92400e'), R(rect(70, 84, 60, 8, 2), '#7c2d12'),
+            R(path('M42 8 L56 8 L56 40 L49 34 L42 40 Z'), '#b91c1c'), R(path('M144 8 L158 8 L158 40 L151 34 L144 40 Z'), '#ca8a04'),
+            R(rect(68, 30, 4, 12), '#fef9c3'), R(path('M70 22 Q74 26 70 29 Q66 26 70 22 Z'), '#f97316'), R(rect(96, 20, 4, 12), '#fef9c3'), R(path('M98 12 Q102 16 98 19 Q94 16 98 12 Z'), '#f97316'),
+            R(rect(124, 34, 4, 12), '#fef9c3'), R(path('M126 26 Q130 30 126 33 Q122 30 126 26 Z'), '#f97316'), R(rect(86, 50, 4, 12), '#fef9c3'), R(path('M88 42 Q92 46 88 49 Q84 46 88 42 Z'), '#f97316'),
+            R(ellipse(48, 112, 5, 2.5), '#f8fafc'), R(ellipse(152, 116, 5, 2.5), '#f8fafc'),
+        ],
+    },
+    {
+        name: L('A silver capybara spell in the moonlight', 'Серебряная капибара-заклинание при луне'),
+        regions: [
+            R(rect(0, 0, 200, 100), '#0f172a'), R(circle(160, 24, 12), '#f8fafc'), R(circle(30, 18, 1.6), '#fde68a'), R(circle(90, 12, 1.6), '#fde68a'),
+            R(path('M0 100 L14 50 L28 100 Z'), '#14532d'), R(path('M20 100 L36 40 L52 100 Z'), '#166534'), R(path('M168 100 L182 52 L196 100 Z'), '#14532d'),
+            R(rect(0, 100, 200, 40), '#1e3a8a'), R(ellipse(102, 80, 56, 36), '#1e40af'), R(ellipse(102, 120, 40, 6), '#93c5fd'),
+            R(ellipse(96, 84, 32, 18), '#e2e8f0'), R(rect(74, 94, 8, 12, 3), '#cbd5e1'), R(rect(104, 94, 8, 12, 3), '#cbd5e1'), R(rect(110, 58, 32, 26, 13), '#f1f5f9'),
+            R(circle(116, 60, 4), '#cbd5e1'), R(circle(132, 68, 2.5), '#60a5fa'), R(ellipse(138, 76, 6, 4), '#cbd5e1'), R(circle(126, 52, 7), '#fdba74'),
+            R(circle(60, 40, 2.5), '#e0f2fe'), R(circle(72, 30, 2), '#e0f2fe'), R(circle(48, 56, 2), '#e0f2fe'),
+        ],
+    },
+    {
+        name: L('A ribbon dance in a red and gold scarf', 'Танец с лентой в красно-золотом шарфе'),
+        regions: [
+            R(rect(0, 0, 200, 100), '#fce7f3'), R(rect(20, 22, 30, 40, 4), '#bae6fd'), R(rect(150, 22, 30, 40, 4), '#bae6fd'),
+            R(path('M64 0 L80 0 L72 12 Z'), '#f59e0b'), R(path('M92 0 L108 0 L100 12 Z'), '#22c55e'), R(path('M120 0 L136 0 L128 12 Z'), '#8b5cf6'),
+            R(rect(0, 100, 200, 40), '#60a5fa'), R(rect(0, 100, 200, 4), '#3b82f6'),
+            R(path('M78 34 Q60 10 40 30 Q24 48 44 62 Q64 76 52 92 Q42 104 30 98 L30 102 Q46 108 56 94 Q68 74 48 60 Q30 46 42 34 Q60 16 76 36 Z'), '#a855f7'),
+            R(path('M78 34 L72 24 L74 23 L80 33 Z'), '#78350f'), R(path('M102 80 L126 66 L128 70 L104 84 Z'), '#fcd7b6'), R(path('M95 80 L86 108 L91 109 L100 82 Z'), '#fcd7b6'),
+            R(path('M92 54 L108 54 L106 82 L94 82 Z'), '#e11d48'), R(rect(93, 51, 14, 5, 2), '#facc15'), R(path('M93 56 L78 34 L82 32 L96 54 Z'), '#fcd7b6'), R(path('M107 56 L120 44 L123 47 L108 60 Z'), '#fcd7b6'),
+            R(circle(100, 43, 9), '#fcd7b6'), R(path('M91 42 Q92 32 100 33 Q109 32 110 42 Q104 36 91 42 Z'), '#92400e'), R(circle(100, 31, 4), '#92400e'),
+            R(circle(40, 30, 2), '#fde047'), R(circle(52, 92, 2), '#fde047'), R(circle(160, 114, 8), '#fde047'),
+        ],
+    },
+    {
+        name: L('The street of wizard shops', 'Улица волшебных лавок'),
+        regions: [
+            R(rect(0, 0, 200, 140), '#fdba74'), R(circle(170, 10, 2), '#fef9c3'),
+            R(path('M4 120 L6 40 L54 36 L56 120 Z'), '#7c3aed'), R(path('M0 42 L30 14 L60 38 Z'), '#4c1d95'),
+            R(path('M60 120 L62 30 L118 34 L116 120 Z'), '#0f766e'), R(path('M56 36 L90 6 L122 36 Z'), '#134e4a'),
+            R(path('M122 120 L124 44 L194 40 L196 120 Z'), '#b91c1c'), R(path('M118 46 L160 18 L200 42 Z'), '#7f1d1d'),
+            R(rect(14, 60, 32, 26, 2), '#fde68a'), R(rect(72, 54, 34, 28, 2), '#fde68a'), R(rect(134, 62, 30, 24, 2), '#fde68a'),
+            R(rect(22, 94, 14, 26, 6), '#451a03'), R(rect(84, 92, 12, 28, 6), '#451a03'), R(rect(172, 92, 14, 28, 6), '#451a03'),
+            R(path('M20 84 L28 64 L36 84 Z'), '#1e1b4b'), R(rect(78, 70, 22, 6, 1), '#78350f'), R(circle(149, 74, 7), '#a16207'), R(circle(146, 72, 2), '#fef3c7'), R(circle(152, 72, 2), '#fef3c7'), R(rect(70, 40, 38, 9, 2), '#facc15'),
+            R(rect(0, 120, 200, 20), '#a8a29e'), R(circle(119, 70, 4), '#fef08a'),
+        ],
+    },
 ];
 
-// the first six are open from the start; the magic set opens once each of them is painted
+// the first six are open from the start, and so is the wizard school set; the magic set opens once each of the first six is painted
 export const FIRST_SET = 6;
-export const openPaintings = (done: number[]) => (Array.from({ length: FIRST_SET }, (_, i) => i).every(i => done.includes(i)) ? PAINTINGS.length : FIRST_SET);
+export const MAGIC_SET = [6, 7, 8, 9, 10, 11];
+export const NEW_SET = [12, 13, 14, 15, 16, 17];
+export const magicOpen = (done: number[]) => Array.from({ length: FIRST_SET }, (_, i) => i).every(i => done.includes(i));
+// the indexes she can choose from, in gallery order: the new set first (so she sees it at once), the first six, then the magic set once it is open
+export const openPaintings = (done: number[]): number[] => [...NEW_SET, ...Array.from({ length: FIRST_SET }, (_, i) => i), ...(magicOpen(done) ? MAGIC_SET : [])];
 
 // half: the next part already has a star and waits for one more: a pulsing dashed outline, the color stays a surprise
 export const PaintingView: React.FC<{ painting: Painting; filled: number; half?: boolean; className?: string }> = ({ painting, filled, half = false, className = '' }) => (
