@@ -10,6 +10,7 @@ import { KNOWN_MISSES, factKey, makeFact } from '../src/engine/facts';
 import { KINDS_4_4, partials } from '../src/engine/topic4arr';
 import { KINDS_4_6, columnPartials } from '../src/engine/topic4pp';
 import { KINDS_4_3 } from '../src/engine/topic4est';
+import { KINDS_5, compatible } from '../src/engine/topic5';
 import { makeFreshProblem, makeProblem } from '../src/engine';
 import { HOMEWORK_MISTAKES, reworkGroups, reworkNext, reworkQueue, reworkSkill, reworkTheory } from '../src/engine/mistakes';
 import { buildQuiz } from '../src/engine/quiz';
@@ -70,7 +71,7 @@ const checkMath = (texts: string[], where: string) => {
 
 const textsOf = (p: Problem): L10n[] => [p.prompt, p.hint, ...p.steps, ...(p.answer.kind === 'choice' || p.answer.kind === 'multi' ? p.answer.options : []), ...(p.answer.kind === 'fill' && (p.answer.layout === 'lines' || p.answer.layout === 'vertical') ? p.answer.lines.flatMap(l => (l.label ? [l.label] : [])) : [])];
 // "spot the mistake" tasks show a wrong claim in the question on purpose
-const deliberateMistake = (p: Problem) => /^div-check:[zr]:|^est-product:r:|^pp-2x2:mistakes:/.test(p.id);
+const deliberateMistake = (p: Problem) => /^div-check:[zr]:|^est-product:r:|^pp-2x2:mistakes:|^div-mental:wrong:/.test(p.id);
 const rightOptions = (p: Problem): L10n[] => {
     const a = p.answer;
     return a.kind === 'choice' ? [a.options[a.correct]] : a.kind === 'multi' ? a.correct.map(i => a.options[i]) : [];
@@ -141,6 +142,17 @@ const expected = (p: Problem): number | { q: number; r: number } | 'choice' => {
         case 'mult-facts': return n('a') * n('b');
         // the column, the golf carton and the rest: a × b, have + box × boxes × crates, or a choice
         case 'pp-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'golf' ? n('have') + n('perBox') * n('boxes') * n('crates') : n('a') * n('b');
+        // a quotient of a basic fact with zeros, an estimate with the compatible number, the sum of the bar
+        case 'div-mental': {
+            if (p.answer.kind !== 'number') return 'choice';
+            const est = (x: number, y: number) => { const u = x >= 10 * y ? 10 * y : y; return Math.round(x / u) * u / y; };
+            const st = p.data.style;
+            if (st === 'tens') return n('a') / n('d');
+            if (st === 'graph') return n('t') / n('p');
+            if (st === 'bar') return n('total');
+            if (st === 'twostep') return est(n('goal') - n('done'), n('d'));
+            return est(n('n'), n('d'));
+        }
         case 'dist-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'add' ? n('x') + n('y') : n('a') * n('b');
         case 'mult-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'sales' ? n('c1') * n('p1') + n('c2') * n('p2') : p.data.style === 'factor' ? n('p') / n('a') : n('a') * n('b');
         default: return 'choice';
@@ -1253,7 +1265,7 @@ describe('theory and quizzes', () => {
                 }
                 [...texts, ...prompts].forEach(t => checkText(t, `theory ${skill}#${seed}`));
                 // spot-the-mistake skills quote a wrong claim in their example questions on purpose
-                if (!['div-check', 'est-product'].includes(skill)) texts.push(...prompts);
+                if (!['div-check', 'est-product', 'div-mental'].includes(skill)) texts.push(...prompts);
                 checkMath(texts.map(t => t.en), `theory ${skill}#${seed}`);
                 checkMath(texts.map(t => t.ru), `theory ${skill}#${seed}`);
                 const ex = th.sections.find(s => s.kind === 'example');
@@ -1351,9 +1363,10 @@ describe('game flow', () => {
         expect(t2.filter(p => p.skill === 'div-4d').length).toBe(1);
         expect(testPlan(r, day).length).toBe(t2.length);
     });
-    test('the practice test without a day: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2, 1 of Lesson 4-3, 1 of Lesson 4-4, 1 of Lesson 4-5, 1 of Lesson 4-6 and 2 different multiplication strategies', () => {
+    test('the practice test without a day: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2, 1 of Lesson 4-3, 1 of Lesson 4-4, 1 of Lesson 4-5, 1 of Lesson 4-6, 1 of Lessons 5-1 and 5-2 and 2 different multiplication strategies', () => {
         const test1 = buildTest(newState(), makeRng(9));
-        expect(test1.length).toBe(23);
+        expect(test1.length).toBe(24);
+        expect(test1.filter(p => p.skill === 'div-mental').length).toBe(1);
         expect(test1.filter(p => p.skill === 'mult-2x10').length).toBe(1);
         expect(test1.filter(p => p.skill === 'est-2x2').length).toBe(1);
         expect(test1.filter(p => p.skill === 'mult-2x2').length).toBe(1);
@@ -1362,7 +1375,7 @@ describe('game flow', () => {
         expect(test1.filter(p => p.topic === 'division').length).toBe(6);
         expect(test1.filter(p => p.topic === 'science').length).toBe(5);
         expect(test1.some(p => p.skill === 'sci-words')).toBe(true);
-        expect(test1.filter(p => p.topic === 'estimation').length).toBe(12);
+        expect(test1.filter(p => p.topic === 'estimation').length).toBe(13);
         expect(test1.some(p => p.skill === 'forces')).toBe(true);
         const strategies = test1.filter(p => STRATEGIES.includes(p.skill)).map(p => p.skill);
         expect(strategies.length).toBe(2);
@@ -1501,3 +1514,73 @@ describe('game flow', () => {
         expect(applyAnswer(newState(), p, false, { firstTry: true, hint: false, sec: 1 }).stars).toBe(0);
     });
 });
+
+describe('Lessons 5-1 and 5-2 homework: find and estimate quotients mentally', () => {
+    test('every answer is recomputed: patterns, splits, select all, wrong quotients, enough bags, marbles', () => {
+        const kinds = new Set<string>();
+        let hundred = 0, twoDigitFact = 0;
+        each('div-mental', p => {
+            const d = p.data as Record<string, number>, a = p.answer, style = String(p.data.style);
+            kinds.add(style);
+            if (style === 'pattern') {
+                if (a.kind !== 'fill') throw new Error(`${p.id}: not a sheet`);
+                expect(a.values).toEqual([d.a / d.d, d.a * 10 / d.d, d.a * 100 / d.d]);
+            }
+            if (style === 'split') {
+                if (a.kind !== 'fill') throw new Error(`${p.id}: not a sheet`);
+                expect(a.values[0] * d.a).toBe(d.t / 2);
+                expect(a.values[1] * d.b).toBe(d.t / 2);
+                // her answer on the sheet: all the money divided by each price
+                expect(sameAnswer(a, { blanks: [d.t / d.a, d.t / d.b] })).toBe(false);
+            }
+            if (style === 'twostep' && a.kind === 'fill') {
+                expect(a.values).toEqual([compatible(d.give, d.d).q, d.has - d.give]);
+            }
+            if (style === 'select') {
+                if (a.kind !== 'multi') throw new Error(`${p.id}: not a multi`);
+                a.options.forEach((o, i) => { const m = o.en.match(/([\d,]+) ÷ (\d+)/)!; expect(a.correct.includes(i)).toBe(Number(m[1].replace(/,/g, '')) / Number(m[2]) === d.t); });
+                expect(a.correct.length).toBeGreaterThanOrEqual(2);
+            }
+            if (style === 'wrong') {
+                if (a.kind !== 'choice') throw new Error(`${p.id}: not a choice`);
+                if (p.data.variant === 'which') {
+                    const eqs = Array.from(p.prompt.en.matchAll(/([A-D])\) ([\d,]+) ÷ (\d+) = ([\d,]+)/g));
+                    expect(eqs.length).toBe(4);
+                    eqs.forEach((m, i) => expect(Number(m[2].replace(/,/g, '')) / Number(m[3]) === Number(m[4].replace(/,/g, ''))).toBe(i !== a.correct));
+                } else expect(a.options[a.correct].en).toContain(`The quotient is ${(d.a / d.d).toLocaleString('en-US')}`);
+            }
+            if (style === 'enough') {
+                if (a.kind !== 'choice') throw new Error(`${p.id}: not a choice`);
+                expect(d.k * d.g >= d.n).toBe(d.enough === 1);
+                expect(a.options[a.correct].en.startsWith(d.enough ? 'Yes' : 'No')).toBe(true);
+            }
+            if ((style === 'estimate' || style === 'story') && a.kind === 'number') {
+                // one closest compatible number, and the dividend itself does not divide evenly
+                const { c, unit } = compatible(d.n, d.d);
+                expect(Math.abs(d.n - c) * 2).toBeLessThan(unit);
+                expect(d.n % d.d).not.toBe(0);
+                if (a.value % 100 === 0 && a.value >= 100) hundred++;
+                if (c / 10 >= 10 && c % (10 * d.d) === 0 && c / 10 / d.d < 10) twoDigitFact++;
+            }
+        });
+        expect(Array.from(kinds).sort()).toEqual(Array.from(KINDS_5).sort());
+        // the traps of her sheet come often: a quotient of a hundred (202 ÷ 2) and a 2-digit fact (180 ÷ 9)
+        expect(hundred).toBeGreaterThan(10);
+        expect(twoDigitFact).toBeGreaterThan(100);
+    });
+    test('the homework of 2026-11-12: three per kind, one more for the kinds with mistakes on the sheets, two per kind on Friday', () => {
+        const s = newState(), day = '2026-11-12';
+        expect(activeHomework(s, day).map(h => h.id)).toEqual(['lesson-5-1-2']);
+        const more = HOMEWORKS.find(h => h.id === 'lesson-5-1-2')!.more!.length;
+        expect(dailyGoal(s, day).total).toBe(3 * KINDS_5.length + more);
+        expect(dailyGoal(s, '2026-11-13').total).toBe(AGAIN * KINDS_5.length + more);
+        expect(dailyGoal(s, '2026-11-14').total).toBe(DAILY_RIGHT);
+        for (let i = 0; i < 50; i++) expect(nextSkill(s, makeRng(i + 1), day)).toBe('div-mental');
+        expect(chainOf('div-mental')).toContain('div-facts');
+        expect(KNOWN_MISSES['2x9']).toBeGreaterThan(0);
+        once5(buildTest(s, makeRng(9), day));
+    });
+});
+const once5 = (t: Problem[]) => {
+    for (const k of KINDS_5) expect(t.filter(p => p.skill === 'div-mental' && kindOf(p) === k).length).toBe(1);
+};

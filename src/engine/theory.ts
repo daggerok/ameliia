@@ -882,6 +882,75 @@ const topic4PPBuilders: Record<'pp-2x2', (rng: Rng) => { hook: L10n[]; sections:
     },
 };
 
+// ---------- Topic 5, Lessons 5-1 and 5-2: find and estimate quotients mentally (4.NBT.B.6) ----------
+// for a 9-year-old, built around her sheets of 2026-11-11 and 2026-11-12: the place value of the quotient (202 ÷ 2 about 10,
+// 180 ÷ 9 = 90), counting who shares (3 friends, 4 days), equal amounts, select all, enough bags, skipped problems
+
+const topic5Builders: Record<'div-mental', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'div-mental': rng => {
+        const d = int(rng, 3, 9), q = int(rng, 2, 9), f = d * q;
+        return {
+            hook: [
+                L('Grandma has 2,400 stickers for 6 grandchildren. You do not need paper: 24 ÷ 6 = 4, so 24 hundreds ÷ 6 = 4 hundreds. 400 stickers each!', 'У бабушки 2 400 наклеек на 6 внуков. Бумага не нужна: 24 ÷ 6 = 4, значит 24 сотни ÷ 6 = 4 сотни. По 400 наклеек каждому!'),
+                L('Franny has $62 for presents for Kate, Wendy and Tia. About how much for each? Count the friends, pick an easy number, and the answer comes by itself.', 'У Фрэнни $62 на подарки для Кейт, Венди и Тиа. Примерно сколько на каждый? Сосчитай подруг, возьми удобное число - и ответ придёт сам.'),
+            ],
+            sections: [
+                { kind: 'idea', title: T.idea, body: [
+                    L('Hide the zeros. Find the basic fact. Give the zeros back.', 'Спрячь нули. Найди табличный пример. Верни нули.'),
+                    L(`${fmt(f * 100, 'en')} ÷ ${d}: ${f} ÷ ${d} = ${q}, so ${f} hundreds ÷ ${d} = ${q} hundreds = ${fmt(q * 100, 'en')}.`, `${fmt(f * 100, 'ru')} ÷ ${d}: ${f} ÷ ${d} = ${q}, значит ${f} ${ruPlural(f, 'сотня', 'сотни', 'сотен')} ÷ ${d} = ${q} ${ruPlural(q, 'сотня', 'сотни', 'сотен')} = ${fmt(q * 100, 'ru')}.`),
+                    L('"About" means estimate: change the dividend to a compatible number, a close number that divides with a basic fact.', '«Примерно» значит прикинь: замени делимое удобным числом, близким числом, которое делится по таблице.'),
+                    L('Check every quotient by multiplying back: quotient × divisor = dividend.', 'Проверяй каждое частное обратным умножением: частное × делитель = делимое.'),
+                ] },
+                { kind: 'steps', title: T.how, body: [
+                    L('1. Read the question. Who shares? Count them: that is the divisor.', '1. Прочитай вопрос. Кто делит? Сосчитай их: это делитель.'),
+                    L('2. Exact ("find")? Hide the zeros, basic fact, zeros back.', '2. Точно («найди»)? Спрячь нули, табличный пример, верни нули.'),
+                    L('3. About ("estimate")? Count by the divisor × 10 and stop at the number closest to the dividend.', '3. Примерно («прикинь»)? Считай по делитель × 10 и остановись на числе, ближайшем к делимому.'),
+                    L('4. Check: multiply back. Is the answer smaller than the dividend? It must be!', '4. Проверь: умножь обратно. Ответ меньше делимого? Так и должно быть!'),
+                ] },
+                { kind: 'example', title: L('Another Look: estimate 460 ÷ 9', 'Ещё раз: прикинь 460 ÷ 9'), prompt: L('Two ways', 'Два способа'), body: [
+                    L('One way, compatible numbers: 460 is close to 450, and 45 ÷ 9 = 5. 450 ÷ 9 = 50.', 'Первый способ, удобные числа: 460 близко к 450, а 45 ÷ 9 = 5. 450 ÷ 9 = 50.'),
+                    L('Another way, multiplication: 9 × 5 = 45, so 9 × 50 = 450. 460 ÷ 9 is about 50.', 'Второй способ, умножение: 9 × 5 = 45, значит 9 × 50 = 450. 460 ÷ 9 - это примерно 50.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 1: count the zeros of the quotient', 'Ловушка 1: сосчитай нули в частном'), prompt: L('202 ÷ 2 and 174 ÷ 9', '202 ÷ 2 и 174 ÷ 9'), body: [
+                    L('202 is close to 200. 200 is 2 hundreds. 2 hundreds ÷ 2 = 1 hundred: 200 ÷ 2 = 100, not 10.', '202 близко к 200. 200 - это 2 сотни. 2 сотни ÷ 2 = 1 сотня: 200 ÷ 2 = 100, а не 10.'),
+                    L('174 is close to 180. 180 is 18 tens. 18 ÷ 9 = 2, so 18 tens ÷ 9 = 2 tens: 180 ÷ 9 = 20, not 90.', '174 близко к 180. 180 - это 18 десятков. 18 ÷ 9 = 2, значит 18 десятков ÷ 9 = 2 десятка: 180 ÷ 9 = 20, а не 90.'),
+                    L('Check: 9 × 20 = 180 ✓. And 9 × 90 = 810, much too big!', 'Проверка: 9 × 20 = 180 ✓. А 9 × 90 = 810, слишком много!'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 2: count who shares', 'Ловушка 2: сосчитай, кто делит'), prompt: L('$62 for Kate, Wendy and Tia; 165 miles in 4 days', '$62 на Кейт, Венди и Тиа; 165 миль за 4 дня'), body: [
+                    L('Kate, Wendy, Tia: point and count, 1, 2, 3. Three presents, so divide by 3, not by 2.', 'Кейт, Венди, Тиа: покажи пальцем и сосчитай, 1, 2, 3. Три подарка, значит дели на 3, а не на 2.'),
+                    L('62 is close to 60, and 6 ÷ 3 = 2. 60 ÷ 3 = 20: about $20 for each present.', '62 близко к 60, а 6 ÷ 3 = 2. 60 ÷ 3 = 20: примерно $20 на каждый подарок.'),
+                    L('Deon: 310 − 145 = 165 miles left, and 4 days are left. 165 is close to 160. 160 ÷ 4 = 40 miles a day, not 80.', 'Деон: 310 − 145 = 165 миль осталось, и осталось 4 дня. 165 близко к 160. 160 ÷ 4 = 40 миль в день, а не 80.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 3: equal amounts', 'Ловушка 3: поровну'), prompt: L('$2,400 from hamburgers at $3 and hot dogs at $2, the amounts are equal', '$2 400 за гамбургеры по $3 и хот-доги по $2, выручка поровну'), body: [
+                    L('"Equal amounts" means half the money from each: $2,400 ÷ 2 = $1,200.', '«Поровну» значит половина денег от каждого: $2 400 ÷ 2 = $1 200.'),
+                    L('Hamburgers: $1,200 ÷ $3 = 400. Hot dogs: $1,200 ÷ $2 = 600.', 'Гамбургеры: $1 200 ÷ $3 = 400. Хот-доги: $1 200 ÷ $2 = 600.'),
+                    L('Check: 400 × 3 + 600 × 2 = 2,400 ✓. Not 800 and 1,200: those use all the money twice.', 'Проверка: 400 × 3 + 600 × 2 = 2 400 ✓. Не 800 и 1 200: так все деньги считаются два раза.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 4: select ALL', 'Ловушка 4: выбери ВСЕ'), prompt: L('Which are equal to 30: 180 ÷ 6, 1,800 ÷ 3, 210 ÷ 7, 120 ÷ 4, 240 ÷ 4?', 'Какие равны 30: 180 ÷ 6, 1 800 ÷ 3, 210 ÷ 7, 120 ÷ 4, 240 ÷ 4?'), body: [
+                    L('180 ÷ 6 = 30 ✓, 1,800 ÷ 3 = 600 ✗, 210 ÷ 7 = 30 ✓, 120 ÷ 4 = 30 ✓, 240 ÷ 4 = 60 ✗.', '180 ÷ 6 = 30 ✓, 1 800 ÷ 3 = 600 ✗, 210 ÷ 7 = 30 ✓, 120 ÷ 4 = 30 ✓, 240 ÷ 4 = 60 ✗.'),
+                    L('Three are right. Check every line to the end: two found does not mean done.', 'Верных три. Проверь каждую строчку до конца: нашла два - ещё не всё.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 5: enough bags?', 'Ловушка 5: хватит ли пакетов?'), prompt: L('187 ears of corn, bags of 6, 35 bags', '187 початков, пакеты по 6, 35 пакетов'), body: [
+                    L('Bags NEEDED: 187 is close to 180, and 180 ÷ 6 = 30.', 'Пакетов НУЖНО: 187 близко к 180, а 180 ÷ 6 = 30.'),
+                    L('Bags she HAS: 35. 35 is more than 30, so yes, enough!', 'Пакетов ЕСТЬ: 35. 35 больше 30, значит да, хватит!'),
+                    L('Check: 35 × 6 = 210 ears fit, and 210 is more than 187 ✓', 'Проверка: в 35 пакетов влезет 35 × 6 = 210 початков, а 210 больше 187 ✓'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 6: why is 2,000 a wrong quotient of 1,000 ÷ 5?', 'Ловушка 6: почему 2 000 - неверное частное для 1 000 ÷ 5?'), prompt: L('Multiply back', 'Умножь обратно'), body: [
+                    L('If it were right, 2,000 × 5 would make 1,000. But 2,000 × 5 = 10,000.', 'Если бы это было верно, 2 000 × 5 дало бы 1 000. Но 2 000 × 5 = 10 000.'),
+                    L('The real one: 10 hundreds ÷ 5 = 2 hundreds, 1,000 ÷ 5 = 200. Dividing makes it smaller!', 'Правильно: 10 сотен ÷ 5 = 2 сотни, 1 000 ÷ 5 = 200. Деление делает число меньше!'),
+                ] },
+                { kind: 'warn', title: T.warn, body: [
+                    L('Do every problem on the page. 554 ÷ 7: 560 ÷ 7 = 80. 92 ÷ 3: 90 ÷ 3 = 30. A blank box is always wrong.', 'Решай каждое задание на странице. 554 ÷ 7: 560 ÷ 7 = 80. 92 ÷ 3: 90 ÷ 3 = 30. Пустая клетка - всегда ошибка.'),
+                    L('Two steps in a story? Subtract first (what is left), then divide.', 'В задаче два шага? Сначала вычти (сколько осталось), потом дели.'),
+                ] },
+                { kind: 'trick', title: T.trick, body: [
+                    L('Hide, fact, back, check: hide the zeros, the basic fact, the zeros back, multiply to check.', 'Спрячь, таблица, верни, проверь: спрячь нули, табличный пример, верни нули, проверь умножением.'),
+                ] },
+            ],
+        };
+    },
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
     ...strategyBuilders,
     ...wordBuilders,
@@ -891,6 +960,7 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
     ...topic4ArrBuilders,
     ...topic4AreaBuilders,
     ...topic4PPBuilders,
+    ...topic5Builders,
     ...factsBuilders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
@@ -1284,6 +1354,7 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'mult-2x2': ['mult-area', 'mult-partial'],
     'dist-2x2': ['mult-2x2', 'mult-dist'],
     'pp-2x2': ['dist-2x2', 'mult-partial'],
+    'div-mental': ['div-facts', 'mult-tens'],
     'mult-facts': [],
 };
 
