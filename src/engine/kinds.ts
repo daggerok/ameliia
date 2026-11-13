@@ -5,6 +5,7 @@ import { KINDS_FACTS } from './facts';
 import { KINDS_4_5 } from './topic4area';
 import { KINDS_4_4 } from './topic4arr';
 import { KINDS_4_6 } from './topic4pp';
+import { KINDS_5 } from './topic5';
 import { KINDS_4_3 } from './topic4est';
 
 // Every kind of task a skill can ask (the `kind` of `kindOf` in game.ts), with a short name for the Progress screen,
@@ -116,6 +117,19 @@ const NAMES: Partial<Record<SkillId, Record<string, L10n>>> = {
         missing: L('Which set has the missing partial product and the product', 'В каком наборе пропущенное частичное произведение и итог'),
         factor: L('Select all equations where 15 is the missing factor', 'Отметь все равенства, где пропущенный множитель 15'),
     },
+    'div-mental': {
+        pattern: L('Basic fact and place value: 25 ÷ 5, 250 ÷ 5, 2,500 ÷ 5', 'Табличный пример и разряды: 25 ÷ 5, 250 ÷ 5, 2 500 ÷ 5'),
+        tens: L('Divide mentally: 4,200 ÷ 7', 'Раздели в уме: 4 200 ÷ 7'),
+        graph: L('Barry\'s best sellers: sales ÷ price', 'Книги Барри: выручка ÷ цена'),
+        wrong: L('A wrong quotient: why 1,000 ÷ 5 = 2,000 is incorrect, which one is NOT correct', 'Неверное частное: почему 1 000 ÷ 5 = 2 000 неверно, какое равенство НЕВЕРНОЕ'),
+        split: L('Equal amounts: hamburgers at $3 and hot dogs at $2', 'Поровну: гамбургеры по $3 и хот-доги по $2'),
+        select: L('Select all the expressions equal to 30', 'Отметь все выражения, равные 30'),
+        estimate: L('Estimate a quotient with compatible numbers: 174 ÷ 9', 'Прикинь частное удобными числами: 174 ÷ 9'),
+        story: L('Franny\'s to-do list: about how many each', 'Список дел Фрэнни: примерно сколько на каждого'),
+        twostep: L('Subtract first, then estimate: Deon\'s bike, Wayne\'s marbles', 'Сначала вычти, потом прикинь: велосипед Деона, шарики Уэйна'),
+        enough: L('Tessa\'s corn: enough bags?', 'Кукуруза Тессы: хватит ли пакетов?'),
+        bar: L('The vet\'s animals: a bar diagram of the total', 'Животные у ветеринара: схема из полосок'),
+    },
     'mult-facts': {
         fact: L('Multiplication facts 0 × 0 to 9 × 9 from memory', 'Таблица умножения от 0 × 0 до 9 × 9 по памяти'),
         ten: L('× 10, × 100, × 1,000: just write the zeros', '× 10, × 100, × 1 000: просто припиши нули'),
@@ -141,4 +155,5 @@ export const LESSON_4_3_KINDS: readonly string[] = KINDS_4_3;
 export const LESSON_4_4_KINDS: readonly string[] = KINDS_4_4;
 export const LESSON_4_5_KINDS: readonly string[] = KINDS_4_5;
 export const LESSON_4_6_KINDS: readonly string[] = KINDS_4_6;
+export const LESSON_5_KINDS: readonly string[] = KINDS_5;
 export const MEMORY_KINDS: readonly string[] = KINDS_FACTS;

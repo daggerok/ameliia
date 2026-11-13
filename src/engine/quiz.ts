@@ -68,6 +68,8 @@ const concepts: Partial<Record<SkillId, (rng: Rng) => Problem[]>> = {
     // why simpler, the mistakes and the missing set: the choice tasks of Lesson 4-6
     'pp-2x2': rng => [makeProblem('pp-2x2', rng, pick(rng, ['reason', 'mistakes', 'missing']))],
     'dist-2x2': rng => [makeProblem('dist-2x2', rng, pick(rng, ['enough', 'ferry']))],
+    // the wrong quotient and enough bags: the choice tasks of Lessons 5-1 and 5-2
+    'div-mental': rng => [makeProblem('div-mental', rng, pick(rng, ['wrong', 'enough']))],
     'mult-tens': rng => {
         const [m, d] = pick(rng, [[5, 2], [5, 4], [5, 6], [5, 8], [2, 5], [4, 5], [6, 5], [8, 5]]);
         const z = int(rng, 2, 3), b = d * 10 ** z, p = m * b;

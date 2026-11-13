@@ -15,8 +15,9 @@ const base = { skill: S, topic: 'estimation' as const };
 const MEMORY = L('🧠 Memory check, from your head: no notepad, no paper.', '🧠 Проверка памяти, из головы: без блокнота и без бумаги.');
 
 // the same fact either way round: 8 × 7 is stored as 7x8
-// facts she got wrong on paper (p. 53 of 2026-11-02: 9 × 4 as 32, 8 × 7 as 50) come more often from the start
-export const KNOWN_MISSES: Record<string, number> = { '4x9': 2, '7x8': 2 };
+// facts she got wrong on paper (p. 53 of 2026-11-02: 9 × 4 as 32, 8 × 7 as 50; p. 59 of 2026-11-12: 180 ÷ 9 as 90,
+// the fact 2 × 9) come more often from the start
+export const KNOWN_MISSES: Record<string, number> = { '4x9': 2, '7x8': 2, '2x9': 2 };
 export const factKey = (a: number, b: number) => `${Math.min(a, b)}x${Math.max(a, b)}`;
 
 // one way to get the fact back when it does not come by itself; every equation here is checked by the tests
