@@ -1568,11 +1568,11 @@ describe('Lessons 5-1 and 5-2 homework: find and estimate quotients mentally', (
         expect(hundred).toBeGreaterThan(10);
         expect(twoDigitFact).toBeGreaterThan(100);
     });
-    test('the homework of 2026-11-12: three per kind, one more for the kinds with mistakes on the sheets, two per kind on Friday', () => {
+    test('the homework of 2026-11-12: two per kind, one more for the kinds with mistakes on the sheets, two per kind on Friday', () => {
         const s = newState(), day = '2026-11-12';
         expect(activeHomework(s, day).map(h => h.id)).toEqual(['lesson-5-1-2']);
         const more = HOMEWORKS.find(h => h.id === 'lesson-5-1-2')!.more!.length;
-        expect(dailyGoal(s, day).total).toBe(3 * KINDS_5.length + more);
+        expect(dailyGoal(s, day).total).toBe(2 * KINDS_5.length + more);
         expect(dailyGoal(s, '2026-11-13').total).toBe(AGAIN * KINDS_5.length + more);
         expect(dailyGoal(s, '2026-11-14').total).toBe(DAILY_RIGHT);
         for (let i = 0; i < 50; i++) expect(nextSkill(s, makeRng(i + 1), day)).toBe('div-mental');
