@@ -1,20 +1,21 @@
 /// <reference types="bun" />
 import { describe, expect, test } from 'bun:test';
-import { type L10n, type Problem, type SkillId, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
+import { type L10n, type Problem, type SkillId, L, TOPIC_OF, makeRng, sameAnswer } from '../src/engine/core';
 import { longDivision, partialQuotients } from '../src/engine/division';
 import { roundTo } from '../src/engine/estimation';
 import { type GameState, AGAIN, ALL_SKILLS, DAILY_RIGHT, FACT_EVERY, doneToday, triedToday, nextPicks, logQuizResult, logTheoryRead, minReadSec, factDue, nextFact, HOMEWORKS, PREP_PLAN, STRATEGIES, activeHomework, addDays, addPaintStars, addTime, applyAnswer, applyQuiz, applyTest, buildTest, chooseNextPainting, currentHomework, dailyGoal, dayOf, fixRework, hintOpen, kindOf, HINT_PAUSE, HINT_PAUSE_MAX, HINT_PAUSE_MIN, logMistake, newState, normalize, nextProblem, nextSkill, prepPicks, reviewsDue, testPlan, totalTime, uncovered } from '../src/engine/game';
 import { KINDS_4_2 } from '../src/engine/topic4';
 import { KINDS_4_5 } from '../src/engine/topic4area';
-import { KNOWN_MISSES, factKey, makeFact } from '../src/engine/facts';
+import { KNOWN_MISSES, factKey, makeFact, makeTen } from '../src/engine/facts';
 import { KINDS_4_4, partials } from '../src/engine/topic4arr';
 import { KINDS_4_6, columnPartials } from '../src/engine/topic4pp';
 import { KINDS_4_3 } from '../src/engine/topic4est';
 import { KINDS_5, compatible } from '../src/engine/topic5';
+import { KINDS_5_3, compatibleBig, herRounding } from '../src/engine/topic5est';
 import { makeFreshProblem, makeProblem } from '../src/engine';
 import { HOMEWORK_MISTAKES, reworkGroups, reworkNext, reworkQueue, reworkSkill, reworkTheory } from '../src/engine/mistakes';
 import { buildQuiz } from '../src/engine/quiz';
-import { buildTheory, chainOf, readSeconds } from '../src/engine/theory';
+import { buildTheory, chainOf, readSeconds, answerReport, answerText } from '../src/engine/theory';
 import { theoryRows } from '../src/engine/progress';
 import { placeParts, standardRows } from '../src/engine/strategies';
 
@@ -153,6 +154,8 @@ const expected = (p: Problem): number | { q: number; r: number } | 'choice' => {
             if (st === 'twostep') return est(n('goal') - n('done'), n('d'));
             return est(n('n'), n('d'));
         }
+        // Lesson 5-3 has sheets and choices only: every sheet is checked in its own block
+        case 'est-quot': return 'choice';
         case 'dist-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'add' ? n('x') + n('y') : n('a') * n('b');
         case 'mult-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'sales' ? n('c1') * n('p1') + n('c2') * n('p2') : p.data.style === 'factor' ? n('p') / n('a') : n('a') * n('b');
         default: return 'choice';
@@ -733,11 +736,11 @@ describe('Lesson 4-5 homework: area models and partial products', () => {
 });
 
 describe('theory before the quiz: a reading clock and a log for Mom and Dad', () => {
-    test('the time asked before the quiz is random, never a couple of seconds, never more than 60 seconds', () => {
+    test('the time asked before the quiz is random, never a couple of seconds, never more than 40 seconds', () => {
         for (const need of [10, 60, 120, 300, 900]) for (const reads of [1, 2, 5]) {
             const all = Array.from({ length: 50 }, (_, i) => minReadSec(need, reads, i / 50));
-            for (const m of all) { expect(m).toBeGreaterThanOrEqual(reads > 1 ? 10 : 15); expect(m).toBeLessThanOrEqual(60); }
-            if (need >= 120 && need <= 200) expect(new Set(all).size).toBeGreaterThan(5);
+            for (const m of all) { expect(m).toBeGreaterThanOrEqual(reads > 1 ? 6 : 10); expect(m).toBeLessThanOrEqual(40); }
+            if (need >= 150 && need <= 300) expect(new Set(all).size).toBeGreaterThan(5);
         }
         // a page read before asks for less time than the first read
         expect(minReadSec(200, 2, 0.5)).toBeLessThan(minReadSec(200, 1, 0.5));
@@ -747,8 +750,8 @@ describe('theory before the quiz: a reading clock and a log for Mom and Dad', ()
             const th = buildTheory(skill, makeRng(5));
             const sec = readSeconds(th);
             expect(sec).toBeGreaterThan(20);
-            // the homework theories written for her are long pages, the clock is capped at 60 seconds anyway
-            expect(minReadSec(sec, 1, 0)).toBeGreaterThanOrEqual(15);
+            // the homework theories written for her are long pages, the clock is capped at 40 seconds anyway
+            expect(minReadSec(sec, 1, 0)).toBeGreaterThanOrEqual(10);
         }
         expect(readSeconds(buildTheory('dist-2x2', makeRng(1)))).toBeGreaterThan(readSeconds(buildTheory('mult-facts', makeRng(1))));
     });
@@ -1363,10 +1366,11 @@ describe('game flow', () => {
         expect(t2.filter(p => p.skill === 'div-4d').length).toBe(1);
         expect(testPlan(r, day).length).toBe(t2.length);
     });
-    test('the practice test without a day: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2, 1 of Lesson 4-3, 1 of Lesson 4-4, 1 of Lesson 4-5, 1 of Lesson 4-6, 1 of Lessons 5-1 and 5-2 and 2 different multiplication strategies', () => {
+    test('the practice test without a day: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2, 1 of Lesson 4-3, 1 of Lesson 4-4, 1 of Lesson 4-5, 1 of Lesson 4-6, 1 of Lessons 5-1 and 5-2, 1 of Lesson 5-3 and 2 different multiplication strategies', () => {
         const test1 = buildTest(newState(), makeRng(9));
-        expect(test1.length).toBe(24);
+        expect(test1.length).toBe(25);
         expect(test1.filter(p => p.skill === 'div-mental').length).toBe(1);
+        expect(test1.filter(p => p.skill === 'est-quot').length).toBe(1);
         expect(test1.filter(p => p.skill === 'mult-2x10').length).toBe(1);
         expect(test1.filter(p => p.skill === 'est-2x2').length).toBe(1);
         expect(test1.filter(p => p.skill === 'mult-2x2').length).toBe(1);
@@ -1375,7 +1379,7 @@ describe('game flow', () => {
         expect(test1.filter(p => p.topic === 'division').length).toBe(6);
         expect(test1.filter(p => p.topic === 'science').length).toBe(5);
         expect(test1.some(p => p.skill === 'sci-words')).toBe(true);
-        expect(test1.filter(p => p.topic === 'estimation').length).toBe(13);
+        expect(test1.filter(p => p.topic === 'estimation').length).toBe(14);
         expect(test1.some(p => p.skill === 'forces')).toBe(true);
         const strategies = test1.filter(p => STRATEGIES.includes(p.skill)).map(p => p.skill);
         expect(strategies.length).toBe(2);
@@ -1512,6 +1516,11 @@ describe('game flow', () => {
         expect(applyAnswer(newState(), p, true, { firstTry: true, hint: true, sec: 1 }).stars).toBe(2);
         expect(applyAnswer(newState(), p, true, { firstTry: false, hint: false, sec: 1 }).stars).toBe(1);
         expect(applyAnswer(newState(), p, false, { firstTry: true, hint: false, sec: 1 }).stars).toBe(0);
+        // a memory fact is quick and easy: one star however she answers it (owner, 2026-11-16: fewer stars from easy multiplication)
+        const f = makeFact(6, 7);
+        expect(applyAnswer(newState(), f, true, { firstTry: true, hint: false, sec: 1 }).stars).toBe(1);
+        expect(applyAnswer(newState(), makeTen(23, 100), true, { firstTry: true, hint: false, sec: 1 }).stars).toBe(1);
+        expect(applyAnswer(newState(), f, false, { firstTry: true, hint: false, sec: 1 }).stars).toBe(0);
     });
 });
 
@@ -1584,3 +1593,111 @@ describe('Lessons 5-1 and 5-2 homework: find and estimate quotients mentally', (
 const once5 = (t: Problem[]) => {
     for (const k of KINDS_5) expect(t.filter(p => p.skill === 'div-mental' && kindOf(p) === k).length).toBe(1);
 };
+
+describe('the task log explains a mistake (owner, 2026-11-16)', () => {
+    test('a sheet answer lists every box with the label of its line, and a wrong answer keeps the why line', () => {
+        const p = makeProblem('est-quot', makeRng(3), 'table');
+        if (p.answer.kind !== 'fill') throw new Error('not a sheet');
+        const report = answerReport(p);
+        for (const l of p.answer.lines) expect(report.en).toContain(`${l.label!.en}: `);
+        for (const v of p.answer.values) expect(report.en).toContain(v.toLocaleString('en-US'));
+        expect(report.ru).toContain(p.answer.lines[0].label!.ru);
+        // a plain number keeps the old one-number answer
+        expect(answerReport(makeProblem('div-2d', makeRng(1))).en).toBe(answerText(makeProblem('div-2d', makeRng(1))).en);
+        const why = L('You divided by 2 instead of 3', 'Ты разделила на 2 вместо 3');
+        const wrong = applyAnswer(newState(), p, false, { firstTry: true, hint: false, sec: 5, why }).state.history.at(-1)!;
+        expect(wrong.why).toEqual(why);
+        expect(wrong.answer).toEqual(report);
+        const right = applyAnswer(newState(), p, true, { firstTry: true, hint: false, sec: 5, why }).state.history.at(-1)!;
+        expect(right.why).toBeUndefined();
+    });
+});
+
+describe('Lesson 5-3 homework: estimate quotients for greater dividends', () => {
+    test('every sheet and choice is recomputed: patterns, compatible numbers, the bracelet table, more or less, two ways, the best estimate', () => {
+        const kinds = new Set<string>();
+        let traps = 0, compats = 0;
+        each('est-quot', p => {
+            const d = p.data as Record<string, number | number[]>, a = p.answer, style = String(p.data.style);
+            const num = (k: string) => Number(d[k]), arr = (k: string) => d[k] as number[];
+            kinds.add(style);
+            if (style === 'pattern') {
+                if (a.kind !== 'fill') throw new Error(`${p.id}: not a sheet`);
+                const f = num('d') * num('k');
+                expect(a.values).toEqual([f, f * 10, f * 100, num('k') * 100]);
+                expect(compatibleBig(num('n'), num('d')).c).toBe(f * 100);
+                expect(num('n')).toBeGreaterThanOrEqual(1000);
+            }
+            if (style === 'compat') {
+                if (a.kind !== 'fill') throw new Error(`${p.id}: not a sheet`);
+                const { c, q, unit, k } = compatibleBig(num('n'), num('d'));
+                expect(a.values).toEqual([c, q]);
+                expect(k).toBeGreaterThanOrEqual(2); expect(k).toBeLessThanOrEqual(9);
+                // one closest compatible number, the dividend itself does not divide evenly, and the estimate is a fact with zeros
+                expect(Math.abs(num('n') - c) * 2).toBeLessThan(unit);
+                expect(num('n') % num('d')).not.toBe(0);
+                expect(c % (num('d') * 10)).toBe(0);
+                compats++;
+                if (herRounding(num('n')) !== c) traps++;
+            }
+            if (style === 'table' || style === 'rush') {
+                if (a.kind !== 'fill') throw new Error(`${p.id}: not a sheet`);
+                expect(a.values).toEqual(style === 'table' ? arr('beads').map((b, i) => compatibleBig(b, arr('per')[i]).q) : arr('per').map(x => x * num('k')));
+            }
+            if (style === 'runout') {
+                if (a.kind !== 'choice') throw new Error(`${p.id}: not a choice`);
+                const ests = arr('beads').map((b, i) => compatibleBig(b, arr('per')[i]).q), exact = arr('beads').map((b, i) => Math.floor(b / arr('per')[i]));
+                expect(ests[a.correct]).toBe(Math.min(...ests));
+                expect(exact[a.correct]).toBe(Math.min(...exact));
+                expect(ests.filter(e => e === ests[a.correct]).length).toBe(1);
+            }
+            if (style === 'moreless') {
+                if (a.kind !== 'choice') throw new Error(`${p.id}: not a choice`);
+                const { c, q } = compatibleBig(num('n'), num('d'));
+                expect(a.options[a.correct].en.startsWith(`About ${q.toLocaleString('en-US')} `)).toBe(true);
+                expect(a.options[a.correct].en).toContain(num('n') > c ? 'is more' : 'is less');
+            }
+            if (style === 'twoways') {
+                if (a.kind !== 'fill') throw new Error(`${p.id}: not a sheet`);
+                const n = num('n'), dd = num('d'), h = Math.round(n / 100) * 100, t = Math.round(n / 1000) * 1000;
+                expect(a.values).toEqual([h, h / dd, t, t / dd]);
+                expect(h).not.toBe(t);
+                expect(Number.isInteger(h / dd) && Number.isInteger(t / dd)).toBe(true);
+            }
+            if (style === 'best') {
+                if (a.kind !== 'choice') throw new Error(`${p.id}: not a choice`);
+                const n = num('n'), dd = num('d'), { q } = compatibleBig(n, dd);
+                const val = (o: L10n) => Number(o.en.replace(/[^\d]/g, ''));
+                expect(val(a.options[a.correct])).toBe(q);
+                // the right option is the closest one to the exact quotient
+                for (const o of a.options) if (o !== a.options[a.correct]) expect(Math.abs(val(o) - n / dd)).toBeGreaterThan(Math.abs(q - n / dd));
+            }
+        });
+        expect(Array.from(kinds).sort()).toEqual(Array.from(KINDS_5_3).sort());
+        // her trap comes most of the time: the rounded number is not in the table of the divisor
+        expect(traps).toBeGreaterThan(compats * 0.5);
+        // the book's compatible numbers of p. 61-62
+        expect(compatibleBig(1561, 8)).toMatchObject({ c: 1600, q: 200 });
+        expect(compatibleBig(461, 9)).toMatchObject({ c: 450, q: 50 });
+        expect(compatibleBig(2356, 6)).toMatchObject({ c: 2400, q: 400 });
+        expect(compatibleBig(5352, 9)).toMatchObject({ c: 5400, q: 600 });
+        expect(compatibleBig(279, 9)).toMatchObject({ c: 270, q: 30 });
+        expect(compatibleBig(3124, 6)).toMatchObject({ c: 3000, q: 500 });
+        expect(compatibleBig(258, 6)).toMatchObject({ c: 240, q: 40 });
+        expect(compatibleBig(428, 9)).toMatchObject({ c: 450, q: 50 });
+        expect(compatibleBig(102, 3)).toMatchObject({ c: 90, q: 30 });
+        expect(compatibleBig(1440, 6)).toMatchObject({ c: 1200, q: 200 });
+        expect(compatibleBig(3705, 6)).toMatchObject({ c: 3600, q: 600 });
+    });
+    test('the homework of 2026-11-16: three per kind, one more for the compatible numbers she rounded, two per kind until Friday', () => {
+        const s = newState(), day = '2026-11-16';
+        expect(activeHomework(s, day).map(h => h.id)).toEqual(['lesson-5-3']);
+        expect(dailyGoal(s, day).total).toBe(3 * KINDS_5_3.length + 1);
+        expect(dailyGoal(s, '2026-11-20').total).toBe(AGAIN * KINDS_5_3.length + 1);
+        expect(dailyGoal(s, '2026-11-21').total).toBe(DAILY_RIGHT);
+        for (let i = 0; i < 50; i++) expect(nextSkill(s, makeRng(i + 1), day)).toBe('est-quot');
+        expect(chainOf('est-quot')).toContain('div-mental');
+        const t = buildTest(s, makeRng(9), day);
+        for (const k of KINDS_5_3) expect(t.filter(p => p.skill === 'est-quot' && kindOf(p) === k).length).toBe(1);
+    });
+});

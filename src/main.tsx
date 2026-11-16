@@ -16,11 +16,11 @@ import { type Period, type SkillRow, PERIODS, activeSkills, dayRows, itemsOf, sk
 import { kindName } from './engine/kinds';
 import { VisualView } from './ui/Boards';
 import { Guide, Lina, Pip } from './ui/Buddy';
-import { FIRST_SET, MAGIC_SET, NEW_SET, PAINTINGS, PaintingView, magicOpen, openPaintings } from './ui/Paintings';
+import { FIRST_SET, MAGIC_SET, MATH_SET, NEW_SET, PAINTINGS, PaintingView, magicOpen, openPaintings } from './ui/Paintings';
 import { Coach, type CoachStep } from './ui/Coach';
 import { Notepad, START_VIEW, type PadTour, type Stroke, type View } from './ui/Notepad';
 import { KEY as STORAGE_KEY, askPersistent, exportFile, importFile, loadDb, loadLocal, newer, save, saveNow } from './storage';
-import { type Attention, type Step, IDLE_MS, TICK_MS, attention, shuffleWith } from './engine/attention';
+import { type Attention, type Step, IDLE_MS, TICK_MS, attention, shuffleWith, boredAsk, boredBonus } from './engine/attention';
 
 // ========================================
 // UI TEXTS
@@ -48,6 +48,7 @@ const UI = {
         congrats: (name: string) => `Hooray, Ameliia! You finished «${name}»!`, chooseNext: 'Choose my next picture', whichNext: 'Which picture do you want to paint next?', paintedTimes: 'painted', nextRewards: 'Your next rewards', partIn: (n: number) => `${n} ${n === 1 ? 'star' : 'stars'} to a new color in your picture: what will it be?`, chapterIn: (n: number, ch: number) => `${n} more ${n === 1 ? 'star' : 'stars'} to open chapter ${ch} of the story`, newColor: 'Your picture got a new color! Solve more to see what comes next', surprise: 'The colors are a surprise!', newBadge: 'New', magicLocked: (done: number, all: number, more: number) => `${more} magic pictures open when you have painted all the first ${all}: ${done} of ${all} done`, storageNote: 'Your progress is saved on this device (localStorage and IndexedDB). Tip for Safari on the iPad: add the game to the Home Screen so Safari never clears it.', exportBtn: 'Save progress to a file', importBtn: 'Load progress from a file', importOk: 'Progress loaded!', importFail: 'This file does not look like Math Quest progress',
         dailyTodo: 'End of the day: take today\'s practice test', dailyTodoSub: 'Like the real test on Friday. Once every day!', dailyDone: (s: number, n: number) => `Today\'s test: ${s} of ${n}. See you tomorrow!`, dailyAgain: 'You can try it again', pickAll: 'Select all that apply', wordLabel: 'Type the missing word', attHere: 'Ameliia, are you here?', attHereSub: 'The study clock is waiting for you.', attYes: 'Yes', attNo: 'No', attDunno: 'I don\'t know',
         attBack: 'Welcome back!', attBackSub: 'The study clock stopped while you were away.', attContinue: 'Continue', attStop: 'Stop', attPaused: 'The study clock is paused',
+        attBored: 'Ameliia, are you bored?', attBoredSub: 'Honest answer, please. Sometimes a star falls out of this question!', attBoredBit: 'A little', attBoredNo: 'Not at all', attBoredFun: 'Let\'s do something fun', attBonus: '⭐ A star for the honest answer! One step closer to your picture and the story', attThanks: 'Thanks for the honest answer! Every right answer is a star: back to the task',
         byeTitle: 'Your progress is saved', byeBody: 'Everything is saved on this iPad. You can close the app now. See you soon!', byeBack: 'I am here, let\'s go on', rework: (n: number) => `Fix my mistakes: ${n} left`, reworkSub: 'Homework and app mistakes: first the right way, then a new task of the same kind', reworkRandom: 'Start: all mistakes in random order', reworkChoose: 'Or choose a topic you have just learned and fix all its mistakes at once, or open a topic and pick one mistake to fix first.', reworkTopic: (n: number) => `Fix all ${n}`, reworkTopicDone: 'All mistakes of this topic are fixed! Choose the next one.', reworkDone: 'All mistakes are fixed! Great work!', reworkRemember: 'Remember this mistake? Let\'s fix it, then we go on!', reworkKicker: (n: number) => `Fix my mistakes · ${n} left`, reworkGo: 'Solve a new task of this kind', howToPlay: 'How to play (the welcome tour)',
         tourNext: 'Next', tourBack: 'Back', tourSkip: 'Skip', tourStart: 'Let\'s start!', tourGo: 'Got it!',
         notepad: 'Notepad', notepadOpen: 'Notepad: draw and think', notepadDone: 'Done', notepadClear: 'Clear', notepadUndo: 'Undo', notepadEraser: 'Eraser', notepadMove: 'Move the page', notepadZoomIn: 'Zoom in', notepadZoomOut: 'Zoom out', notepadZoomReset: 'Back to 100%', notepadHas: 'notes',
@@ -101,6 +102,7 @@ const UI = {
         congrats: (name: string) => `Ура, Амелия! Ты закончила картину «${name}»!`, chooseNext: 'Выбрать следующую картину', whichNext: 'Какую картину будешь раскрашивать дальше?', paintedTimes: 'раскрашено', nextRewards: 'Твои следующие награды', partIn: (n: number) => `${n} ${n === 1 ? 'звезда' : 'звезды'} до нового цвета в картине: какой он будет?`, chapterIn: (n: number, ch: number) => `Ещё ${n} ${n % 10 === 1 && n % 100 !== 11 ? 'звезда' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'звезды' : 'звёзд'} до ${ch}-й главы истории`, newColor: 'В твоей картине появился новый цвет! Решай дальше, чтобы увидеть, что будет', surprise: 'Цвета - это сюрприз!', newBadge: 'Новое', magicLocked: (done: number, all: number, more: number) => `${more} волшебных картин откроются, когда раскрасишь все первые ${all}: готово ${done} из ${all}`, storageNote: 'Прогресс сохраняется на этом устройстве (localStorage и IndexedDB). Совет для Safari на iPad: добавь игру на экран «Домой», тогда Safari её не очистит.', exportBtn: 'Сохранить прогресс в файл', importBtn: 'Загрузить прогресс из файла', importOk: 'Прогресс загружен!', importFail: 'Этот файл не похож на прогресс игры',
         dailyTodo: 'В конце дня: пройди сегодняшний пробный тест', dailyTodoSub: 'Как настоящий тест в пятницу. Один раз каждый день!', dailyDone: (s: number, n: number) => `Тест сегодня: ${s} из ${n}. До завтра!`, dailyAgain: 'Можно пройти ещё раз', pickAll: 'Выбери все подходящие ответы', wordLabel: 'Впиши пропущенное слово', attHere: 'Амелия, ты здесь?', attHereSub: 'Часы учёбы ждут тебя.', attYes: 'Да', attNo: 'Нет', attDunno: 'Не знаю',
         attBack: 'С возвращением!', attBackSub: 'Пока тебя не было, часы учёбы стояли.', attContinue: 'Продолжить', attStop: 'Прекратить', attPaused: 'Часы учёбы на паузе',
+        attBored: 'Амелия, тебе скучно?', attBoredSub: 'Ответь честно. Из этого вопроса иногда выпадает звезда!', attBoredBit: 'Немножко', attBoredNo: 'Совсем нет', attBoredFun: 'Давай что-нибудь весёлое', attBonus: '⭐ Звезда за честный ответ! На шаг ближе к картине и истории', attThanks: 'Спасибо за честный ответ! Каждый верный ответ - звезда: назад к заданию',
         byeTitle: 'Прогресс сохранён', byeBody: 'Всё сохранено на этом iPad. Теперь можно закрыть приложение. До скорой встречи!', byeBack: 'Я здесь, продолжим', rework: (n: number) => `Работа над ошибками: ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkSub: 'Ошибки из домашки и из приложения: сначала как правильно, потом новое задание того же вида', reworkRandom: 'Начать: все ошибки в случайном порядке', reworkChoose: 'Или выбери тему, которую только что разобрала, и исправь все её ошибки сразу, или открой тему и выбери, какую ошибку исправить первой.', reworkTopic: (n: number) => `Исправить все ${n}`, reworkTopicDone: 'Все ошибки этой темы исправлены! Выбери следующую.', reworkDone: 'Все ошибки исправлены! Отличная работа!', reworkRemember: 'Помнишь эту ошибку? Исправим её и пойдём дальше!', reworkKicker: (n: number) => `Работа над ошибками · ${n === 1 ? 'осталась' : 'осталось'} ${n}`, reworkGo: 'Решить новое задание такого вида', howToPlay: 'Как играть (знакомство с игрой)',
         tourNext: 'Дальше', tourBack: 'Назад', tourSkip: 'Пропустить', tourStart: 'Поехали!', tourGo: 'Понятно!',
         notepad: 'Блокнот', notepadOpen: 'Блокнот: рисуй и думай', notepadDone: 'Готово', notepadClear: 'Очистить', notepadUndo: 'Отменить', notepadEraser: 'Ластик', notepadMove: 'Двигать лист', notepadZoomIn: 'Увеличить', notepadZoomOut: 'Уменьшить', notepadZoomReset: 'Вернуть 100%', notepadHas: 'записей',
@@ -149,6 +151,8 @@ const TICK_EVERY = Number(params.get('tickMs')) || TICK_MS;
 const SELFTEST = params.has('selftest');
 // the reading clock of a theory page is off in self tests, unless &readgate=1 checks the clock itself
 const READ_GATE = !SELFTEST || params.has('readgate');
+// checks only: &bored=1 makes every idle window the "are you bored?" one, with the extra star
+const FORCE_BORED = SELFTEST && params.has('bored');
 // self checks only: ?skill=mult-area makes every practice task that skill
 const FORCED_SKILL = SELFTEST && params.get('skill') && ALL_SKILLS.includes(params.get('skill') as SkillId) ? (params.get('skill') as SkillId) : undefined;
 const seed = Number(params.get('seed')) || (Date.now() % 2147483647);
@@ -226,11 +230,11 @@ const LiveTimer: React.FC<{ base: number; att: Attention; learning: boolean }> =
 // "Ameliia, are you here?" and "Welcome back": nothing else on the page can be touched while it is open,
 // the buttons come in a new random order for every window and wait half a second, so a finger already on the screen
 // does not answer by accident
-const AttentionModal: React.FC<{ kind: 'idle' | 'resume'; order: string[]; t: UIText; onAnswer: (v: string) => void }> = ({ kind, order, t, onAnswer }) => {
+const AttentionModal: React.FC<{ kind: 'idle' | 'resume' | 'bored'; order: string[]; t: UIText; onAnswer: (v: string) => void }> = ({ kind, order, t, onAnswer }) => {
     const [armed, setArmed] = useState(false);
     const box = useRef<HTMLDivElement>(null);
     useEffect(() => { box.current?.focus(); const id = setTimeout(() => setArmed(true), 500); return () => clearTimeout(id); }, []);
-    const label: Record<string, string> = { yes: t.attYes, no: t.attNo, dunno: t.attDunno, continue: t.attContinue, stop: t.attStop };
+    const label: Record<string, string> = { yes: t.attYes, no: t.attNo, dunno: t.attDunno, continue: t.attContinue, stop: t.attStop, 'bored-bit': t.attBoredBit, 'bored-no': t.attBoredNo, 'bored-fun': t.attBoredFun };
     // Tab stays inside the window
     const keys = (e: React.KeyboardEvent) => {
         if (e.key !== 'Tab') return;
@@ -243,9 +247,9 @@ const AttentionModal: React.FC<{ kind: 'idle' | 'resume'; order: string[]; t: UI
         <div className="fixed inset-0 z-[60] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4" data-testid="attention-overlay">
             <div ref={box} tabIndex={-1} onKeyDown={keys} role="dialog" aria-modal="true" aria-labelledby="attention-title" data-testid="attention-modal" data-kind={kind}
                 className={`${card} max-w-md w-full text-center space-y-4 outline-none animate-bounce-in`}>
-                <div className="flex justify-center"><Lina mood={kind === 'idle' ? 'think' : 'happy'} size={72} /></div>
-                <h2 id="attention-title" className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400">{kind === 'idle' ? t.attHere : t.attBack}</h2>
-                <p className="font-bold text-slate-600 dark:text-slate-300">{kind === 'idle' ? t.attHereSub : t.attBackSub}</p>
+                <div className="flex justify-center"><Lina mood={kind === 'resume' ? 'happy' : 'think'} size={72} /></div>
+                <h2 id="attention-title" className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400">{kind === 'idle' ? t.attHere : kind === 'bored' ? t.attBored : t.attBack}</h2>
+                <p className="font-bold text-slate-600 dark:text-slate-300">{kind === 'idle' ? t.attHereSub : kind === 'bored' ? t.attBoredSub : t.attBackSub}</p>
                 <div className={`grid gap-3 ${order.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     {order.map(v => (
                         <button key={v} data-testid="attention-btn" data-value={v} disabled={!armed} onClick={() => onAnswer(v)}
@@ -674,6 +678,9 @@ export const App: React.FC = () => {
     const [att, setAtt] = useState<Attention>(attRef.current);
     const topicRef = useRef<Topic | null>(null);
     const [attOrder, setAttOrder] = useState<string[]>([]);
+    // the idle window is "are you here?" or, now and then, "are you bored?" (at most once in 15 minutes)
+    const [attKind, setAttKind] = useState<'idle' | 'bored'>('idle');
+    const boredAt = useRef(0);
     const [goodbye, setGoodbye] = useState(false);
     const applyAtt = (r: Step | Attention, topic = topicRef.current) => {
         const s: Step = 'addSec' in r ? r : { a: r, addSec: 0 };
@@ -682,7 +689,12 @@ export const App: React.FC = () => {
         setAtt(s.a);
         if (s.addSec > 0 && topic) setG(x => addTime(x, topic, s.addSec, today()));
         // every new window gets its own random order of buttons (Q3)
-        if (s.a.state !== was && s.a.state === 'idle-check') setAttOrder(shuffleWith(['yes', 'no', 'dunno'], rng));
+        if (s.a.state !== was && s.a.state === 'idle-check') {
+            const now = Date.now(), bored = FORCE_BORED || boredAsk(rng(), boredAt.current, now);
+            if (bored) boredAt.current = now;
+            setAttKind(bored ? 'bored' : 'idle');
+            setAttOrder(shuffleWith(bored ? ['bored-bit', 'bored-no', 'bored-fun'] : ['yes', 'no', 'dunno'], rng));
+        }
         if (s.a.state !== was && s.a.state === 'resume-check') setAttOrder(shuffleWith(['continue', 'stop'], rng));
     };
     // a learning screen starts the clock, leaving it stops the clock, a topic change counts the time for the old topic first
@@ -727,6 +739,14 @@ export const App: React.FC = () => {
         const now = Date.now();
         if (v === 'continue') { applyAtt(attention.resume(attRef.current, now)); return; }
         if (v === 'stop') { applyAtt(attention.stop(attRef.current, now)); return; }
+        if (v.startsWith('bored-')) {
+            // she answered, so she is here: the clock runs on; 2-3 times of 5 the honest answer earns a star
+            applyAtt(attention.answer(attRef.current, 'yes', now));
+            const bonus = FORCE_BORED ? 1 : boredBonus(rng());
+            if (bonus) { setG(x => paint({ ...x, stars: x.stars + bonus }, bonus)); setBanner({ en: UI.en.attBonus, ru: UI.ru.attBonus }); if (g.sound) Sound.good(); }
+            else setBanner({ en: UI.en.attThanks, ru: UI.ru.attThanks });
+            return;
+        }
         applyAtt(attention.answer(attRef.current, v as 'yes' | 'no' | 'dunno', now));
         if (v === 'yes') return;
         // No / I don't know: someone else is at the iPad. Save everything now, then close the tab;
@@ -845,7 +865,8 @@ export const App: React.FC = () => {
         if (!problem) return;
         const ok = sameAnswer(problem.answer, given);
         const from: HistoryFrom = focus === 'free' ? 'play' : focus === 'prep' ? 'homework' : 'rework';
-        const { state, stars } = applyAnswer(g, problem, ok, { firstTry: !attempt.afterLearn, hint: attempt.hint, sec: (Date.now() - attempt.start) / 1000, day: today(), given: givenL10n(problem, given), from });
+        const why = ok ? undefined : safeDiagnose(problem, given) ?? undefined;
+        const { state, stars } = applyAnswer(g, problem, ok, { firstTry: !attempt.afterLearn, hint: attempt.hint, sec: (Date.now() - attempt.start) / 1000, day: today(), given: givenL10n(problem, given), from, why });
         let next = paint(state, stars);
         // every wrong answer goes to the rework list; a right answer while reworking fixes that mistake
         if (!ok && focus !== 'rework') next = logMistake(next, problem, givenText(problem, given, lang), Date.now(), given);
@@ -856,7 +877,7 @@ export const App: React.FC = () => {
         const newPart: [number, number] | undefined = ok && !g.painting.choosing && next.painting.index === g.painting.index && after > before ? [g.painting.index, after] : undefined;
         if (g.sound) ok ? Sound.good() : Sound.bad();
         if (ok) { setPop(true); setTimeout(() => setPop(false), 500); if (state.streak > 0 && state.streak % 5 === 0) celebrate(); }
-        setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), blanks: given.blanks, newPart, why: ok ? undefined : safeDiagnose(problem, given) ?? undefined, praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
+        setAttempt(a => ({ ...a, wrong: !ok, result: { ok, stars, given: givenText(problem, given, lang), blanks: given.blanks, newPart, why, praise: ok ? (state.streak % 5 === 0 ? LOVE[Math.floor(rng() * LOVE.length)] : PRAISE[Math.floor(rng() * PRAISE.length)]) : ENCOURAGE[Math.floor(rng() * ENCOURAGE.length)] } }));
     };
 
     const theoryDone = () => {
@@ -925,7 +946,7 @@ export const App: React.FC = () => {
             {!g.introSeen && screen === 'home' && <Coach key={`intro-${lang}`} testId="intro" steps={t.intro} labels={{ next: t.tourNext, back: t.tourBack, skip: t.tourSkip, start: t.tourStart }} onDone={() => setG(s => ({ ...s, introSeen: true }))}
                 extra={<button onClick={() => setLang(lang === 'en' ? 'ru' : 'en')} className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600 text-xs font-black">{lang === 'en' ? 'RU' : 'EN'}</button>} />}
             {g.introSeen && !g.playTourSeen && screen === 'play' && problem && !attempt.result && <Coach testId="playtour" steps={t.playTour} labels={{ next: t.tourNext, back: t.tourBack, skip: t.tourSkip, start: t.tourGo }} onDone={() => setG(s => ({ ...s, playTourSeen: true }))} />}
-            {!goodbye && att.state === 'idle-check' && <AttentionModal key={`idle-${attOrder.join()}`} kind="idle" order={attOrder} t={t} onAnswer={attAnswer} />}
+            {!goodbye && att.state === 'idle-check' && <AttentionModal key={`idle-${attOrder.join()}`} kind={attKind} order={attOrder} t={t} onAnswer={attAnswer} />}
             {!goodbye && att.state === 'resume-check' && <AttentionModal key={`resume-${attOrder.join()}`} kind="resume" order={attOrder} t={t} onAnswer={attAnswer} />}
             {goodbye && (
                 <div className="fixed inset-0 z-[60] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4" data-testid="goodbye">
@@ -1175,7 +1196,18 @@ const TestView: React.FC<{ run: TestRun; lang: Lang; t: UIText; onAnswer: (g: Gi
     );
 };
 
-const givenText = (p: Problem, g: Given, lang: Lang) => p.answer.kind === 'fill' ? (g.blanks ?? []).map(x => fmt(x, lang)).join(', ') : p.answer.kind === 'choice' ? (g.choice !== undefined ? tr(p.answer.options[g.choice], lang) : '-')
+// her boxes of a sheet, each with the label of its line and a mark, the right number after a wrong one
+// (owner, 2026-11-16: "hard to understand from stats page what was wrong"): Blue: 40 ✓; Silver: 60 ✗ (50)
+const fillReport = (a: FillAnswer, blanks: number[], lang: Lang) => {
+    const ok = fillMarks(a, blanks);
+    const mark = (i: number) => `${blanks[i] === undefined ? '-' : fmt(blanks[i], lang)}${ok[i] ? ' ✓' : ` ✗ (${fmt(a.values[i], lang)})`}`;
+    if (a.layout === 'lines' || a.layout === 'vertical') {
+        const rows = a.lines.flatMap(l => { const bs = l.parts.flatMap(x => (typeof x === 'object' && 'b' in x ? [x.b] : [])); return bs.length ? [`${l.label ? `${tr(l.label, lang)}: ` : ''}${bs.map(mark).join(', ')}`] : []; });
+        if (rows.length) return rows.join('; ');
+    }
+    return a.values.map((_, i) => mark(i)).join(', ');
+};
+const givenText = (p: Problem, g: Given, lang: Lang) => p.answer.kind === 'fill' ? fillReport(p.answer, g.blanks ?? [], lang) : p.answer.kind === 'choice' ? (g.choice !== undefined ? tr(p.answer.options[g.choice], lang) : '-')
     : p.answer.kind === 'word' ? (g.text || '-')
     : p.answer.kind === 'multi' ? ((g.choices ?? []).map(i => tr((p.answer as { options: L10n[] }).options[i], lang)).join('; ') || '-')
     : p.answer.kind === 'remainder' ? `${g.q ?? '-'} R ${g.r ?? '-'}` : fmt(g.value ?? 0, lang);
@@ -1360,6 +1392,7 @@ const StatsView: React.FC<{ g: GameState; t: UIText; lang: Lang }> = ({ g, t, la
                                 </div>
                                 {h.prompt ? <div className="whitespace-pre-line text-sm md:text-base font-medium leading-snug mt-1">{tr(h.prompt, lang)}</div> : <div className="text-xs font-bold text-slate-400 mt-1">{t.repOld}</div>}
                                 {!h.ok && h.given && <div className="text-sm font-black text-rose-600 dark:text-rose-400 mt-1">{t.yourAnswer}: {tr(h.given, lang)}</div>}
+                                {!h.ok && h.why && <div className="text-sm font-bold text-amber-800 dark:text-amber-200 mt-0.5" data-testid="log-why">🔎 {tr(h.why, lang)}</div>}
                                 {h.answer && <div className={`text-sm font-black mt-0.5 ${h.ok ? 'text-slate-500 dark:text-slate-400' : 'text-emerald-700 dark:text-emerald-300'}`}>{t.rightAnswer}: {tr(h.answer, lang)}</div>}
                             </div>
                         </React.Fragment>
@@ -1473,7 +1506,7 @@ const PaintingChoice: React.FC<{ g: GameState; t: UIText; lang: Lang; justDone: 
                             return (
                                 <button key={i} data-testid={`paint-choose-${i}`} onClick={() => onChoose(i)} className="text-left rounded-2xl border-2 border-slate-200 dark:border-slate-600 hover:border-indigo-500 p-2 active:scale-[0.98] transition-all bg-white dark:bg-slate-800">
                                     <PaintingView painting={p} filled={0} />
-                                    <div className="text-xs font-black mt-1">{NEW_SET.includes(i) && <span data-testid={`paint-new-${i}`} className="inline-block mr-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] uppercase">{t.newBadge}</span>}{MAGIC_SET.includes(i) ? '✨ ' : ''}{tr(p.name, lang)}</div>
+                                    <div className="text-xs font-black mt-1">{NEW_SET.includes(i) && <span data-testid={`paint-new-${i}`} className="inline-block mr-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] uppercase">{t.newBadge}</span>}{MAGIC_SET.includes(i) ? '✨ ' : MATH_SET.includes(i) ? '🧮 ' : ''}{tr(p.name, lang)}</div>
                                     {times > 0 && <div className="text-[10px] font-bold text-emerald-600">✓ {t.paintedTimes} {times}×</div>}
                                 </button>
                             );

@@ -34,7 +34,8 @@ export const theoryRows = (state: GameState, day: string, period: Period): Theor
     }).sort((a, b) => b.last - a.last || b.readsAll - a.readsAll);
 };
 
-export const starsOf = (h: HistoryItem) => (h.ok ? (h.from === 'test' ? 1 : starsFor(h.firstTry, h.hint)) : 0);
+// a memory fact earns one star however it is answered (owner, 2026-11-16: fewer stars from the easy multiplication facts)
+export const starsOf = (h: HistoryItem) => (h.ok ? (h.from === 'test' || h.skill === 'mult-facts' ? 1 : starsFor(h.firstTry, h.hint)) : 0);
 
 export type Summary = { minutes: number; asked: number; right: number; wrong: number; hints: number; stars: number; days: number };
 export const summarize = (state: GameState, day: string, period: Period): Summary => {

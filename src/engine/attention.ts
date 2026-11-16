@@ -80,6 +80,15 @@ export const attention = {
     liveSec: (a: Attention, now: number): number => (a.state === 'running' ? Math.max(0, Math.floor((now - a.from) / 1000)) : 0),
 };
 
+// "Ameliia, are you bored?" (owner, 2026-11-16): now and then, not often, the idle window asks whether she is bored
+// instead of "are you here?", and 2-3 times of 5 the honest answer earns an extra star, so the picture and the story
+// come faster. The draws come in as r (0 to 1), so the rules are tested with fixed numbers
+export const BORED_EVERY_MS = 15 * 60_000;
+export const BORED_CHANCE = 1 / 3;
+export const BONUS_CHANCE = 0.5;
+export const boredAsk = (r: number, lastAt: number, now: number) => now - lastAt >= BORED_EVERY_MS && r < BORED_CHANCE;
+export const boredBonus = (r: number) => (r < BONUS_CHANCE ? 1 : 0);
+
 // a new random order of the answer buttons for every new window
 export const shuffleWith = <T>(xs: readonly T[], rng: () => number): T[] => {
     const out = [...xs];

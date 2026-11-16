@@ -14,6 +14,7 @@ import { makeTopic4Arr } from './topic4arr';
 import { makeTopic4PP } from './topic4pp';
 import { makeTopic4Est } from './topic4est';
 import { makeTopic5 } from './topic5';
+import { makeTopic5Est } from './topic5est';
 import { makeWordProblem } from './wordproblems';
 
 // kind: a kind of task inside the skill (a style like "partials" or "map"); skills with one kind ignore it
@@ -30,6 +31,7 @@ export const makeProblem = (skill: SkillId, rng: Rng, kind?: string): Problem =>
     if (skill === 'dist-2x2') return makeTopic4Area(rng, kind);
     if (skill === 'pp-2x2') return makeTopic4PP(rng, kind);
     if (skill === 'div-mental') return makeTopic5(rng, kind);
+    if (skill === 'est-quot') return makeTopic5Est(rng, kind);
     if (skill === 'mult-facts') return makeFacts(rng, kind);
     if (skill.startsWith('mult-')) return makeStrategy(rng, skill);
     if (skill === 'compare' || skill === 'word-steps') return makeWordProblem(rng, skill);

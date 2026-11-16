@@ -6,6 +6,7 @@ import { KINDS_4_5 } from './topic4area';
 import { KINDS_4_4 } from './topic4arr';
 import { KINDS_4_6 } from './topic4pp';
 import { KINDS_5 } from './topic5';
+import { KINDS_5_3 } from './topic5est';
 import { KINDS_4_3 } from './topic4est';
 
 // Every kind of task a skill can ask (the `kind` of `kindOf` in game.ts), with a short name for the Progress screen,
@@ -130,6 +131,16 @@ const NAMES: Partial<Record<SkillId, Record<string, L10n>>> = {
         enough: L('Tessa\'s corn: enough bags?', 'Кукуруза Тессы: хватит ли пакетов?'),
         bar: L('The vet\'s animals: a bar diagram of the total', 'Животные у ветеринара: схема из полосок'),
     },
+    'est-quot': {
+        pattern: L('A pattern of basic facts: 8 × 2, 8 × 20, 8 × 200, so 1,561 ÷ 8 is about 200', 'Закономерность: 8 × 2, 8 × 20, 8 × 200, значит 1 561 ÷ 8 - это примерно 200'),
+        compat: L('Estimate with the closest compatible number: 2,356 ÷ 6 is about 2,400 ÷ 6', 'Прикидка ближайшим удобным числом: 2 356 ÷ 6 - это примерно 2 400 ÷ 6'),
+        table: L('Bob and Kate\'s bracelets: about how many with each color', 'Браслеты Боба и Кейт: примерно сколько из каждого цвета'),
+        runout: L('Which color of bead runs out first', 'Какой цвет бусин закончится первым'),
+        rush: L('A rush order: beads for 7 bracelets of each color', 'Срочный заказ: бусины на 7 браслетов каждого цвета'),
+        moreless: L('Pencils in packages: is the exact answer more or less than the estimate', 'Карандаши в упаковках: точный ответ больше или меньше прикидки'),
+        twoways: L('Two estimates of 4,396 ÷ 4: the nearest hundred and the nearest thousand', 'Две прикидки 4 396 ÷ 4: до сотни и до тысячи'),
+        best: L('The best estimate: $3,705 in 6 months, 1,795 students in 5 schools', 'Лучшая прикидка: $3 705 за 6 месяцев, 1 795 учеников в 5 школах'),
+    },
     'mult-facts': {
         fact: L('Multiplication facts 0 × 0 to 9 × 9 from memory', 'Таблица умножения от 0 × 0 до 9 × 9 по памяти'),
         ten: L('× 10, × 100, × 1,000: just write the zeros', '× 10, × 100, × 1 000: просто припиши нули'),
@@ -156,4 +167,5 @@ export const LESSON_4_4_KINDS: readonly string[] = KINDS_4_4;
 export const LESSON_4_5_KINDS: readonly string[] = KINDS_4_5;
 export const LESSON_4_6_KINDS: readonly string[] = KINDS_4_6;
 export const LESSON_5_KINDS: readonly string[] = KINDS_5;
+export const LESSON_5_3_KINDS: readonly string[] = KINDS_5_3;
 export const MEMORY_KINDS: readonly string[] = KINDS_FACTS;

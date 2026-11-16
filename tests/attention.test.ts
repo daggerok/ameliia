@@ -1,7 +1,7 @@
 /// <reference types="bun" />
 import { describe, expect, test } from 'bun:test';
 import { makeRng } from '../src/engine/core';
-import { type Attention, IDLE_MS, TICK_MS, attention as A, shuffleWith } from '../src/engine/attention';
+import { type Attention, BORED_EVERY_MS, IDLE_MS, TICK_MS, attention as A, boredAsk, boredBonus, shuffleWith } from '../src/engine/attention';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -150,5 +150,23 @@ describe('study time: the state machine', () => {
     });
     test('no clock inside the logic', () => {
         expect(readFileSync(join(__dirname, '../src/engine/attention.ts'), 'utf8')).not.toMatch(/Date\.now|performance\.now|new Date/);
+    });
+});
+
+describe('"are you bored?": now and then instead of "are you here?", with a star 2-3 times of 5', () => {
+    test('not often: one idle window in three at most, and never twice in 15 minutes', () => {
+        const now = 100 * 60_000;
+        expect(boredAsk(0.1, 0, now)).toBe(true);
+        expect(boredAsk(0.5, 0, now)).toBe(false);
+        expect(boredAsk(0.1, now - BORED_EVERY_MS + 1, now)).toBe(false);
+        expect(boredAsk(0.1, now - BORED_EVERY_MS, now)).toBe(true);
+        const rng = makeRng(4), asks = Array.from({ length: 3000 }, () => boredAsk(rng(), 0, now)).filter(Boolean).length;
+        expect(asks).toBeGreaterThan(800); expect(asks).toBeLessThan(1200);
+    });
+    test('the honest answer earns one star about half of the time, never more than one', () => {
+        const rng = makeRng(5), stars = Array.from({ length: 3000 }, () => boredBonus(rng()));
+        for (const s of stars) expect([0, 1]).toContain(s);
+        const sum = stars.reduce((a, b) => a + b, 0);
+        expect(sum).toBeGreaterThan(1200); expect(sum).toBeLessThan(1800);
     });
 });
