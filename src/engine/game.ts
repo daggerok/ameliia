@@ -4,13 +4,14 @@ import { forceKind } from './forces';
 import { makeFreshProblem } from '.';
 import { type LoggedMistake, type ReworkItem, reworkId } from './mistakes';
 import { IDEA_KIND } from './science';
-import { answerText } from './theory';
+import { answerReport } from './theory';
 import { KINDS_4_2 } from './topic4';
 import { KNOWN_MISSES, factKey, factWeight, makeFact, makeFacts, pickFact } from './facts';
 import { KINDS_4_5 } from './topic4area';
 import { KINDS_4_4 } from './topic4arr';
 import { KINDS_4_6 } from './topic4pp';
 import { KINDS_5 } from './topic5';
+import { KINDS_5_3 } from './topic5est';
 import { KINDS_4_3 } from './topic4est';
 
 export type SkillStat = {
@@ -32,6 +33,8 @@ export type HistoryItem = {
     t: number; skill: SkillId; ok: boolean; firstTry: boolean; hint: boolean; sec: number;
     // since 2026-10-26 the task itself, so Progress shows what was asked, what she wrote and the right answer (older items carry none)
     id?: string; kind?: string; from?: HistoryFrom; prompt?: L10n; given?: L10n; answer?: L10n;
+    // since 2026-11-16 what went wrong, in words (the same line she saw under a wrong answer), so Progress explains the mistake
+    why?: L10n;
 };
 // the log keeps this many tasks (about three weeks of practice)
 export const HISTORY_MAX = 1000;
@@ -165,7 +168,7 @@ export const kindOf = (p: Problem): string => {
     if (p.skill === 'speed-trip') return p.id.split(':')[1];
     if (p.skill === 'sci-words') return String(p.data.style);
     if (p.skill === 'est-product') return ({ t: 'tens', b: 'big', r: 'reasonable' } as Record<string, string>)[p.id.split(':')[1]] ?? 'all';
-    if (['mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'pp-2x2', 'div-mental', 'mult-facts'].includes(p.skill)) return String(p.data.style);
+    if (['mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'pp-2x2', 'div-mental', 'est-quot', 'mult-facts'].includes(p.skill)) return String(p.data.style);
     return 'all';
 };
 
@@ -199,6 +202,8 @@ export const LESSON_4_5_PLAN: [SkillId, string[]][] = [['dist-2x2', Array.from(K
 export const LESSON_4_6_PLAN: [SkillId, string[]][] = [['pp-2x2', Array.from(KINDS_4_6)]];
 // Topic 5, Lessons 5-1 and 5-2 as one homework (Additional Practice 5-1 and 5-2, p. 57-60, sheets of 2026-11-11 and 2026-11-12)
 export const LESSON_5_PLAN: [SkillId, string[]][] = [['div-mental', Array.from(KINDS_5)]];
+// Topic 5, Lesson 5-3 (Additional Practice 5-3, p. 61-62, homework of 2026-11-16): every kind of task on the two pages
+export const LESSON_5_3_PLAN: [SkillId, string[]][] = [['est-quot', Array.from(KINDS_5_3)]];
 
 // right answers per kind on each repeat day of a homework (owner, 2026-10-29: "daily goals include two right tasks done";
 // the first day stays 3 per kind, the owner's choice of 2026-10-26)
@@ -246,6 +251,11 @@ export const HOMEWORKS: Homework[] = [
         more: ['wrong', 'split', 'select', 'estimate', 'story', 'twostep', 'enough'],
         title: L('Homework: Lessons 5-1 and 5-2, find and estimate quotients mentally', 'Домашка: уроки 5-1 и 5-2, найди и прикинь частное в уме'),
         sub: L('4,200 ÷ 7 with a basic fact, 174 ÷ 9 is about 180 ÷ 9, Barry\'s best sellers, why 1,000 ÷ 5 = 2,000 is wrong, hamburgers and hot dogs, Franny\'s to-do list, Deon\'s bike, Tessa\'s corn bags, select all. Theory first, then tasks', '4 200 ÷ 7 через табличный пример, 174 ÷ 9 - это примерно 180 ÷ 9, книги Барри, почему 1 000 ÷ 5 = 2 000 неверно, гамбургеры и хот-доги, список дел Фрэнни, велосипед Деона, пакеты Тессы, выбери все. Сначала теория, потом задания'),
+    },
+    {
+        id: 'lesson-5-3', given: '2026-11-16', until: '2026-11-20', first: 3, again: AGAIN, plan: LESSON_5_3_PLAN, more: ['compat'],
+        title: L('Homework: Lesson 5-3, estimate quotients for greater dividends', 'Домашка: урок 5-3, прикидка частного для больших чисел'),
+        sub: L('2,356 ÷ 6 is about 2,400 ÷ 6, patterns of basic facts, Bob and Kate\'s bracelets, pencils in packages, two estimates of 4,396 ÷ 4, the best estimate. Theory first, then tasks', '2 356 ÷ 6 - это примерно 2 400 ÷ 6, закономерности табличных примеров, браслеты Боба и Кейт, карандаши в упаковках, две прикидки 4 396 ÷ 4, лучшая прикидка. Сначала теория, потом задания'),
     },
 ];
 const lastDay = (h: Homework, state: GameState) => h.until ?? state.testDate;
@@ -338,7 +348,7 @@ export const LADDER: Record<Topic, SkillId[]> = {
     // Topic 3 test (2026-10-23): multiplying by multiples of 10, estimating products, the four strategies, mental math,
     // matching expressions and word problems; comparison and extra information (Lesson 3-8) stay early too
     estimation: ['round', 'mult-tens', 'est-product', 'compare', 'word-steps', 'mult-area', 'mult-partial', 'mult-dist', 'mult-standard',
-        'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'pp-2x2', 'div-mental', 'est-sum', 'multiply'],
+        'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'pp-2x2', 'div-mental', 'est-quot', 'est-sum', 'multiply'],
 };
 
 export const unlocked = (state: GameState, topic: Topic): SkillId[] => {
@@ -476,7 +486,7 @@ export const missedRework = (prev: GameState, item: ReworkItem): GameState => it
 export const starsFor = (firstTry: boolean, hint: boolean) => (firstTry ? (hint ? 2 : 3) : 1);
 
 // Pure update after an answer; returns how many stars were earned
-export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { firstTry: boolean; hint: boolean; sec: number; day?: string; given?: L10n; from?: HistoryFrom }): { state: GameState; stars: number } => {
+export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { firstTry: boolean; hint: boolean; sec: number; day?: string; given?: L10n; from?: HistoryFrom; why?: L10n }): { state: GameState; stars: number } => {
     const state: GameState = structuredClone(prev);
     const st = state.skills[p.skill];
     if (st.reviewPending && st.reviewIn === 0) st.reviewPending = false;
@@ -499,7 +509,8 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
         state.correct++;
         state.streak++;
         state.bestStreak = Math.max(state.bestStreak, state.streak);
-        stars = starsFor(opts.firstTry, opts.hint);
+        // a memory fact is quick and easy: one star, so the stars come from real tasks (owner, 2026-11-16)
+        stars = p.skill === 'mult-facts' ? 1 : starsFor(opts.firstTry, opts.hint);
         state.stars += stars;
         if (opts.day) { countRight(state, opts.day, p.skill, 1, kindOf(p)); reviewRight(st, opts.day); }
     } else {
@@ -509,17 +520,18 @@ export const applyAnswer = (prev: GameState, p: Problem, ok: boolean, opts: { fi
         state.streak = 0;
         if (opts.day) reviewWrong(st, opts.day);
     }
-    state.history = [...state.history, { t: Date.now(), skill: p.skill, ok, firstTry: opts.firstTry, hint: opts.hint, sec: Math.round(opts.sec), id: p.id, kind: kindOf(p), from: opts.from ?? 'play', prompt: p.prompt, given: opts.given, answer: answerText(p) }].slice(-HISTORY_MAX);
+    state.history = [...state.history, { t: Date.now(), skill: p.skill, ok, firstTry: opts.firstTry, hint: opts.hint, sec: Math.round(opts.sec), id: p.id, kind: kindOf(p), from: opts.from ?? 'play', prompt: p.prompt, given: opts.given, answer: answerReport(p), why: ok ? undefined : opts.why }].slice(-HISTORY_MAX);
     return { state, stars };
 };
 
 // The least reading time before the quiz opens: part of a full read (a theory she has read before goes faster), shifted
-// at random so she never learns the exact number, never a couple of seconds and never more than a minute
-// (owner, 2026-10-30: "reduce a little bit that minimal time", it was 20-90 s)
+// at random so she never learns the exact number, never a couple of seconds and never more than 40 seconds
+// (owner, 2026-10-30: "reduce a little bit that minimal time", it was 20-90 s; 2026-11-16: "reduce requirements for time
+// of reading theory", it was 15-60 s at 22% of a full read)
 export const THEORY_LOG_MAX = 300;
 export const minReadSec = (needSec: number, reads: number, r: number): number => {
     const again = reads > 1;
-    return Math.round(Math.min(60, Math.max(again ? 10 : 15, needSec * (again ? 0.15 : 0.22) * (0.8 + 0.5 * r))));
+    return Math.round(Math.min(40, Math.max(again ? 6 : 10, needSec * (again ? 0.08 : 0.12) * (0.8 + 0.5 * r))));
 };
 export const logTheoryRead = (prev: GameState, read: TheoryRead): GameState => ({ ...prev, theoryLog: [...prev.theoryLog, read].slice(-THEORY_LOG_MAX) });
 // the quiz result goes to the last read of that skill that has none yet
@@ -558,11 +570,11 @@ export const addTime = (prev: GameState, topic: Topic, sec: number, day: string)
 
 // Practice test like the ones at school: 6 division, 5 science (Chapter 2: speed, trips, velocity, forces, words),
 // 5 of the Topic 3 assessment (multiples of 10, estimating, mental math, expressions, word problems),
-// 1 of Lesson 4-2 (2-digit numbers by multiples of 10), 1 of Lesson 4-3 (estimating products), 1 of Lesson 4-4 (partial products), 1 of Lesson 4-5 (area models), 1 of Lesson 4-6 (partial products in a column), 1 of Lessons 5-1 and 5-2 (mental division), plus 2 different multiplication strategies
+// 1 of Lesson 4-2 (2-digit numbers by multiples of 10), 1 of Lesson 4-3 (estimating products), 1 of Lesson 4-4 (partial products), 1 of Lesson 4-5 (area models), 1 of Lesson 4-6 (partial products in a column), 1 of Lessons 5-1 and 5-2 (mental division), 1 of Lesson 5-3 (estimating quotients of greater dividends), plus 2 different multiplication strategies
 export const TEST_PLAN: SkillId[] = [
     'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word',
     'speed-basic', 'speed-trip', 'motion-ideas', 'forces', 'sci-words',
-    'mult-tens', 'est-product', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'pp-2x2', 'div-mental',
+    'mult-tens', 'est-product', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'pp-2x2', 'div-mental', 'est-quot',
 ];
 
 export const STRATEGIES: SkillId[] = ['mult-area', 'mult-dist', 'mult-partial', 'mult-standard'];
@@ -610,7 +622,7 @@ export const applyTest = (prev: GameState, problems: Problem[], results: boolean
     state.tests = [...state.tests, { t: Date.now(), score, total: problems.length, sec: Math.round(sec), wrong }].slice(-50);
     // every test answer goes to the log too, with the time of the whole test shared out
     const t = Date.now(), per = Math.round(sec / Math.max(1, problems.length));
-    state.history = [...state.history, ...problems.map((p, i): HistoryItem => ({ t, skill: p.skill, ok: results[i], firstTry: true, hint: false, sec: per, id: p.id, kind: kindOf(p), from: 'test', prompt: p.prompt, given: given?.[i], answer: answerText(p) }))].slice(-HISTORY_MAX);
+    state.history = [...state.history, ...problems.map((p, i): HistoryItem => ({ t, skill: p.skill, ok: results[i], firstTry: true, hint: false, sec: per, id: p.id, kind: kindOf(p), from: 'test', prompt: p.prompt, given: given?.[i], answer: answerReport(p) }))].slice(-HISTORY_MAX);
     state.stars += score;
     // test answers count in the Correct % too
     state.answered += problems.length;

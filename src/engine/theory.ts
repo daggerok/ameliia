@@ -951,6 +951,78 @@ const topic5Builders: Record<'div-mental', (rng: Rng) => { hook: L10n[]; section
     },
 };
 
+// ---------- Topic 5, Lesson 5-3: estimate quotients for greater dividends (4.NBT.B.6, 4.OA.A.3) ----------
+// for a 9-year-old, built around her sheet of 2026-11-16: she rounded the dividend to the nearest hundred or thousand
+// (461 ÷ 9 as 500 ÷ 9, 2,356 ÷ 6 as 2,000 ÷ 6) instead of a number the divisor divides with a basic fact, and a zero slipped
+// in a pattern (7 × 30 as 2,100)
+
+const topic5EstBuilders: Record<'est-quot', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'est-quot': rng => {
+        const d = int(rng, 3, 9), k = int(rng, 2, 9), f = d * k;
+        return {
+            hook: [
+                L('Bob and Kate have 258 blue beads, 6 for each bracelet. About how many bracelets? No paper: 6 × 4 = 24, so 240 ÷ 6 = 40. About 40 bracelets!', 'У Боба и Кейт 258 синих бусин, по 6 на браслет. Примерно сколько браслетов? Без бумаги: 6 × 4 = 24, значит 240 ÷ 6 = 40. Примерно 40 браслетов!'),
+                L('The school store got 1,440 pencils, 6 in a package. About how many packages? Find a number near 1,440 that 6 divides easily, and the answer comes by itself.', 'В школьный магазин привезли 1 440 карандашей, по 6 в упаковке. Примерно сколько упаковок? Найди число рядом с 1 440, которое легко делится на 6, и ответ придёт сам.'),
+            ],
+            sections: [
+                { kind: 'idea', title: T.idea, body: [
+                    L('A big dividend? Do not round it the way you round for a product. Find a number close by that your DIVISOR divides with a basic fact: that is a compatible number.', 'Большое делимое? Не округляй его так, как для произведения. Найди число рядом, которое твой ДЕЛИТЕЛЬ делит по таблице: это удобное число.'),
+                    L(`${fmt(f * 100, 'en')} ÷ ${d}: ${d} × ${k} = ${f}, so ${d} × ${fmt(k * 100, 'en')} = ${fmt(f * 100, 'en')}, and ${fmt(f * 100, 'en')} ÷ ${d} = ${fmt(k * 100, 'en')}.`, `${fmt(f * 100, 'ru')} ÷ ${d}: ${d} × ${k} = ${f}, значит ${d} × ${fmt(k * 100, 'ru')} = ${fmt(f * 100, 'ru')}, и ${fmt(f * 100, 'ru')} ÷ ${d} = ${fmt(k * 100, 'ru')}.`),
+                    L('The table of the divisor is the key. The zeros only make the numbers bigger.', 'Ключ - таблица на делитель. Нули только делают числа больше.'),
+                    L('Check every estimate by multiplying back: estimate × divisor = the compatible number.', 'Проверяй каждую прикидку обратным умножением: прикидка × делитель = удобное число.'),
+                ] },
+                { kind: 'steps', title: T.how, body: [
+                    L('1. Look at the divisor. Say its table: for 9 it is 9, 18, 27, 36, 45, 54, 63, 72, 81.', '1. Посмотри на делитель. Скажи его таблицу: для 9 это 9, 18, 27, 36, 45, 54, 63, 72, 81.'),
+                    L('2. Add zeros until the numbers are as big as the dividend: 450, 540 ... or 4,500, 5,400.', '2. Приписывай нули, пока числа не станут такими же большими, как делимое: 450, 540 ... или 4 500, 5 400.'),
+                    L('3. Pick the one closest to the dividend. That is your compatible number.', '3. Выбери то, что ближе всего к делимому. Это твоё удобное число.'),
+                    L('4. Divide it: hide the zeros, the basic fact, the zeros back.', '4. Раздели его: спрячь нули, табличный пример, верни нули.'),
+                    L('5. Check: estimate × divisor. Is the dividend bigger or smaller than your compatible number? Then the exact answer is bigger or smaller than the estimate.', '5. Проверь: прикидка × делитель. Делимое больше или меньше удобного числа? Значит и точный ответ больше или меньше прикидки.'),
+                ] },
+                { kind: 'example', title: L('Another Look: estimate 2,946 ÷ 5', 'Ещё раз: прикинь 2 946 ÷ 5'), prompt: L('Two ways', 'Два способа'), body: [
+                    L('Use rounding: 2,946 rounds to 3,000, and 5 divides 3,000: 3,000 ÷ 5 = 600.', 'Округлением: 2 946 округляется до 3 000, а 5 делит 3 000: 3 000 ÷ 5 = 600.'),
+                    L('Use patterns: 5 × 6 = 30, 5 × 600 = 3,000. So 2,946 ÷ 5 is about 600.', 'Закономерностью: 5 × 6 = 30, 5 × 600 = 3 000. Значит 2 946 ÷ 5 - это примерно 600.'),
+                    L('Rounding worked here only because 3,000 is in the table of 5. Watch the next one.', 'Округление здесь сработало только потому, что 3 000 есть в таблице на 5. Смотри следующий пример.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 1: the rounded number is not in the table', 'Ловушка 1: округлённого числа нет в таблице'), prompt: L('461 ÷ 9, 2,356 ÷ 6, 5,352 ÷ 9, 279 ÷ 9', '461 ÷ 9, 2 356 ÷ 6, 5 352 ÷ 9, 279 ÷ 9'), body: [
+                    L('461 ÷ 9: 500 ÷ 9? 500 is not in the table of 9. The table: 9 × 5 = 45, 9 × 6 = 54, so 450 or 540. 461 is close to 450: 450 ÷ 9 = 50.', '461 ÷ 9: 500 ÷ 9? 500 нет в таблице на 9. Таблица: 9 × 5 = 45, 9 × 6 = 54, значит 450 или 540. 461 близко к 450: 450 ÷ 9 = 50.'),
+                    L('2,356 ÷ 6: 2,000 ÷ 6? Not a basic fact. 6 × 4 = 24, so 2,400 ÷ 6 = 400.', '2 356 ÷ 6: 2 000 ÷ 6? Не табличный пример. 6 × 4 = 24, значит 2 400 ÷ 6 = 400.'),
+                    L('5,352 ÷ 9: 5,000 ÷ 9? No. 9 × 6 = 54, so 5,400 ÷ 9 = 600.', '5 352 ÷ 9: 5 000 ÷ 9? Нет. 9 × 6 = 54, значит 5 400 ÷ 9 = 600.'),
+                    L('279 ÷ 9: 300 ÷ 9? No. 9 × 3 = 27, so 270 ÷ 9 = 30.', '279 ÷ 9: 300 ÷ 9? Нет. 9 × 3 = 27, значит 270 ÷ 9 = 30.'),
+                    L('The rule: the compatible number comes from the TABLE OF THE DIVISOR, not from the nearest hundred.', 'Правило: удобное число берётся из ТАБЛИЦЫ НА ДЕЛИТЕЛЬ, а не из ближайшей сотни.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 2: one zero, one zero', 'Ловушка 2: один ноль - один ноль'), prompt: L('2,008 ÷ 7 with a pattern', '2 008 ÷ 7 закономерностью'), body: [
+                    L('7 × 3 = 21. 7 × 30 = 210: one zero in 30, one zero in the answer, not 2,100.', '7 × 3 = 21. 7 × 30 = 210: один ноль в 30 - один ноль в ответе, а не 2 100.'),
+                    L('7 × 300 = 2,100: two zeros in 300, two zeros in the answer.', '7 × 300 = 2 100: два нуля в 300 - два нуля в ответе.'),
+                    L('Backwards: 2,100 ÷ 7 = 300. So 2,008 ÷ 7 is about 300.', 'Наоборот: 2 100 ÷ 7 = 300. Значит 2 008 ÷ 7 - это примерно 300.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 3: more or less than the estimate?', 'Ловушка 3: больше или меньше прикидки?'), prompt: L('1,440 pencils in packages of 6', '1 440 карандашей в упаковках по 6'), body: [
+                    L('6 × 2 = 12, so 1,200 ÷ 6 = 200: about 200 packages.', '6 × 2 = 12, значит 1 200 ÷ 6 = 200: примерно 200 упаковок.'),
+                    L('1,440 is MORE than 1,200: more pencils make more packages. The exact answer is more than 200.', '1 440 БОЛЬШЕ, чем 1 200: больше карандашей - больше упаковок. Точный ответ больше 200.'),
+                    L('A compatible number smaller than the real one: the exact answer is bigger. A bigger one: the exact answer is smaller.', 'Удобное число меньше настоящего: точный ответ больше. Удобное число больше: точный ответ меньше.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 4: two estimates of one quotient', 'Ловушка 4: две прикидки одного частного'), prompt: L('4,396 ÷ 4, the nearest hundred and the nearest thousand', '4 396 ÷ 4, до сотни и до тысячи'), body: [
+                    L('Nearest hundred: 4,396 rounds to 4,400. 44 hundreds ÷ 4 = 11 hundreds: 4,400 ÷ 4 = 1,100.', 'До сотни: 4 396 округляется до 4 400. 44 сотни ÷ 4 = 11 сотен: 4 400 ÷ 4 = 1 100.'),
+                    L('Nearest thousand: 4,396 rounds to 4,000. 4,000 ÷ 4 = 1,000.', 'До тысячи: 4 396 округляется до 4 000. 4 000 ÷ 4 = 1 000.'),
+                    L('4,400 is closer to 4,396 than 4,000, so 1,100 is the closer estimate. The thousand is faster, the hundred is closer.', '4 400 ближе к 4 396, чем 4 000, значит 1 100 - более точная прикидка. Тысяча быстрее, сотня точнее.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 5: the bracelet table', 'Ловушка 5: таблица браслетов'), prompt: L('258 blue beads at 6 per bracelet, 102 rose beads at 3 per bracelet, a rush order of 7 of each', '258 синих бусин по 6 на браслет, 102 розовые по 3 на браслет, срочный заказ на 7 каждого'), body: [
+                    L('Blue: 258 ÷ 6. 6 × 4 = 24, so 240 ÷ 6 = 40. About 40 bracelets.', 'Синие: 258 ÷ 6. 6 × 4 = 24, значит 240 ÷ 6 = 40. Примерно 40 браслетов.'),
+                    L('Rose: 102 ÷ 3. 3 × 3 = 9, so 90 ÷ 3 = 30. About 30 bracelets: the smallest number, rose runs out first.', 'Розовые: 102 ÷ 3. 3 × 3 = 9, значит 90 ÷ 3 = 30. Примерно 30 браслетов: самое маленькое число, розовые закончатся первыми.'),
+                    L('A rush order of 7 bracelets of each color is not "about" and not division: 6 × 7 = 42 blue beads, 3 × 7 = 21 rose beads.', 'Срочный заказ на 7 браслетов каждого цвета - это не «примерно» и не деление: 6 × 7 = 42 синие бусины, 3 × 7 = 21 розовая.'),
+                ] },
+                { kind: 'warn', title: T.warn, body: [
+                    L('A rounded number helps only when your divisor divides it with a basic fact. 500 ÷ 9: no. 450 ÷ 9: yes.', 'Округлённое число помогает, только если делитель делит его по таблице. 500 ÷ 9: нет. 450 ÷ 9: да.'),
+                    L('"Best estimate" with choices: make your own estimate first, then find it. $3,705 in 6 months: 3,600 ÷ 6 = 600, about $600. 1,795 students in 5 schools: 1,500 ÷ 5 = 300, about 300.', '«Лучшая прикидка» с вариантами: сначала сделай свою прикидку, потом найди её. $3 705 за 6 месяцев: 3 600 ÷ 6 = 600, примерно $600. 1 795 учеников в 5 школах: 1 500 ÷ 5 = 300, примерно 300.'),
+                    L('Count the zeros of the answer: 600, not 60 and not 6,000.', 'Считай нули в ответе: 600, а не 60 и не 6 000.'),
+                ] },
+                { kind: 'trick', title: T.trick, body: [
+                    L('Table, zeros, closest, divide, check: the table of the divisor, add zeros, take the closest, divide, multiply back.', 'Таблица, нули, ближайшее, дели, проверь: таблица на делитель, припиши нули, возьми ближайшее, раздели, умножь обратно.'),
+                ] },
+            ],
+        };
+    },
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
     ...strategyBuilders,
     ...wordBuilders,
@@ -961,6 +1033,7 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
     ...topic4AreaBuilders,
     ...topic4PPBuilders,
     ...topic5Builders,
+    ...topic5EstBuilders,
     ...factsBuilders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
@@ -1355,6 +1428,7 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'dist-2x2': ['mult-2x2', 'mult-dist'],
     'pp-2x2': ['dist-2x2', 'mult-partial'],
     'div-mental': ['div-facts', 'mult-tens'],
+    'est-quot': ['div-mental', 'mult-tens'],
     'mult-facts': [],
 };
 
@@ -1384,6 +1458,21 @@ export const answerText = (p: Problem): L10n => {
     if (a.kind === 'word') return L(a.word, a.word);
     const o = a.options[a.correct];
     return L(o.en, o.ru);
+};
+
+// every box of a sheet with the label of its line (Blue: 40; Silver: 50), for the task log: the last box alone said
+// nothing about what was wrong (owner, 2026-11-16: "hard to understand from stats page what was wrong")
+export const answerReport = (p: Problem): L10n => {
+    const a = p.answer;
+    if (a.kind !== 'fill') return answerText(p);
+    const vals = (lang: 'en' | 'ru') => {
+        if (a.layout === 'lines' || a.layout === 'vertical') {
+            const rows = a.lines.flatMap(l => { const bs = l.parts.flatMap(x => (typeof x === 'object' && 'b' in x ? [x.b] : [])); return bs.length ? [`${l.label ? `${l.label[lang]}: ` : ''}${bs.map(i => fmt(a.values[i], lang)).join(', ')}`] : []; });
+            if (rows.length) return rows.join('; ');
+        }
+        return a.values.map(v => fmt(v, lang)).join(', ');
+    };
+    return L(vals('en'), vals('ru'));
 };
 
 export const answerLine = (p: Problem): L10n => {

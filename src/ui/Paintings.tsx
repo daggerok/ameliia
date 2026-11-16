@@ -233,13 +233,49 @@ export const PAINTINGS: Painting[] = [
     },
 ];
 
-// the first six are open from the start, and so is the wizard school set; the magic set opens once each of the first six is painted
+// Math pictures (owner, 2026-11-16): a fact family as a poster that blinks like a gif. The array shows the fact, and the
+// question mark moves: first the divisions ask and the multiplications show the answer (36 ÷ 6 = ? because 6 × 6 = 36),
+// then the other way round (6 × 6 = ? because 36 ÷ 6 = 6). Made on the fly from the facts she needs most; fewer parts
+// than a landscape, so a math picture is painted faster (math-p1 is visible in the first half of the blink, math-p2 in the second)
+const blink = (x: number, y: number, value: number, size: number, askFirst: boolean) => (f: string, s: string) => (
+    <g>
+        <text className={askFirst ? 'math-p1' : 'math-p2'} x={x} y={y} textAnchor="middle" fontSize={size} fontWeight="900" fill={f} stroke={s} strokeWidth="0.4">?</text>
+        <text className={askFirst ? 'math-p2' : 'math-p1'} x={x} y={y} textAnchor="middle" fontSize={size} fontWeight="900" fill={f} stroke={s} strokeWidth="0.4">{value}</text>
+    </g>
+);
+const star = (cx: number, cy: number, r: number) => path(Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r / 2 : r; return `${i ? 'L' : 'M'}${(cx + rr * Math.cos(a)).toFixed(1)} ${(cy + rr * Math.sin(a)).toFixed(1)}`; }).join(' ') + ' Z');
+const DOT_COLORS = ['#f472b6', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a78bfa', '#f87171', '#2dd4bf', '#c084fc'];
+export const MATH_FACTS: [number, number][] = [[6, 7], [7, 8], [4, 9], [6, 8], [6, 9], [4, 7], [3, 8], [5, 9], [6, 6], [7, 7], [8, 8], [9, 9]];
+export const mathPainting = (a: number, b: number): Painting => {
+    const rows = Math.max(a, b), cols = Math.min(a, b), p = a * b, s = 10.5;
+    const x0 = 12 + ((9 - cols) * s) / 2, y0 = 34 + ((9 - rows) * s) / 2;
+    const row = (i: number) => (f: string, st: string) => <g>{Array.from({ length: cols }, (_, j) => <circle key={j} cx={x0 + j * s} cy={y0 + i * s} r={4} fill={f} stroke={st} strokeWidth="1" />)}</g>;
+    const line = (y: number, left: string, value: number, askFirst: boolean, color: string): Region[] => [R(text(150, y, left, 11), color), R(blink(186, y, value, 12, askFirst), '#1e293b')];
+    const family = a === b
+        ? [...line(56, `${p} ÷ ${a} =`, a, true, '#1d4ed8'), ...line(90, `${a} × ${a} =`, p, false, '#be123c')]
+        : [...line(44, `${p} ÷ ${b} =`, a, true, '#1d4ed8'), ...line(68, `${a} × ${b} =`, p, false, '#be123c'), ...line(92, `${p} ÷ ${a} =`, b, true, '#1d4ed8'), ...line(116, `${b} × ${a} =`, p, false, '#be123c')];
+    return {
+        name: L(`Fact family ${a}, ${b} and ${p}`, `Семья фактов ${a}, ${b} и ${p}`),
+        regions: [
+            R(rect(0, 0, 200, 140), '#fef9c3'), R(path('M3 3 H197 V137 H3 Z M8 8 V132 H192 V8 Z'), '#fbbf24'),
+            R(star(16, 16, 7), '#f59e0b'), R(star(184, 16, 7), '#f59e0b'), R(star(16, 124, 7), '#f59e0b'), R(star(184, 124, 7), '#f59e0b'),
+            ...Array.from({ length: rows }, (_, i) => R(row(i), DOT_COLORS[i % DOT_COLORS.length])),
+            R(text(60, 24, `${rows} × ${cols}`, 10), '#475569'),
+            ...family,
+        ],
+    };
+};
+export const MATH_PAINTINGS: Painting[] = MATH_FACTS.map(([a, b]) => mathPainting(a, b));
+PAINTINGS.push(...MATH_PAINTINGS);
+
+// the first six are open from the start, and so are the wizard school set and the math pictures; the magic set opens once each of the first six is painted
 export const FIRST_SET = 6;
 export const MAGIC_SET = [6, 7, 8, 9, 10, 11];
 export const NEW_SET = [12, 13, 14, 15, 16, 17];
+export const MATH_SET = MATH_FACTS.map((_, i) => 18 + i);
 export const magicOpen = (done: number[]) => Array.from({ length: FIRST_SET }, (_, i) => i).every(i => done.includes(i));
-// the indexes she can choose from, in gallery order: the new set first (so she sees it at once), the first six, then the magic set once it is open
-export const openPaintings = (done: number[]): number[] => [...NEW_SET, ...Array.from({ length: FIRST_SET }, (_, i) => i), ...(magicOpen(done) ? MAGIC_SET : [])];
+// the indexes she can choose from, in gallery order: the new set first (so she sees it at once), the math pictures, the first six, then the magic set once it is open
+export const openPaintings = (done: number[]): number[] => [...NEW_SET, ...MATH_SET, ...Array.from({ length: FIRST_SET }, (_, i) => i), ...(magicOpen(done) ? MAGIC_SET : [])];
 
 // half: the next part already has a star and waits for one more: a pulsing dashed outline, the color stays a surprise
 export const PaintingView: React.FC<{ painting: Painting; filled: number; half?: boolean; className?: string }> = ({ painting, filled, half = false, className = '' }) => (

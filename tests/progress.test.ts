@@ -5,7 +5,7 @@ import { ALL_SKILLS, HISTORY_MAX, HOMEWORKS, PREP_PLAN, addDays, applyAnswer, ap
 import { KINDS_OF, LESSON_4_2_KINDS, kindName } from '../src/engine/kinds';
 import { makeProblem } from '../src/engine';
 import { activeSkills, dayRows, itemsOf, skillRows, summarize, testsOf } from '../src/engine/progress';
-import { answerLine, answerText } from '../src/engine/theory';
+import { answerLine, answerReport, answerText } from '../src/engine/theory';
 
 const L = (en: string, ru: string) => ({ en, ru });
 const DAY = '2026-10-27';
@@ -42,7 +42,7 @@ describe('history with the task itself', () => {
         expect(h.from).toBe('homework');
         expect(h.prompt).toEqual(p.prompt);
         expect(h.given).toEqual({ en: '7', ru: '7' });
-        expect(h.answer).toEqual(answerText(p));
+        expect(h.answer).toEqual(answerReport(p));
         expect(answerLine(p).en).toBe(`Answer: ${answerText(p).en}`);
     });
     test('without a source a task counts as play', () => {
