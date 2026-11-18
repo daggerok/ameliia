@@ -12,6 +12,7 @@ import { KINDS_4_6, columnPartials } from '../src/engine/topic4pp';
 import { KINDS_4_3 } from '../src/engine/topic4est';
 import { KINDS_5, compatible } from '../src/engine/topic5';
 import { KINDS_5_3, compatibleBig, herRounding } from '../src/engine/topic5est';
+import { KINDS_5_5 } from '../src/engine/topic5pq';
 import { makeFreshProblem, makeProblem } from '../src/engine';
 import { HOMEWORK_MISTAKES, reworkGroups, reworkNext, reworkQueue, reworkSkill, reworkTheory } from '../src/engine/mistakes';
 import { buildQuiz } from '../src/engine/quiz';
@@ -156,6 +157,8 @@ const expected = (p: Problem): number | { q: number; r: number } | 'choice' => {
         }
         // Lesson 5-3 has sheets and choices only: every sheet is checked in its own block
         case 'est-quot': return 'choice';
+        // Lesson 5-5 has sheets and choices only: every sheet is checked in its own block
+        case 'part-quot': return 'choice';
         case 'dist-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'add' ? n('x') + n('y') : n('a') * n('b');
         case 'mult-2x2': return p.answer.kind !== 'number' ? 'choice' : p.data.style === 'sales' ? n('c1') * n('p1') + n('c2') * n('p2') : p.data.style === 'factor' ? n('p') / n('a') : n('a') * n('b');
         default: return 'choice';
@@ -1366,9 +1369,10 @@ describe('game flow', () => {
         expect(t2.filter(p => p.skill === 'div-4d').length).toBe(1);
         expect(testPlan(r, day).length).toBe(t2.length);
     });
-    test('the practice test without a day: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2, 1 of Lesson 4-3, 1 of Lesson 4-4, 1 of Lesson 4-5, 1 of Lesson 4-6, 1 of Lessons 5-1 and 5-2, 1 of Lesson 5-3 and 2 different multiplication strategies', () => {
+    test('the practice test without a day: 6 division, 5 science, 5 of Topic 3, 1 of Lesson 4-2, 1 of Lesson 4-3, 1 of Lesson 4-4, 1 of Lesson 4-5, 1 of Lesson 4-6, 1 of Lessons 5-1 and 5-2, 1 of Lesson 5-3, 1 of Lesson 5-5 and 2 different multiplication strategies', () => {
         const test1 = buildTest(newState(), makeRng(9));
-        expect(test1.length).toBe(25);
+        expect(test1.length).toBe(26);
+        expect(test1.filter(p => p.skill === 'part-quot').length).toBe(1);
         expect(test1.filter(p => p.skill === 'div-mental').length).toBe(1);
         expect(test1.filter(p => p.skill === 'est-quot').length).toBe(1);
         expect(test1.filter(p => p.skill === 'mult-2x10').length).toBe(1);
@@ -1379,7 +1383,7 @@ describe('game flow', () => {
         expect(test1.filter(p => p.topic === 'division').length).toBe(6);
         expect(test1.filter(p => p.topic === 'science').length).toBe(5);
         expect(test1.some(p => p.skill === 'sci-words')).toBe(true);
-        expect(test1.filter(p => p.topic === 'estimation').length).toBe(14);
+        expect(test1.filter(p => p.topic === 'estimation').length).toBe(15);
         expect(test1.some(p => p.skill === 'forces')).toBe(true);
         const strategies = test1.filter(p => STRATEGIES.includes(p.skill)).map(p => p.skill);
         expect(strategies.length).toBe(2);
@@ -1693,11 +1697,93 @@ describe('Lesson 5-3 homework: estimate quotients for greater dividends', () => 
         const s = newState(), day = '2026-11-16';
         expect(activeHomework(s, day).map(h => h.id)).toEqual(['lesson-5-3']);
         expect(dailyGoal(s, day).total).toBe(3 * KINDS_5_3.length + 1);
-        expect(dailyGoal(s, '2026-11-20').total).toBe(AGAIN * KINDS_5_3.length + 1);
+        // Lesson 5-5 shares the rest of the week from 2026-11-17
+        expect(dailyGoal(s, '2026-11-20').total).toBe(AGAIN * KINDS_5_3.length + 1 + AGAIN * KINDS_5_5.length);
         expect(dailyGoal(s, '2026-11-21').total).toBe(DAILY_RIGHT);
         for (let i = 0; i < 50; i++) expect(nextSkill(s, makeRng(i + 1), day)).toBe('est-quot');
         expect(chainOf('est-quot')).toContain('div-mental');
         const t = buildTest(s, makeRng(9), day);
+        for (const k of KINDS_5_3) expect(t.filter(p => p.skill === 'est-quot' && kindOf(p) === k).length).toBe(1);
+    });
+});
+
+describe('Lesson 5-5 homework: use partial quotients to divide', () => {
+    test('every sheet and choice is recomputed: the ladder, the groups, the bags band, the bar diagram, the album, equal shares, the combinations, the missing number', () => {
+        const kinds = new Set<string>();
+        let yes = 0, no = 0;
+        each('part-quot', p => {
+            const d = p.data as Record<string, number>, a = p.answer, style = String(p.data.style);
+            const num = (k: string) => Number(d[k]);
+            kinds.add(style);
+            if (style === 'ladder' || style === 'groups') {
+                if (a.kind !== 'fill') throw new Error(`${p.id}: not a sheet`);
+                const n = num('n'), dd = num('d'), q = n / dd, tens = Math.floor(q / 10) * 10, ones = q - tens;
+                expect(Number.isInteger(q)).toBe(true);
+                expect(n).toBeLessThan(100); expect(q).toBeGreaterThanOrEqual(11); expect(ones).toBeGreaterThanOrEqual(1);
+                expect(a.values).toEqual([tens, tens * dd, n - tens * dd, ones, ones * dd, q]);
+                // the biggest number of tens that fits
+                expect((tens + 10) * dd).toBeGreaterThan(n);
+            }
+            if (style === 'range') {
+                if (a.kind !== 'choice') throw new Error(`${p.id}: not a choice`);
+                const q = Math.floor(num('n') / num('d')), band = q < 10 ? 0 : q < 20 ? 1 : q < 30 ? 2 : 3;
+                expect(num('q')).toBe(q); expect(q % 10).not.toBe(0);
+                expect(num('band')).toBe(band);
+                const o = a.options[a.correct].en;
+                expect(band === 0 ? o.startsWith('Fewer than 10') : band === 3 ? o.startsWith('More than 30') : o.startsWith(`Between ${band * 10} and ${band * 10 + 10}`)).toBe(true);
+            }
+            if (style === 'bar') {
+                if (a.kind !== 'fill') throw new Error(`${p.id}: not a sheet`);
+                expect(a.values).toEqual([num('n'), num('d'), num('n') / num('d')]);
+                expect(p.visual).toMatchObject({ kind: 'bars', rows: [{ boxes: num('n') / num('d'), value: String(num('d')) }] });
+                expect(num('n') / num('d')).toBeLessThanOrEqual(16);
+            }
+            if (style === 'compare') {
+                if (a.kind !== 'fill') throw new Error(`${p.id}: not a sheet`);
+                const n = num('n'), x = num('a'), y = num('b');
+                expect(n % x).toBe(0); expect(n % y).toBe(0); expect(x).toBeLessThan(y);
+                expect(a.values).toEqual([n / x, n / y, n / x - n / y]);
+            }
+            if (style === 'equal') {
+                if (a.kind !== 'choice') throw new Error(`${p.id}: not a choice`);
+                const r = num('n') % num('d');
+                expect(num('yes')).toBe(r === 0 ? 1 : 0);
+                expect(a.options[a.correct].en.startsWith(r === 0 ? 'Yes' : 'No')).toBe(true);
+                if (r) expect(a.options[a.correct].en).toContain(`${r} ${r === 1 ? 'is' : 'are'} left over`);
+                r === 0 ? yes++ : no++;
+            }
+            if (style === 'combos') {
+                if (a.kind !== 'multi') throw new Error(`${p.id}: not a select-all`);
+                const q = num('n') / num('d'), sum = (o: L10n) => o.en.split(', ').map(Number).reduce((s, x) => s + x, 0);
+                expect(a.correct.length).toBe(2);
+                a.options.forEach((o, i) => expect(sum(o) === q).toBe(a.correct.includes(i)));
+                for (const o of a.options) for (const x of o.en.split(', ').map(Number)) expect(x).toBeGreaterThan(0);
+            }
+            if (style === 'missing') {
+                if (a.kind !== 'fill') throw new Error(`${p.id}: not a sheet`);
+                const n = num('n'), dd = num('d'), part = num('a');
+                expect(part % (10 * dd)).toBe(0);
+                expect(a.values).toEqual([n - part, (n - part) / dd, n / dd]);
+            }
+        });
+        expect(Array.from(kinds).sort()).toEqual(Array.from(KINDS_5_5).sort());
+        expect(yes).toBeGreaterThan(0); expect(no).toBeGreaterThan(0);
+        // the book's ladders: 92 ÷ 4 = 20 + 3, 48 ÷ 3 = 10 + 6, 57 ÷ 3 = 10 + 9
+        const sheet = (n: number, d: number) => { for (let seed = 1; seed < 400; seed++) { const p = makeProblem('part-quot', makeRng(seed), 'ladder'); if (p.data.n === n && p.data.d === d) return p; } return undefined; };
+        const p92 = sheet(92, 4);
+        if (p92 && p92.answer.kind === 'fill') expect(p92.answer.values).toEqual([20, 80, 12, 3, 12, 23]);
+    });
+    test('the homework of 2026-11-17: three per kind on top of the repeats of Lesson 5-3, two per kind until Friday', () => {
+        const s = newState(), day = '2026-11-17';
+        expect(activeHomework(s, day).map(h => h.id)).toEqual(['lesson-5-3', 'lesson-5-5']);
+        expect(dailyGoal(s, day).total).toBe(3 * KINDS_5_5.length + AGAIN * KINDS_5_3.length + 1);
+        expect(dailyGoal(s, '2026-11-18').total).toBe(AGAIN * KINDS_5_5.length + AGAIN * KINDS_5_3.length + 1);
+        expect(dailyGoal(s, '2026-11-21').total).toBe(DAILY_RIGHT);
+        // the newest homework of the week comes first
+        for (let i = 0; i < 50; i++) expect(nextSkill(s, makeRng(i + 1), day)).toBe('part-quot');
+        expect(chainOf('part-quot')).toContain('div-facts');
+        const t = buildTest(s, makeRng(9), day);
+        for (const k of KINDS_5_5) expect(t.filter(p => p.skill === 'part-quot' && kindOf(p) === k).length).toBe(1);
         for (const k of KINDS_5_3) expect(t.filter(p => p.skill === 'est-quot' && kindOf(p) === k).length).toBe(1);
     });
 });

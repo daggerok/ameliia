@@ -1023,6 +1023,74 @@ const topic5EstBuilders: Record<'est-quot', (rng: Rng) => { hook: L10n[]; sectio
     },
 };
 
+// Lesson 5-5 (owner's photos of 2026-11-17, Additional Practice 5-5 "Use Partial Quotients to Divide"):
+// for a 9-year-old, built around the Another Look of the sheet (48 ÷ 3 with 10 and 6) and the usual slips of the method
+
+const topic5PQBuilders: Record<'part-quot', (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
+    'part-quot': rng => {
+        const d = int(rng, 3, 6), ones = int(rng, 2, 7), q = 10 + ones, n = d * q, rest = n - 10 * d;
+        return {
+            hook: [
+                L('On City Clean-Up Day 48 people cleaned the park in groups of 3. How many groups? Take 10 groups first, then see what is left: that is dividing with partial quotients!', 'В день уборки 48 человек убирали парк группами по 3. Сколько групп? Возьми сначала 10 групп, потом посмотри, что осталось: это и есть деление частичными частными!'),
+                L('92 ÷ 4 in your head is hard. 20 fours, then 3 fours: 20 + 3 = 23. Big division becomes two small ones.', '92 ÷ 4 в уме - трудно. 20 четвёрок, потом 3 четвёрки: 20 + 3 = 23. Большое деление превращается в два маленьких.'),
+            ],
+            sections: [
+                { kind: 'idea', title: T.idea, body: [
+                    L('To divide, you can take the groups out in parts: first a big easy part, then the rest. Each part is a PARTIAL QUOTIENT. The quotient is all the parts added together.', 'Чтобы разделить, можно вынимать группы по частям: сначала большую удобную часть, потом остальное. Каждая часть - ЧАСТИЧНОЕ ЧАСТНОЕ. Частное - это все части вместе.'),
+                    L(`${n} ÷ ${d}: 10 × ${d} = ${10 * d}, ${n} − ${10 * d} = ${rest}, ${ones} × ${d} = ${rest}, ${rest} − ${rest} = 0. Partial quotients 10 and ${ones}: ${n} ÷ ${d} = ${q}.`, `${n} ÷ ${d}: 10 × ${d} = ${10 * d}, ${n} − ${10 * d} = ${rest}, ${ones} × ${d} = ${rest}, ${rest} − ${rest} = 0. Частичные частные 10 и ${ones}: ${n} ÷ ${d} = ${q}.`),
+                    L('The easy part is tens: 10 × the divisor, 20 × the divisor. You know those by heart.', 'Удобная часть - десятки: 10 × делитель, 20 × делитель. Их ты знаешь наизусть.'),
+                ] },
+                { kind: 'steps', title: T.how, body: [
+                    L('1. Estimate: how many tens of the divisor fit in the dividend? 10? 20? 30? Take the biggest that fits. Write it on the side: this is the first partial quotient.', '1. Прикинь: сколько десятков делителя помещается в делимое? 10? 20? 30? Бери самое большое, что помещается. Запиши сбоку: это первое частичное частное.'),
+                    L('2. Multiply it by the divisor and subtract from the dividend. What is left?', '2. Умножь его на делитель и вычти из делимого. Что осталось?'),
+                    L('3. How many divisors fit in what is left? Write it on the side too, multiply, subtract.', '3. Сколько делителей помещается в остаток? Тоже запиши сбоку, умножь, вычти.'),
+                    L('4. Nothing left, or less than the divisor? Stop. Add the partial quotients: that sum is the quotient.', '4. Ничего не осталось или осталось меньше делителя? Стоп. Сложи частичные частные: эта сумма и есть частное.'),
+                    L('5. Check: quotient × divisor = dividend.', '5. Проверь: частное × делитель = делимое.'),
+                ] },
+                { kind: 'example', title: L('Another Look: 48 volunteers in groups of 3', 'Ещё раз: 48 добровольцев группами по 3'), prompt: L('48 ÷ 3', '48 ÷ 3'), body: [
+                    L('Estimate: how many 3s are in 48? Try 10. 10 × 3 = 30, 48 − 30 = 18.', 'Прикинь: сколько троек в 48? Попробуй 10. 10 × 3 = 30, 48 − 30 = 18.'),
+                    L('How many 3s are in 18? 6. 6 × 3 = 18, 18 − 18 = 0.', 'Сколько троек в 18? 6. 6 × 3 = 18, 18 − 18 = 0.'),
+                    L('10 and 6 are the partial quotients. 10 + 6 = 16: 16 groups cleaned up the park.', '10 и 6 - частичные частные. 10 + 6 = 16: 16 групп убирали парк.'),
+                ] },
+                { kind: 'example', title: L('Bigger tens: 92 ÷ 4', 'Десятков больше: 92 ÷ 4'), prompt: L('92 ÷ 4', '92 ÷ 4'), body: [
+                    L('10 × 4 = 40, 20 × 4 = 80, 30 × 4 = 120: too big. Take 20. 92 − 80 = 12.', '10 × 4 = 40, 20 × 4 = 80, 30 × 4 = 120: слишком много. Бери 20. 92 − 80 = 12.'),
+                    L('How many 4s in 12? 3. 3 × 4 = 12, 12 − 12 = 0.', 'Сколько четвёрок в 12? 3. 3 × 4 = 12, 12 − 12 = 0.'),
+                    L('20 + 3 = 23. Check: 23 × 4 = 92 ✓. You may also take 10, 10 and 3: 10 + 10 + 3 = 23, the same answer with one more step.', '20 + 3 = 23. Проверка: 23 × 4 = 92 ✓. Можно брать 10, 10 и 3: 10 + 10 + 3 = 23, тот же ответ, на один шаг длиннее.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 1: the quotient is the SUM', 'Ловушка 1: частное - это СУММА'), prompt: L('57 ÷ 3', '57 ÷ 3'), body: [
+                    L('10 × 3 = 30, 57 − 30 = 27, 9 × 3 = 27, 27 − 27 = 0.', '10 × 3 = 30, 57 − 30 = 27, 9 × 3 = 27, 27 − 27 = 0.'),
+                    L('The answer is not 9 and not 10. Add the partial quotients: 10 + 9 = 19. 57 ÷ 3 = 19.', 'Ответ - не 9 и не 10. Сложи частичные частные: 10 + 9 = 19. 57 ÷ 3 = 19.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 2: stopped too early', 'Ловушка 2: остановилась слишком рано'), prompt: L('84 ÷ 6', '84 ÷ 6'), body: [
+                    L('10 × 6 = 60, 84 − 60 = 24. Is 24 the end? No: 6 still fits in 24, so keep going.', '10 × 6 = 60, 84 − 60 = 24. Это конец? Нет: 6 ещё помещается в 24, значит продолжай.'),
+                    L('4 × 6 = 24, 24 − 24 = 0. Now stop: 10 + 4 = 14.', '4 × 6 = 24, 24 − 24 = 0. Теперь стоп: 10 + 4 = 14.'),
+                    L('Stop only when what is left is 0 or smaller than the divisor.', 'Останавливайся, только когда осталось 0 или меньше делителя.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 3: one zero, not two', 'Ловушка 3: один ноль, а не два'), prompt: L('10 × 4', '10 × 4'), body: [
+                    L('10 × 4 = 40, not 400. One zero in 10, one zero in the product. 20 × 4 = 80, 30 × 4 = 120.', '10 × 4 = 40, а не 400. Один ноль в 10 - один ноль в произведении. 20 × 4 = 80, 30 × 4 = 120.'),
+                    L('A wrong product makes a wrong subtraction, and the whole ladder falls. Say the fact out loud: 4 × 2 = 8, so 4 × 20 = 80.', 'Неверное произведение даёт неверное вычитание, и вся лесенка рушится. Проговори пример: 4 × 2 = 8, значит 4 × 20 = 80.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 4: Ryan\'s 85 pennies for 4 friends', 'Ловушка 4: 85 монеток Райана на 4 друзей'), prompt: L('Can he share them equally?', 'Можно ли поделить поровну?'), body: [
+                    L('20 × 4 = 80, 85 − 80 = 5. 1 × 4 = 4, 5 − 4 = 1. 1 is left, and 1 is less than 4: it cannot be shared.', '20 × 4 = 80, 85 − 80 = 5. 1 × 4 = 4, 5 − 4 = 1. Осталась 1, а 1 меньше 4: её не поделить.'),
+                    L('Each friend gets 21 pennies and 1 penny is left over. Equally? No. "Equally" means nothing is left.', 'Каждому другу по 21 монетке, и 1 монетка остаётся. Поровну? Нет. «Поровну» значит, что ничего не остаётся.'),
+                ] },
+                { kind: 'example', title: L('Tricky spot 5: the Distributive Property', 'Ловушка 5: распределительное свойство'), prompt: L('95 ÷ 5 with 95 broken into 50 + ▢', '95 ÷ 5, где 95 разбито на 50 + ▢'), body: [
+                    L('The two parts must make 95: 95 − 50 = 45. The missing number is 45, not 9 and not 15.', 'Две части должны дать 95: 95 − 50 = 45. Пропущено 45, а не 9 и не 15.'),
+                    L('Then divide each part: 50 ÷ 5 = 10, 45 ÷ 5 = 9, and 10 + 9 = 19. The same partial quotients, written in a line.', 'Потом раздели каждую часть: 50 ÷ 5 = 10, 45 ÷ 5 = 9, и 10 + 9 = 19. Те же частичные частные, только в строчку.'),
+                ] },
+                { kind: 'warn', title: T.warn, body: [
+                    L('"Fewer than 10 bags or between 20 and 30?" Do not divide to the end: 3 × 20 = 60, 3 × 30 = 90, and 78 is between them, so between 20 and 30 bags.', '«Меньше 10 пакетов или от 20 до 30?» Не дели до конца: 3 × 20 = 60, 3 × 30 = 90, а 78 между ними, значит от 20 до 30 пакетов.'),
+                    L('"Select all": a set of partial quotients is right when its numbers add up to the quotient. 74 ÷ 2 = 37: 20, 10, 7 ✓ and 30, 7 ✓, but 30, 2 makes 32 ✗.', '«Отметь все»: набор частичных частных верный, когда его числа в сумме дают частное. 74 ÷ 2 = 37: 20, 10, 7 ✓ и 30, 7 ✓, а 30, 2 даёт 32 ✗.'),
+                    L('"How many more pages with 4 on a page than with 6?" Two divisions, then subtract: 84 ÷ 4 = 21, 84 ÷ 6 = 14, 21 − 14 = 7.', '«На сколько больше страниц по 4, чем по 6?» Два деления, потом вычитание: 84 ÷ 4 = 21, 84 ÷ 6 = 14, 21 − 14 = 7.'),
+                ] },
+                { kind: 'trick', title: T.trick, body: [
+                    L('Tens, take, subtract, again, add: take the tens, subtract, take the rest, subtract, add the parts.', 'Десятки, бери, вычти, снова, сложи: бери десятки, вычти, бери остаток, вычти, сложи части.'),
+                ] },
+            ],
+        };
+    },
+};
+
 const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[] }> = {
     ...strategyBuilders,
     ...wordBuilders,
@@ -1034,6 +1102,7 @@ const builders: Record<SkillId, (rng: Rng) => { hook: L10n[]; sections: Section[
     ...topic4PPBuilders,
     ...topic5Builders,
     ...topic5EstBuilders,
+    ...topic5PQBuilders,
     ...factsBuilders,
     'div-facts': rng => {
         const d = int(rng, 3, 9), q = int(rng, 3, 9), n = d * q;
@@ -1429,6 +1498,7 @@ const NEEDS: Partial<Record<SkillId, SkillId[]>> = {
     'pp-2x2': ['dist-2x2', 'mult-partial'],
     'div-mental': ['div-facts', 'mult-tens'],
     'est-quot': ['div-mental', 'mult-tens'],
+    'part-quot': ['div-facts', 'mult-tens'],
     'mult-facts': [],
 };
 

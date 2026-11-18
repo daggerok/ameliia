@@ -13,7 +13,7 @@ export type SkillId =
     | 'mult-area' | 'mult-dist' | 'mult-partial' | 'mult-standard'
     | 'compare' | 'word-steps'
     | 'mult-tens' | 'mult-mental' | 'mult-expr' | 'mult-word'
-    | 'mult-2x10' | 'est-2x2' | 'mult-2x2' | 'dist-2x2' | 'pp-2x2' | 'div-mental' | 'est-quot'
+    | 'mult-2x10' | 'est-2x2' | 'mult-2x2' | 'dist-2x2' | 'pp-2x2' | 'div-mental' | 'est-quot' | 'part-quot'
     | 'mult-facts';
 
 export type Answer =
@@ -156,14 +156,14 @@ export const TOPIC_OF: Record<SkillId, Topic> = {
     'mult-area': 'estimation', 'mult-dist': 'estimation', 'mult-partial': 'estimation', 'mult-standard': 'estimation',
     'compare': 'estimation', 'word-steps': 'estimation',
     'mult-tens': 'estimation', 'mult-mental': 'estimation', 'mult-expr': 'estimation', 'mult-word': 'estimation',
-    'mult-2x10': 'estimation', 'est-2x2': 'estimation', 'mult-2x2': 'estimation', 'dist-2x2': 'estimation', 'pp-2x2': 'estimation', 'div-mental': 'estimation', 'est-quot': 'estimation', 'mult-facts': 'estimation',
+    'mult-2x10': 'estimation', 'est-2x2': 'estimation', 'mult-2x2': 'estimation', 'dist-2x2': 'estimation', 'pp-2x2': 'estimation', 'div-mental': 'estimation', 'est-quot': 'estimation', 'part-quot': 'estimation', 'mult-facts': 'estimation',
 };
 
 export const SKILLS_OF: Record<Topic, SkillId[]> = {
     division: ['div-facts', 'div-2d', 'div-3d', 'div-zero', 'div-4d', 'div-rem', 'div-word', 'div-check'],
     science: ['speed-basic', 'speed-find', 'speed-trip', 'speed-units', 'motion-ideas', 'forces', 'sci-words'],
     estimation: ['round', 'est-sum', 'est-product', 'multiply', 'mult-area', 'mult-dist', 'mult-partial', 'mult-standard', 'compare', 'word-steps',
-        'mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'pp-2x2', 'div-mental', 'est-quot', 'mult-facts'],
+        'mult-tens', 'mult-mental', 'mult-expr', 'mult-word', 'mult-2x10', 'est-2x2', 'mult-2x2', 'dist-2x2', 'pp-2x2', 'div-mental', 'est-quot', 'part-quot', 'mult-facts'],
 };
 
 // share of learning time the owner asked for
@@ -206,6 +206,7 @@ export const SKILL_NAME: Record<SkillId, L10n> = {
     'pp-2x2': L('Partial products in a column: 2-digit × 2-digit', 'Частичные произведения столбиком: двузначное × двузначное'),
     'div-mental': L('Mental math: find and estimate quotients', 'Деление в уме: найди и прикинь частное'),
     'est-quot': L('Mental math: estimate quotients for greater dividends', 'Деление в уме: прикидка частного для больших чисел'),
+    'part-quot': L('Partial quotients to divide', 'Деление частичными частными'),
     'mult-facts': L('Memory check: multiplication facts 0 × 0 to 9 × 9, × 10 and × 100', 'Проверка памяти: таблица умножения от 0 × 0 до 9 × 9, × 10 и × 100'),
 };
 
