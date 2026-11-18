@@ -7,6 +7,7 @@ import { KINDS_4_4 } from './topic4arr';
 import { KINDS_4_6 } from './topic4pp';
 import { KINDS_5 } from './topic5';
 import { KINDS_5_3 } from './topic5est';
+import { KINDS_5_5 } from './topic5pq';
 import { KINDS_4_3 } from './topic4est';
 
 // Every kind of task a skill can ask (the `kind` of `kindOf` in game.ts), with a short name for the Progress screen,
@@ -141,6 +142,16 @@ const NAMES: Partial<Record<SkillId, Record<string, L10n>>> = {
         twoways: L('Two estimates of 4,396 ÷ 4: the nearest hundred and the nearest thousand', 'Две прикидки 4 396 ÷ 4: до сотни и до тысячи'),
         best: L('The best estimate: $3,705 in 6 months, 1,795 students in 5 schools', 'Лучшая прикидка: $3 705 за 6 месяцев, 1 795 учеников в 5 школах'),
     },
+    'part-quot': {
+        ladder: L('Partial quotients: 4)92, the tens first, then the ones, add them', 'Частичные частные: 92 ÷ 4, сначала десятки, потом единицы, сложи'),
+        groups: L('City Clean-Up Day: 48 volunteers in groups of 3', 'День уборки: 48 добровольцев группами по 3'),
+        range: L('Nina\'s treats: fewer than 10 bags, 10 to 20, 20 to 30 or more than 30', 'Угощения Нины: меньше 10 пакетов, от 10 до 20, от 20 до 30 или больше 30'),
+        bar: L('Victor\'s laps: a bar diagram, write and solve the equation', 'Круги Виктора: схема из полосок, запиши и реши уравнение'),
+        compare: L('Georgena\'s pictures: how many more pages with 4 on a page than with 6', 'Фотографии Джорджины: на сколько больше страниц по 4, чем по 6'),
+        equal: L('Ryan\'s 85 pennies: can he share them equally among 4 friends', '85 монеток Райана: можно ли поделить поровну на 4 друзей'),
+        combos: L('Select all the combinations of partial quotients for 74 ÷ 2', 'Выбери все наборы частичных частных для 74 ÷ 2'),
+        missing: L('The Distributive Property: 95 ÷ 5 with 95 as 50 + ▢, the missing number', 'Распределительное свойство: 95 ÷ 5, где 95 - это 50 + ▢, пропущенное число'),
+    },
     'mult-facts': {
         fact: L('Multiplication facts 0 × 0 to 9 × 9 from memory', 'Таблица умножения от 0 × 0 до 9 × 9 по памяти'),
         ten: L('× 10, × 100, × 1,000: just write the zeros', '× 10, × 100, × 1 000: просто припиши нули'),
@@ -168,4 +179,5 @@ export const LESSON_4_5_KINDS: readonly string[] = KINDS_4_5;
 export const LESSON_4_6_KINDS: readonly string[] = KINDS_4_6;
 export const LESSON_5_KINDS: readonly string[] = KINDS_5;
 export const LESSON_5_3_KINDS: readonly string[] = KINDS_5_3;
+export const LESSON_5_5_KINDS: readonly string[] = KINDS_5_5;
 export const MEMORY_KINDS: readonly string[] = KINDS_FACTS;

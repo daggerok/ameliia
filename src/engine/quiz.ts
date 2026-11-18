@@ -72,6 +72,8 @@ const concepts: Partial<Record<SkillId, (rng: Rng) => Problem[]>> = {
     'div-mental': rng => [makeProblem('div-mental', rng, pick(rng, ['wrong', 'enough']))],
     // which color runs out, more or less than the estimate, the best estimate: the choice tasks of Lesson 5-3
     'est-quot': rng => [makeProblem('est-quot', rng, pick(rng, ['runout', 'moreless', 'best']))],
+    // the bags band and the equal shares: the choice tasks of Lesson 5-5
+    'part-quot': rng => [makeProblem('part-quot', rng, pick(rng, ['range', 'equal']))],
     'mult-tens': rng => {
         const [m, d] = pick(rng, [[5, 2], [5, 4], [5, 6], [5, 8], [2, 5], [4, 5], [6, 5], [8, 5]]);
         const z = int(rng, 2, 3), b = d * 10 ** z, p = m * b;
